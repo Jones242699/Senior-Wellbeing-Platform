@@ -1,31 +1,14 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { getApiBase } from '../config/api'
 import { loadOsmMapsApi } from '../utils/osmMaps'
 
 const MELBOURNE_CENTER = { lat: -37.8136, lng: 144.9631 }
-const DEFAULT_COUNSELING_API_BASE = 'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
 
 /** When DB centers sit in the CBD but the user is far away, first query uses this radius (m). */
 const DEFAULT_SEARCH_RADIUS_METERS = 90000
 /** If nothing is returned around the user, query around Melbourne CBD (m) then sort by distance to the user. */
 const CBD_ANCHOR_FALLBACK_RADIUS_METERS = 12000
-
-function pickValidApiBase(...candidates) {
-  for (const raw of candidates) {
-    const value = typeof raw === 'string' ? raw.trim() : ''
-    if (!value) continue
-    // Ignore placeholder examples accidentally copied into production env vars.
-    if (/xxxx|example|your-api/i.test(value)) continue
-    const normalized = value.replace(/\/$/, '')
-    try {
-      const parsed = new URL(normalized)
-      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return normalized
-    } catch {
-      // Skip malformed URLs and continue trying the next candidate.
-    }
-  }
-  return DEFAULT_COUNSELING_API_BASE
-}
 
 const mapContainerRef = ref(null)
 const queryInputRef = ref(null)
@@ -275,7 +258,7 @@ function buildCounselingCentersFetchUrl(lat, lng, radiusMeters) {
   if (import.meta.env.DEV) {
     return `/__counseling/counseling-centers?${params}`
   }
-  const base = pickValidApiBase(import.meta.env.VITE_COUNSELING_API_BASE)
+  const base = getApiBase(import.meta.env.VITE_COUNSELING_API_BASE)
   return `${base}/counseling-centers?${params}`
 }
 

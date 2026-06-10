@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { buildApiUrl, getApiBase } from '../config/api'
 import { loadOsmMapsApi } from '../utils/osmMaps'
 
 const router = useRouter()
@@ -37,7 +38,6 @@ const RADIUS_OPTIONS = [
 
 const DEFAULT_CATEGORY_KEYS = CATEGORY_OPTIONS.map((option) => option.key)
 const DEFAULT_RADIUS = 1000
-const DISCOVER_API_BASE_URL = 'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
 const DISCOVER_DEFAULT_LIMIT = 200
 const RESTAURANT_MAP_RANDOM_PICK_LIMIT = 60
 const VENUES_DEFAULT_LIMIT = 5000
@@ -363,9 +363,7 @@ function buildQueryOptions() {
 }
 
 function buildPlacesApiUrl() {
-  const configuredBase = String(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL || '').trim()
-  const baseUrl = configuredBase || DISCOVER_API_BASE_URL
-  const endpoint = new URL('/places', baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`)
+  const endpoint = buildApiUrl('/places', getApiBase(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL))
   const { queryLimit, queryRadius } = buildQueryOptions()
   endpoint.searchParams.set('limit', String(queryLimit))
   endpoint.searchParams.set('radius', String(queryRadius))
@@ -377,9 +375,7 @@ function buildPlacesApiUrl() {
 }
 
 function buildVenuesApiUrl() {
-  const configuredBase = String(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL || '').trim()
-  const baseUrl = configuredBase || DISCOVER_API_BASE_URL
-  const endpoint = new URL('/venues', baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`)
+  const endpoint = buildApiUrl('/venues', getApiBase(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL))
   const { queryRadius } = buildQueryOptions()
   // Venues around CBD are dense; wider radius bands need a higher limit to avoid top-N truncation.
   const venuesLimit =
@@ -835,9 +831,7 @@ function buildAddressDerivedRoadGroups(places, existingRoadLabelSet, crowdRecord
 }
 
 function buildCrowdDensityApiUrl() {
-  const configuredBase = String(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL || '').trim()
-  const baseUrl = configuredBase || DISCOVER_API_BASE_URL
-  const endpoint = new URL('/crowd-density', baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`)
+  const endpoint = buildApiUrl('/crowd-density', getApiBase(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL))
   const { queryRadius } = buildQueryOptions()
   endpoint.searchParams.set('radius', String(Math.max(queryRadius, CROWD_DENSITY_MIN_RADIUS)))
   endpoint.searchParams.set('limit', String(CROWD_DENSITY_DEFAULT_LIMIT))
@@ -1150,13 +1144,14 @@ async function loadPlaceDetail(place) {
   if (!place?.id || loadingDetailIds.value.has(place.id) || detailById.value.has(place.id)) return
   loadingDetailIds.value.add(place.id)
   try {
-    const configuredBase = String(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL || '').trim()
-    const baseUrl = configuredBase || DISCOVER_API_BASE_URL
     const detailEndpoint =
       place.sourceType === 'venues'
         ? `/venues/${encodeURIComponent(place.sourceId)}`
         : `/places/${encodeURIComponent(place.sourceId)}`
-    const detailUrl = new URL(detailEndpoint, baseUrl).toString()
+    const detailUrl = buildApiUrl(
+      detailEndpoint,
+      getApiBase(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL),
+    ).toString()
     const response = await fetch(detailUrl)
     if (!response.ok) throw new Error(`Failed to load place detail (${response.status})`)
     const detailPayload = parsePlacesPayload(await response.json())[0]
@@ -1943,8 +1938,9 @@ async function loadPlaces() {
     allPlaces.value = []
     console.error('[Discover Places] Failed to load places:', error)
   } finally {
-    if (requestId !== placesRequestSeq) return
-    isLoadingPlaces.value = false
+    if (requestId === placesRequestSeq) {
+      isLoadingPlaces.value = false
+    }
   }
 }
 

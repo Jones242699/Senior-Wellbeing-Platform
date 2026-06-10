@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { getApiBase } from '../config/api'
 import { loadOsmMapsApi } from '../utils/osmMaps'
 
 const route = useRoute()
@@ -61,7 +62,6 @@ const TRAVEL_MODES = [
 ]
 
 const MELBOURNE = { lat: -37.8136, lng: 144.9631 }
-const DEFAULT_COUNSELING_API_BASE = 'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
 const MELBOURNE_METRO_BOUNDS = {
   minLat: -38.55,
   maxLat: -37.2,
@@ -89,23 +89,6 @@ const MELBOURNE_CITY_SHADE_BOUNDS = {
   maxLat: -37.78,
   minLng: 144.9,
   maxLng: 145.02,
-}
-
-function pickValidApiBase(...candidates) {
-  for (const raw of candidates) {
-    const value = typeof raw === 'string' ? raw.trim() : ''
-    if (!value) continue
-    // Ignore placeholder examples accidentally copied into production env vars.
-    if (/xxxx|example|your-api/i.test(value)) continue
-    const normalized = value.replace(/\/$/, '')
-    try {
-      const parsed = new URL(normalized)
-      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return normalized
-    } catch {
-      // Skip malformed URLs and continue trying the next candidate.
-    }
-  }
-  return DEFAULT_COUNSELING_API_BASE
 }
 
 function isPathWithinBounds(pathPoints, bounds) {
@@ -694,7 +677,7 @@ function buildBenchesFetchUrl(params) {
   if (import.meta.env.DEV) {
     return `/__counseling/benches?${qs}`
   }
-  const base = pickValidApiBase(
+  const base = getApiBase(
     import.meta.env.VITE_BENCHES_API_BASE,
     import.meta.env.VITE_COUNSELING_API_BASE,
   )
@@ -707,7 +690,7 @@ function buildSocialScoreFetchUrl() {
   if (import.meta.env.DEV) {
     return `/__social-score${path}`
   }
-  const base = pickValidApiBase(
+  const base = getApiBase(
     import.meta.env.VITE_SOCIAL_SCORE_API_BASE,
     import.meta.env.VITE_COUNSELING_API_BASE,
   )
@@ -720,7 +703,7 @@ function buildShadeScoreFetchUrl() {
   if (import.meta.env.DEV) {
     return `/__shade-score${path}`
   }
-  const base = pickValidApiBase(
+  const base = getApiBase(
     import.meta.env.VITE_SHADE_SCORE_API_BASE,
     import.meta.env.VITE_COUNSELING_API_BASE,
   )

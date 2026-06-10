@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { getApiBase } from '../config/api'
 import { loadOsmMapsApi } from '../utils/osmMaps'
 
 const MELBOURNE_CENTER = { lat: -37.8136, lng: 144.9631 }
@@ -23,25 +24,8 @@ const MELBOURNE_METRO_BOUNDS = {
   minLng: 144.2,
   maxLng: 145.9,
 }
-const DEFAULT_EVENTS_API_BASE = 'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
 const EVENTS_FETCH_LIMIT = 100
 const EVENTS_KEYWORD_SEARCH_LIMIT = 20
-
-function pickValidApiBase(...candidates) {
-  for (const raw of candidates) {
-    const value = typeof raw === 'string' ? raw.trim() : ''
-    if (!value) continue
-    if (/xxxx|example|your-api/i.test(value)) continue
-    const normalized = value.replace(/\/$/, '')
-    try {
-      const parsed = new URL(normalized)
-      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return normalized
-    } catch {
-      // ignore invalid URL candidate
-    }
-  }
-  return DEFAULT_EVENTS_API_BASE
-}
 
 const router = useRouter()
 const loading = ref(false)
@@ -210,7 +194,7 @@ async function fetchNearbyEvents({ lat, lng, sourceLabel }) {
   loading.value = true
   errorText.value = ''
   try {
-    const base = pickValidApiBase(import.meta.env.VITE_EVENTS_API_BASE)
+    const base = getApiBase(import.meta.env.VITE_EVENTS_API_BASE)
     const url = new URL(`${base}/events`)
     url.searchParams.set('lat', String(lat))
     url.searchParams.set('lng', String(lng))

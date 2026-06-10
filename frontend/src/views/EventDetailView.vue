@@ -1,24 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-
-const DEFAULT_EVENTS_API_BASE = 'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
-
-function pickValidApiBase(...candidates) {
-  for (const raw of candidates) {
-    const value = typeof raw === 'string' ? raw.trim() : ''
-    if (!value) continue
-    if (/xxxx|example|your-api/i.test(value)) continue
-    const normalized = value.replace(/\/$/, '')
-    try {
-      const parsed = new URL(normalized)
-      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return normalized
-    } catch {
-      // ignore invalid URL candidate
-    }
-  }
-  return DEFAULT_EVENTS_API_BASE
-}
+import { getApiBase } from '../config/api'
 
 const route = useRoute()
 const loading = ref(false)
@@ -81,7 +64,7 @@ async function fetchDetail() {
   detail.value = null
   try {
     const eventId = route.params.id
-    const base = pickValidApiBase(import.meta.env.VITE_EVENTS_API_BASE)
+    const base = getApiBase(import.meta.env.VITE_EVENTS_API_BASE)
     const response = await fetch(`${base}/events/${eventId}`)
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     detail.value = await response.json()
