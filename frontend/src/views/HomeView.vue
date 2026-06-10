@@ -1,475 +1,682 @@
 <template>
   <div class="home-wrapper">
-    <!-- Hero Section -->
+
+    <!-- ================= HERO ================= -->
+
     <section class="hero-section">
-      <div class="glass-panel main-intro">
-        <h1 class="headline">
-          <span class="text-dark">Find Connection</span><br />
-          <span class="text-green">Close to Home.</span>
-        </h1>
-        <p class="description">
-          Growing older shouldn't mean feeling alone. We help Melbourne seniors over 60 discover
-          local activities and access mental support resources.
-        </p>
-        <router-link to="/my-routes" class="btn-solid btn-hero-route btn-large">
-          Start Your Customized Route
-        </router-link>
+
+      <div class="hero-content">
+
+        <div class="hero-inner">
+
+          <p class="hero-tag">
+            CITY OF MELBOURNE • AGED 60+
+          </p>
+
+          <h1 class="headline">
+
+            <span>
+              Find Connection
+            </span>
+
+            <span class="text-green">
+              Close to Home.
+            </span>
+
+          </h1>
+
+          <p class="hero-description">
+            Supporting adults aged 60+
+            across the City of Melbourne
+            through community connection,
+            local activities,
+            and wellbeing support.
+          </p>
+
+          <div class="hero-actions">
+
+            <router-link
+              to="/discover-nearby-places"
+              class="btn-solid"
+            >
+              Explore Community
+            </router-link>
+
+            <router-link
+              to="/my-routes"
+              class="btn-outline"
+            >
+              Route Planning
+            </router-link>
+
+          </div>
+
+        </div>
+
       </div>
+
     </section>
 
-    <!-- Feature Sections -->
-    <div class="features-container">
-      <!-- Section 1: Dashboard -->
-      <section id="community-dashboard" class="feature-section dashboard-bg">
-        <p class="feature-step-heading">Step 1</p>
-        <div class="feature-card">
-          <h2 class="feature-title">Community Health Dashboard</h2>
-          <p class="feature-description">
-            See key wellbeing trends at a glance.
-          </p>
-          <ul class="feature-list">
-            <li>
-              📊 <strong>Quick view:</strong> Core loneliness and wellbeing signals.
-            </li>
-            <li>
-              🧠 <strong>Useful context:</strong> Understand what matters locally.
-            </li>
-            <li>
-              🤝 <strong>Action focus:</strong> Turn insights into support decisions.
-            </li>
-          </ul>
-          <router-link to="/dashboard" class="btn-solid btn-primary btn-large">
-            Open Dashboard
-          </router-link>
-        </div>
-      </section>
+    <!-- ================= INSIGHTS ================= -->
 
-      <!-- Section 2: Discover Nearby Places -->
-      <section id="discover-places" class="feature-section discover-bg">
-        <p class="feature-step-heading">Step 2</p>
-        <div class="feature-card">
-          <h2 class="feature-title">Discover Nearby Places</h2>
-          <p class="feature-description">
-            Find calm places near home for light social activity.
-          </p>
-          <ul class="feature-list">
-            <li>
-              📍 <strong>Nearby options:</strong> Parks, libraries, and community spots.
-            </li>
-            <li>
-              🌿 <strong>Low pressure:</strong> Gentle places to step out comfortably.
-            </li>
-            <li>
-              🗺️ <strong>Easy choice:</strong> Pick what fits your pace today.
-            </li>
-          </ul>
-          <router-link to="/discover-nearby-places" class="btn-solid btn-primary btn-large">
-            Discover Places
-          </router-link>
-        </div>
-      </section>
+    <section class="insights-section">
 
-      <!-- Section 3: Route Planning -->
-      <section id="custom-routes" class="feature-section routes-bg">
-        <p class="feature-step-heading">Step 3</p>
-        <div class="feature-card">
-          <h2 class="feature-title">Customized Routes</h2>
-          <p class="feature-description">
-            Plan a route that feels safe, simple, and comfortable.
+      <div class="insights-wrapper">
+
+        <div class="insights-left">
+
+          <p class="section-tag">
+            WHY SOCIAL CONNECTION MATTERS
           </p>
-          <ul class="feature-list">
-            <li>
-              🌲 <strong>Shade aware:</strong> Prefer cooler walking paths.
-            </li>
-            <li>
-              🚻 <strong>Comfort stops:</strong> Find toilets and benches on route.
-            </li>
-            <li>🚶 <strong>Travel your way:</strong> Walk, cycle, drive, or transit.</li>
-          </ul>
-          <router-link to="/my-routes" class="btn-solid btn-primary btn-large">
+
+          <h2 class="section-title">
+            Staying Connected
+            Supports Healthy Ageing
+          </h2>
+
+          <p class="section-description">
+            Loneliness can affect emotional wellbeing,
+            confidence, and quality of life.
+            Community participation and accessible support
+            help older adults remain socially active.
+          </p>
+
+          <router-link
+            to="/dashboard"
+            class="btn-solid"
+          >
+            Explore Full Insights
+          </router-link>
+
+        </div>
+
+        <div class="insights-right">
+
+          <div class="insight-card">
+
+            <h3>
+              1 in 3 Australians
+            </h3>
+
+            <p>
+              report moderate loneliness
+              across different age groups.
+            </p>
+
+          </div>
+
+          <div class="insight-card">
+
+            <h3>
+              Community Participation
+            </h3>
+
+            <p>
+              improves emotional wellbeing
+              and social confidence.
+            </p>
+
+          </div>
+
+          <div class="insight-card">
+
+            <h3>
+              Local Accessibility
+            </h3>
+
+            <p>
+              helps older adults remain
+              active and engaged.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ================= JOURNEY ================= -->
+
+    <section class="journey-section">
+
+      <div class="section-header">
+
+        <p class="section-tag">
+          HOW WOULD YOU LIKE TO BEGIN?
+        </p>
+
+        <h2 class="section-title">
+          Explore Melbourne Your Way
+        </h2>
+
+      </div>
+
+      <div class="journey-grid">
+
+        <!-- CARD 1 -->
+
+        <div class="journey-card">
+
+          <div class="step-number">
+            01
+          </div>
+
+          <h3>
+            Explore Your Community
+          </h3>
+
+          <p>
+            Find welcoming places,
+            cafés, libraries, parks,
+            and local activities nearby.
+          </p>
+
+          <div class="card-actions">
+
+            <router-link
+              to="/discover-nearby-places"
+              class="btn-solid"
+            >
+              Explore Places
+            </router-link>
+
+            <router-link
+              to="/nearby-events"
+              class="btn-outline"
+            >
+              Explore Events
+            </router-link>
+
+          </div>
+
+        </div>
+
+        <!-- CARD 2 -->
+
+        <div class="journey-card featured-card">
+
+          <div class="step-number">
+            02
+          </div>
+
+          <h3>
+            Walk With Confidence
+          </h3>
+
+          <p>
+            Discover more comfortable
+            walking routes with nearby
+            facilities and support access.
+          </p>
+
+          <router-link
+            to="/my-routes"
+            class="btn-solid light-btn"
+          >
             Start Route Planning
           </router-link>
-        </div>
-      </section>
 
-      <!-- Section 4: Mental Health -->
-      <section id="mental-support" class="feature-section mental-bg">
-        <p class="feature-step-heading">Step 4</p>
-        <div class="feature-card">
-          <h2 class="feature-title">Mental Health Support</h2>
-          <p class="feature-description">
-            Get support nearby when you need it.
+        </div>
+
+        <!-- CARD 3 -->
+
+        <div class="journey-card">
+
+          <div class="step-number">
+            03
+          </div>
+
+          <h3>
+            Find Wellbeing Support
+          </h3>
+
+          <p>
+            Access nearby counselling
+            services and wellbeing
+            resources across Melbourne.
           </p>
-          <ul class="feature-list">
-            <li>
-              📍 <strong>Local services:</strong> Find counseling and support centers fast.
-            </li>
-            <li>
-              🗺️ <strong>Direct guidance:</strong> Open route directions in one click.
-            </li>
-          </ul>
-          <router-link to="/nearby-mental-support" class="btn-solid btn-primary btn-large">
-            Find Support
-          </router-link>
-        </div>
-      </section>
 
-      <!-- Section 5: Nearby Events -->
-      <section id="nearby-events" class="feature-section events-bg">
-        <p class="feature-step-heading">Step 5</p>
-        <div class="feature-card">
-          <h2 class="feature-title">Nearby Events</h2>
-          <p class="feature-description">
-            Find local events using your current location or an address.
+          <router-link
+            to="/nearby-mental-support"
+            class="btn-solid"
+          >
+            View Support Services
+          </router-link>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ================= FOOTER ================= -->
+
+    <footer class="footer">
+
+      <div class="footer-content">
+
+        <div class="footer-brand">
+
+          <h3>
+            Melbourne Wellbeing Guide
+          </h3>
+
+          <p>
+            Supporting adults aged 60+
+            across the City of Melbourne
+            through community engagement
+            and social connection.
           </p>
-          <ul class="feature-list">
-            <li>
-              📍 <strong>Location-first:</strong> Search by real-time location or typed address.
-            </li>
-            <li>
-              🎵 <strong>Elderly-friendly:</strong> Community, wellness, music, and social activities.
-            </li>
-            <li>
-              🧾 <strong>Full details:</strong> Open event details, venue info, and ticket links.
-            </li>
-          </ul>
-          <router-link to="/nearby-events" class="btn-solid btn-primary btn-large">
-            Explore Events
-          </router-link>
-        </div>
-      </section>
-    </div>
 
-    <!-- Footer Credit -->
-    <footer class="home-footer">
-      <p>&copy; 2026 Melbourne Senior Community Support. All rights reserved.</p>
+        </div>
+
+        <div class="footer-links">
+
+          <router-link to="/discover-nearby-places">
+            Places
+          </router-link>
+
+          <router-link to="/nearby-events">
+            Events
+          </router-link>
+
+          <router-link to="/my-routes">
+            Routes
+          </router-link>
+
+          <router-link to="/dashboard">
+            Insights
+          </router-link>
+
+        </div>
+
+      </div>
+
     </footer>
+
   </div>
 </template>
 
-<script setup>
-// No script logic needed for now, but keeping setup for future use
-</script>
-
 <style scoped>
+
 .home-wrapper {
-  position: relative;
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
-  box-sizing: border-box;
-  background-color: #f8fbf8;
-  background-image:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.28) 100%),
-    url('@/assets/hero-bg.png');
-  background-size: cover, cover;
-  background-position: center, center;
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: fixed, fixed;
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  background: #f7faf8;
+  color: #1f2937;
 }
 
-.home-wrapper *,
-.home-wrapper *::before,
-.home-wrapper *::after {
-  box-sizing: border-box;
-}
+/* ================= HERO ================= */
 
 .hero-section {
-  min-height: calc(100vh - 80px);
+  padding: 140px 32px 120px;
+
+  background:
+    linear-gradient(
+      rgba(247,250,248,0.82),
+      rgba(247,250,248,0.88)
+    ),
+    url("https://allsaintsseniorliving.com/wp-content/uploads/2023/04/How-Social-Connections-Keep-Seniors-Healthy-Hero.jpg");
+
+  background-size: cover;
+  background-position: center;
+
+  border-bottom-left-radius: 48px;
+  border-bottom-right-radius: 48px;
+}
+
+.hero-content {
+  max-width: 1280px;
+
+  margin: 0 auto;
+
   display: flex;
   justify-content: center;
-  align-items: center;
-  position: relative;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.main-intro {
-  max-width: 850px;
-  margin: 0 20px;
-  animation: fadeIn 1s ease-out;
-}
+.hero-inner {
+  max-width: 760px;
 
-.glass-panel {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 40px;
-  padding: 60px 50px;
   text-align: center;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+}
+
+.hero-tag {
+  font-size: 13px;
+  font-weight: 700;
+
+  letter-spacing: 1.5px;
+
+  color: #4f7c65;
+
+  margin-bottom: 24px;
 }
 
 .headline {
-  font-size: 3.75rem;
-  font-weight: 800;
-  line-height: 1.2;
-  margin-bottom: 24px;
-  letter-spacing: -0.02em;
+  font-size: 82px;
+  line-height: 1.05;
+
+  margin-bottom: 30px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.text-dark {
-  color: #1e293b;
-}
 .text-green {
-  color: #166534;
+  color: #4f7c65;
 }
 
-.description {
-  font-size: 1.5rem;
-  color: #475569;
-  line-height: 1.6;
-  margin-bottom: 36px;
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
+.hero-description {
+  max-width: 760px;
+
+  margin: 0 auto 42px;
+
+  font-size: 22px;
+  line-height: 1.8;
+
+  color: #5f6775;
 }
 
-/* --- Features Sections --- */
-.features-container {
-  width: 100%;
-  max-width: min(100%, 1440px);
-  margin-inline: auto;
-  padding: 56px clamp(20px, 4vw, 48px) 124px;
+.hero-actions {
+  display: flex;
+
+  justify-content: center;
+
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ================= INSIGHTS ================= */
+
+.insights-section {
+  padding: 40px 32px 56px;
+}
+
+.insights-wrapper {
+  max-width: 1280px;
+
+  margin: 0 auto;
+
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-  gap: 28px 32px;
-  border-radius: 24px;
-  box-sizing: border-box;
+  grid-template-columns: 1fr 1fr;
+
+  gap: 40px;
+  align-items: start;
 }
 
-.feature-section {
-  padding: 0;
-  min-height: auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+.section-tag {
+  font-size: 13px;
+  font-weight: 700;
 
-.feature-step-heading {
-  margin: 0;
-  font-size: clamp(1.65rem, 2.8vw, 2.35rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  color: #166534;
-  text-align: left;
-  padding-left: 2px;
-}
+  letter-spacing: 1.5px;
 
-.routes-bg {
-  --card-gradient: linear-gradient(155deg, #f0fdf4 0%, #dcfce7 100%);
-}
+  color: #4f7c65;
 
-.mental-bg {
-  --card-gradient: linear-gradient(155deg, #eff6ff 0%, #dbeafe 100%);
-}
-
-.dashboard-bg {
-  --card-gradient: linear-gradient(155deg, #f5f3ff 0%, #ede9fe 100%);
-}
-
-.discover-bg {
-  --card-gradient: linear-gradient(155deg, #fefce8 0%, #fef3c7 100%);
-}
-
-.events-bg {
-  --card-gradient: linear-gradient(155deg, #ecfeff 0%, #cffafe 100%);
-}
-
-.feature-card {
-  width: 100%;
-  max-width: 100%;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  overflow-wrap: break-word;
-  background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.84) 100%),
-    var(--card-gradient, #ffffff);
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  padding: 26px 22px 22px;
-  border-radius: 24px;
-  box-shadow: 0 14px 28px -16px rgba(15, 23, 42, 0.42);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  text-align: left;
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
-}
-
-.feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 30px -18px rgba(15, 23, 42, 0.42);
-}
-
-.feature-title {
-  font-size: 1.55rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin-bottom: 12px;
-}
-
-.feature-description {
-  font-size: 0.94rem;
-  color: #475569;
-  line-height: 1.55;
   margin-bottom: 14px;
 }
 
-.feature-list {
-  list-style: none;
-  padding: 0;
+.section-title {
+  font-size: 44px;
+  line-height: 1.2;
+
+  margin-bottom: 20px;
+}
+
+.section-description {
+  font-size: 18px;
+  line-height: 1.8;
+
+  color: #6b7280;
+
+  margin-bottom: 28px;
+}
+
+.insights-right {
+  display: grid;
+  gap: 18px;
+}
+
+.insight-card {
+  background: white;
+
+  padding: 28px;
+
+  border-radius: 24px;
+
+  box-shadow:
+    0 10px 24px rgba(0,0,0,0.04);
+}
+
+.insight-card h3 {
+  font-size: 24px;
+
+  margin-bottom: 12px;
+}
+
+.insight-card p {
+  color: #6b7280;
+  line-height: 1.7;
+}
+
+/* ================= JOURNEY ================= */
+
+.journey-section {
+  padding: 56px 32px 72px;
+}
+
+.section-header {
+  max-width: 800px;
+
+  margin: 0 auto 48px;
+
+  text-align: center;
+}
+
+.journey-grid {
+  max-width: 1280px;
+
+  margin: 0 auto;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(320px, 1fr));
+
+  gap: 24px;
+}
+
+.journey-card {
+  background: white;
+
+  border-radius: 28px;
+
+  padding: 34px;
+
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.05);
+
+  transition: 0.25s;
+}
+
+.journey-card:hover {
+  transform: translateY(-4px);
+}
+
+.featured-card {
+  background:
+    linear-gradient(
+      135deg,
+      #4f7c65,
+      #6d967f
+    );
+
+  color: white;
+}
+
+.step-number {
+  width: 52px;
+  height: 52px;
+
+  border-radius: 50%;
+
+  background: #edf4ef;
+
+  color: #4f7c65;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-weight: 700;
+
+  margin-bottom: 22px;
+}
+
+.featured-card .step-number {
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
+.journey-card h3 {
+  font-size: 28px;
+
   margin-bottom: 18px;
 }
 
-.feature-list li {
-  font-size: 0.88rem;
-  color: #334155;
-  margin-bottom: 10px;
-  line-height: 1.45;
+.journey-card p {
+  color: #6b7280;
+
+  line-height: 1.8;
+
+  margin-bottom: 28px;
 }
 
-.btn-large {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 12px 12px;
-  font-size: 0.93rem;
-  letter-spacing: 0.01em;
+.featured-card p {
+  color: rgba(255,255,255,0.88);
+}
+
+.card-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ================= BUTTONS ================= */
+
+.btn-solid,
+.btn-outline {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  text-decoration: none;
+
+  font-weight: 600;
+
+  border-radius: 14px;
+
+  transition: 0.25s;
 }
 
 .btn-solid {
-  display: inline-block;
+  background: #4f7c65;
   color: white;
-  border: none;
-  border-radius: 50px;
-  font-weight: 700;
+
+  padding: 14px 22px;
+}
+
+.btn-solid:hover {
+  background: #3f6652;
+}
+
+.light-btn {
+  background: white;
+  color: #4f7c65;
+}
+
+.light-btn:hover {
+  background: #f2f7f4;
+}
+
+.btn-outline {
+  border: 1px solid #4f7c65;
+
+  color: #4f7c65;
+
+  padding: 14px 22px;
+}
+
+.btn-outline:hover {
+  background: #edf4ef;
+}
+
+/* ================= FOOTER ================= */
+
+.footer {
+  padding: 40px 32px;
+
+  border-top:
+    1px solid rgba(0,0,0,0.06);
+}
+
+.footer-content {
+  max-width: 1280px;
+
+  margin: 0 auto;
+
+  display: flex;
+
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 24px;
+
+  flex-wrap: wrap;
+}
+
+.footer-brand h3 {
+  margin-bottom: 10px;
+}
+
+.footer-brand p {
+  color: #6b7280;
+
+  line-height: 1.7;
+
+  max-width: 420px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
   text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  text-align: center;
+
+  color: #4f7c65;
+
+  font-weight: 600;
 }
 
-.btn-primary {
-  background-color: #22c55e;
-  box-shadow: 0 10px 20px -5px rgba(34, 197, 94, 0.45);
-}
+/* ================= MOBILE ================= */
 
-.btn-primary:hover {
-  background-color: #16a34a;
-  transform: translateY(-4px);
-  box-shadow: 0 15px 25px -5px rgba(22, 163, 74, 0.5);
-}
+@media (max-width: 900px) {
 
-.btn-hero-route {
-  margin-top: 24px;
-  width: auto;
-  padding: 18px 40px;
-  font-size: 1.125rem;
-  background-color: #22c55e;
-  box-shadow: 0 10px 20px -5px rgba(34, 197, 94, 0.45);
-}
-
-.btn-hero-route:hover {
-  background-color: #16a34a;
-  transform: translateY(-4px);
-  box-shadow: 0 15px 25px -5px rgba(22, 163, 74, 0.5);
-}
-
-.btn-secondary {
-  background-color: #3b82f6;
-  box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
-}
-
-.btn-secondary:hover {
-  background-color: #2563eb;
-  transform: translateY(-4px);
-  box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.5);
-}
-
-.home-footer {
-  padding: 60px 40px;
-  text-align: center;
-  background-color: #0f172a;
-  color: #64748b;
-  font-size: 1rem;
-}
-
-/* --- Animations --- */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* --- Responsive adjustments --- */
-@media (min-width: 1280px) {
-  .features-container {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    column-gap: 28px;
-    row-gap: 32px;
-    padding-inline: clamp(24px, 4vw, 56px);
-  }
-}
-
-@media (max-width: 1279px) and (min-width: 769px) {
-  .features-container {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 26px 30px;
-  }
-}
-
-@media (max-width: 1024px) {
   .headline {
-    font-size: 3rem;
+    font-size: 56px;
   }
-}
 
-@media (max-width: 768px) {
-  .features-container {
+  .section-title {
+    font-size: 36px;
+  }
+
+  .insights-wrapper {
     grid-template-columns: 1fr;
-    gap: 28px;
-    padding: 28px clamp(16px, 5vw, 28px) 72px;
   }
-  .home-wrapper {
-    background-attachment: scroll;
-  }
-  .headline {
-    font-size: 2.25rem;
-  }
-  .glass-panel {
-    padding: 24px 12px;
-    border-radius: 0;
-  }
-  .description {
-    font-size: 1.125rem;
-    margin-bottom: 30px;
-  }
-  .feature-title {
-    font-size: 1.4rem;
-  }
-  .feature-card {
-    padding: 20px 16px;
-    border-radius: 18px;
-  }
-  .feature-description {
-    font-size: 0.92rem;
-  }
-  .feature-list li {
-    font-size: 0.86rem;
-  }
+
 }
+
 </style>
