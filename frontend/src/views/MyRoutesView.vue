@@ -20,7 +20,6 @@ const routeError = ref('')
 const routeSummary = ref('')
 const routing = ref(false)
 const preferencesDirty = ref(false)
-const shadeCoverageNotice = ref(false)
 
 const socialDensity = ref('normal') // 'busy' | 'normal' | 'quiet' (UI only)
 const shadeLevel = ref('normal') // 'more' | 'normal' | 'less' (UI only)
@@ -684,32 +683,6 @@ function buildBenchesFetchUrl(params) {
   return `${base}/benches?${qs}`
 }
 
-/** POST target for pedestrian density scores; dev uses Vite proxy to avoid CORS. */
-function buildSocialScoreFetchUrl() {
-  const path = '/score/pedestrian'
-  if (import.meta.env.DEV) {
-    return `/__social-score${path}`
-  }
-  const base = getApiBase(
-    import.meta.env.VITE_SOCIAL_SCORE_API_BASE,
-    import.meta.env.VITE_COUNSELING_API_BASE,
-  )
-  return `${base}${path}`
-}
-
-/** POST target for tree canopy shade scores; dev uses Vite proxy to avoid CORS. */
-function buildShadeScoreFetchUrl() {
-  const path = '/score/shade'
-  if (import.meta.env.DEV) {
-    return `/__shade-score${path}`
-  }
-  const base = getApiBase(
-    import.meta.env.VITE_SHADE_SCORE_API_BASE,
-    import.meta.env.VITE_COUNSELING_API_BASE,
-  )
-  return `${base}${path}`
-}
-
 function createBenchMarker(bench) {
   if (!bench.lat || !bench.lng) return
 
@@ -881,112 +854,11 @@ function useMyLocation() {
     })
 }
 
-/**
- * Fetches tree shade scores from the backend for multiple route alternatives.
- * @param {google.maps.DirectionsRoute[]} routes
- * @returns {Promise<{ id: number, shadeScore: number }[]>}
- */
-async function fetchShadeAnalysis(routes) {
-  if (!routes || routes.length === 0) return []
-
-  const pathsToAnalyze = routes.map((route, i) => {
-    const allPoints = getRoutePath(route)
-    if (allPoints.length === 0) {
-      throw new Error('A route option has no path geometry for shade analysis.')
-    }
-    let sampledPoints = allPoints
-      .filter((_, idx) => idx % 10 === 0)
-      .map((p) => ({
-        lat: typeof p.lat === 'function' ? p.lat() : p.lat,
-        lng: typeof p.lng === 'function' ? p.lng() : p.lng,
-      }))
-    if (sampledPoints.length === 0 && allPoints.length > 0) {
-      sampledPoints = allPoints.map((p) => ({
-        lat: typeof p.lat === 'function' ? p.lat() : p.lat,
-        lng: typeof p.lng === 'function' ? p.lng() : p.lng,
-      }))
-    }
-    return { id: i, path: sampledPoints }
-  })
-
-  const url = buildShadeScoreFetchUrl()
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ routes: pathsToAnalyze }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Shade score service failed (${response.status}).`)
-  }
-
-  const data = await response.json()
-  const raw = Array.isArray(data.results) ? data.results : []
-  const byId = new Map(raw.map((row) => [row.id, row]))
-  const normalized = []
-  for (let i = 0; i < routes.length; i++) {
-    const row = byId.get(i)
-    if (row == null || typeof row.shadeScore !== 'number' || Number.isNaN(row.shadeScore)) {
-      throw new Error('Shade score service returned incomplete results.')
-    }
-    normalized.push({ id: i, shadeScore: row.shadeScore })
-  }
-  return normalized
-}
-
-/**
- * Fetches crowd density scores from the backend for multiple route alternatives.
- * @param {google.maps.DirectionsRoute[]} routes
- * @returns {Promise<{ id: number, socialScore: number }[]>}
- */
-async function fetchCrowdAnalysis(routes) {
-  if (!routes || routes.length === 0) return []
-
-  const pathsToAnalyze = routes.map((route, i) => {
-    const allPoints = route.overview_path || []
-    let sampledPoints = allPoints
-      .filter((_, idx) => idx % 10 === 0)
-      .map((p) => ({
-        lat: p.lat(),
-        lng: p.lng(),
-      }))
-    if (sampledPoints.length === 0 && allPoints.length > 0) {
-      sampledPoints = allPoints.map((p) => ({ lat: p.lat(), lng: p.lng() }))
-    }
-    return { id: i, path: sampledPoints }
-  })
-
-  const url = buildSocialScoreFetchUrl()
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ routes: pathsToAnalyze }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Pedestrian score service failed (${response.status}).`)
-  }
-
-  const data = await response.json()
-  const raw = Array.isArray(data.results) ? data.results : []
-  const byId = new Map(raw.map((row) => [row.id, row]))
-  const normalized = []
-  for (let i = 0; i < routes.length; i++) {
-    const row = byId.get(i)
-    if (row == null || typeof row.socialScore !== 'number' || Number.isNaN(row.socialScore)) {
-      throw new Error('Pedestrian score service returned incomplete results.')
-    }
-    normalized.push({ id: i, socialScore: row.socialScore })
-  }
-  return normalized
-}
-
 async function generateRoute() {
   routeError.value = ''
   routeSummary.value = ''
   noToiletsFound.value = false
   noBenchesFound.value = false
-  shadeCoverageNotice.value = false
 
   if (!directionsService || !directionsRenderer) return
 
@@ -1022,87 +894,36 @@ async function generateRoute() {
 
     // Select route based on socialDensity and shadeLevel preferences
     let bestRouteIndex = 0
-    /** When true, shade API failed — fall back to default route index and skip shade-based sort. */
-    let shadeRankingSkipped = false
-    /** True when route is outside Melbourne City canopy dataset coverage. */
-    let shadeCoverageLimited = false
+
     if (
       result.routes.length > 1 &&
       (socialDensity.value !== 'normal' || shadeLevel.value !== 'normal')
     ) {
-      // 1. Fetch real data from backend if needed
-      let shadeAnalysis = []
-      let crowdAnalysis = []
 
-      if (shadeLevel.value !== 'normal') {
-        // Only call shade API when the route is inside the Melbourne CBD canopy coverage.
-        // Otherwise, keep routing usable and simply skip shade-based ranking.
-        const firstPath = getRoutePath(result.routes?.[0])
-        const shadeCovered = isPathWithinBounds(firstPath, MELBOURNE_CITY_SHADE_BOUNDS)
-        if (!shadeCovered) {
-          shadeRankingSkipped = true
-          shadeCoverageLimited = true
-        } else {
-          try {
-            shadeAnalysis = await fetchShadeAnalysis(result.routes)
-          } catch (err) {
-            console.error('[Shade Analysis]', err)
-            shadeRankingSkipped = true
-            const m = err?.message || ''
-            // If the backend fails, do not block route rendering.
-            // Keep the message non-blocking and only show when user explicitly requested shade.
-            routeError.value = m.includes('500')
-              ? 'Shade scoring is temporarily unavailable (server error). Showing the default route.'
-              : `Shade scoring is unavailable: ${m}. Showing the default route.`
-          }
-        }
-      }
-      shadeCoverageNotice.value = shadeCoverageLimited
-
-      if (socialDensity.value !== 'normal') {
-        crowdAnalysis = await fetchCrowdAnalysis(result.routes)
-      }
-
-      // 2. Rank alternatives
-      const scores = result.routes.map((_, i) => {
-        const shadeItem = shadeAnalysis.find((item) => item.id === i)
-        const crowdItem = crowdAnalysis.find((item) => item.id === i)
-        let socialScore = 0
-        if (socialDensity.value !== 'normal') {
-          if (!crowdItem || typeof crowdItem.socialScore !== 'number') {
-            throw new Error('Could not get pedestrian scores for all route options.')
-          }
-          socialScore = crowdItem.socialScore
-        }
-        let shadeScore = 0
-        if (shadeLevel.value !== 'normal' && !shadeRankingSkipped) {
-          if (
-            !shadeItem ||
-            typeof shadeItem.shadeScore !== 'number' ||
-            Number.isNaN(shadeItem.shadeScore)
-          ) {
-            throw new Error('Could not get shade scores for all route options.')
-          }
-          shadeScore = shadeItem.shadeScore
-        }
-        return {
-          index: i,
-          socialScore,
-          shadeScore,
-        }
-      })
+      const scores = result.routes.map((route, index) => ({
+        index,
+        shadeScore: route.shadeScore ?? 0,
+        socialScore: route.socialScore ?? 0,
+        overallScore: route.overallScore ?? 0,
+      }))
 
       // Ranking logic
       scores.sort((a, b) => {
-        // If shade is specified, it takes priority in this update
-        if (shadeLevel.value !== 'normal' && !shadeRankingSkipped) {
-          if (shadeLevel.value === 'more') return b.shadeScore - a.shadeScore
-          return a.shadeScore - b.shadeScore
+        if (shadeLevel.value !== 'normal') {
+          return shadeLevel.value === 'more'
+            ? b.shadeScore - a.shadeScore
+            : a.shadeScore - b.shadeScore
         }
-        // Fallback to social density
-        if (socialDensity.value === 'busy') return b.socialScore - a.socialScore
-        if (socialDensity.value === 'quiet') return a.socialScore - b.socialScore
-        return 0
+
+        if (socialDensity.value === 'busy') {
+          return b.socialScore - a.socialScore
+        }
+
+        if (socialDensity.value === 'quiet') {
+          return a.socialScore - b.socialScore
+        }
+
+        return b.overallScore - a.overallScore
       })
 
       bestRouteIndex = scores[0].index
@@ -1125,7 +946,7 @@ async function generateRoute() {
       const dur = leg.duration?.text ?? ''
 
       let preferenceLabel = ''
-      if (shadeLevel.value !== 'normal' && !shadeCoverageLimited) {
+      if (shadeLevel.value !== 'normal') {
         preferenceLabel += ` · ${shadeLevel.value === 'more' ? '🌲 High' : '☀️ Low'} Shade`
       }
       if (socialDensity.value !== 'normal') {
@@ -1273,9 +1094,7 @@ onUnmounted(() => {
       </div>
 
       <p v-if="routeSummary" class="route-summary">Estimate: {{ routeSummary }}</p>
-      <p v-if="shadeCoverageNotice" class="shade-coverage-hint">
-        Shade scoring is only available within Melbourne City.
-      </p>
+
       <p v-if="routeError" class="route-error">{{ routeError }}</p>
 
       <div v-if="noToiletsFound || noBenchesFound" class="route-alerts">
