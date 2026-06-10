@@ -1,8 +1,9 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { loadOsmMapsApi } from '../utils/osmMaps'
 
 const MELBOURNE_CENTER = { lat: -37.8136, lng: 144.9631 }
-const DEFAULT_COUNSELING_API_BASE = 'https://mk3ban19bb.execute-api.ap-southeast-2.amazonaws.com'
+const DEFAULT_COUNSELING_API_BASE = 'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
 
 /** When DB centers sit in the CBD but the user is far away, first query uses this radius (m). */
 const DEFAULT_SEARCH_RADIUS_METERS = 90000
@@ -106,26 +107,7 @@ function sortRoomsByWalkingDistance() {
 }
 
 function loadGoogleMapsApi() {
-  if (window.google?.maps) return Promise.resolve(window.google.maps)
-
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!apiKey) {
-    return Promise.reject(
-      new Error('Missing VITE_GOOGLE_MAPS_API_KEY. Please configure it in your .env file.'),
-    )
-  }
-
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src =
-      `https://maps.googleapis.com/maps/api/js?key=${apiKey}` +
-      '&libraries=places,geometry&v=weekly'
-    script.async = true
-    script.defer = true
-    script.onload = () => resolve(window.google.maps)
-    script.onerror = () => reject(new Error('Failed to load Google Maps script.'))
-    document.head.appendChild(script)
-  })
+  return loadOsmMapsApi()
 }
 
 function clearRoomMarkers() {

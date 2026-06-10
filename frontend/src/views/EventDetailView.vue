@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
-const DEFAULT_EVENTS_API_BASE = 'https://mk3ban19bb.execute-api.ap-southeast-2.amazonaws.com'
+const DEFAULT_EVENTS_API_BASE = 'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
 
 function pickValidApiBase(...candidates) {
   for (const raw of candidates) {
@@ -147,12 +147,12 @@ onMounted(() => {
           </a>
           <a
             v-if="venue?.latitude && venue?.longitude"
-            :href="`https://www.google.com/maps?q=${venue.latitude},${venue.longitude}`"
+            :href="`https://www.openstreetmap.org/?mlat=${venue.latitude}&mlon=${venue.longitude}#map=16/${venue.latitude}/${venue.longitude}`"
             target="_blank"
             rel="noreferrer"
             class="map-btn"
           >
-            Open in Google Maps
+            Open in OpenStreetMap
           </a>
         </div>
       </div>

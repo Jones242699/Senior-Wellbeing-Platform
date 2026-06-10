@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { loadOsmMapsApi } from '../utils/osmMaps'
 
 const route = useRoute()
 
@@ -60,7 +61,7 @@ const TRAVEL_MODES = [
 ]
 
 const MELBOURNE = { lat: -37.8136, lng: 144.9631 }
-const DEFAULT_COUNSELING_API_BASE = 'https://mk3ban19bb.execute-api.ap-southeast-2.amazonaws.com'
+const DEFAULT_COUNSELING_API_BASE = 'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
 const MELBOURNE_METRO_BOUNDS = {
   minLat: -38.55,
   maxLat: -37.2,
@@ -164,22 +165,7 @@ function assertWithinMelbourne(point, label) {
 }
 
 function loadGoogleMapsApi() {
-  if (window.google?.maps) return Promise.resolve(window.google.maps)
-
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!apiKey) {
-    return Promise.reject(new Error('Missing VITE_GOOGLE_MAPS_API_KEY'))
-  }
-
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&v=weekly`
-    script.async = true
-    script.defer = true
-    script.onload = () => resolve(window.google.maps)
-    script.onerror = () => reject(new Error('Failed to load Google Maps script'))
-    document.head.appendChild(script)
-  })
+  return loadOsmMapsApi()
 }
 
 function ensureUserMarker(position) {

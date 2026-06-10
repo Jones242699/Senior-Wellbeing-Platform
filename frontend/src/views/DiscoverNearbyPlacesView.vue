@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { loadOsmMapsApi } from '../utils/osmMaps'
 
 const router = useRouter()
 
@@ -36,7 +37,7 @@ const RADIUS_OPTIONS = [
 
 const DEFAULT_CATEGORY_KEYS = CATEGORY_OPTIONS.map((option) => option.key)
 const DEFAULT_RADIUS = 1000
-const DISCOVER_API_BASE_URL = 'https://mk3ban19bb.execute-api.ap-southeast-2.amazonaws.com'
+const DISCOVER_API_BASE_URL = 'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
 const DISCOVER_DEFAULT_LIMIT = 200
 const RESTAURANT_MAP_RANDOM_PICK_LIMIT = 60
 const VENUES_DEFAULT_LIMIT = 5000
@@ -162,23 +163,7 @@ function normalizeApiPayload(payload) {
 }
 
 function loadGoogleMapsApi() {
-  if (window.google?.maps) return Promise.resolve(window.google.maps)
-
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!apiKey) {
-    return Promise.reject(new Error('Missing VITE_GOOGLE_MAPS_API_KEY.'))
-  }
-
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src =
-      `https://maps.googleapis.com/maps/api/js?key=${apiKey}` + '&libraries=places&v=weekly'
-    script.async = true
-    script.defer = true
-    script.onload = () => resolve(window.google.maps)
-    script.onerror = () => reject(new Error('Failed to load Google Maps script.'))
-    document.head.appendChild(script)
-  })
+  return loadOsmMapsApi()
 }
 
 function normalizeCategory(rawCategory) {

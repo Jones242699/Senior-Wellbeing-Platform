@@ -1,65 +1,112 @@
 import json
-import os
 import urllib.parse
 import urllib.request
 
-GOOGLE_MAPS_API_KEY = os.environ["GOOGLE_MAPS_API_KEY"]
-
 API_BASE_URL = "https://mk3ban19bb.execute-api.ap-southeast-2.amazonaws.com"
 
+OSRM_ENDPOINTS = {
+    "WALKING": "https://routing.openstreetmap.de/routed-foot/route/v1/foot",
+    "BICYCLING": "https://routing.openstreetmap.de/routed-bike/route/v1/bike",
+    "DRIVING": "https://routing.openstreetmap.de/routed-car/route/v1/driving",
+    "TRANSIT": "https://routing.openstreetmap.de/routed-foot/route/v1/foot",
+}
 
-def decode_polyline(encoded):
 
-    points = []
+def format_distance(meters):
+    meters = float(meters or 0)
+    if meters < 1000:
+        return {
+            "text": f"{round(meters)} m",
+            "value": round(meters),
+        }
+    km = round(meters / 1000, 1)
+    return {
+        "text": f"{km} km",
+        "value": round(meters),
+    }
 
-    index = 0
-    lat = 0
-    lng = 0
 
-    while index < len(encoded):
+def format_duration(seconds):
+    seconds = float(seconds or 0)
+    minutes = max(1, round(seconds / 60))
+    if minutes < 60:
+        text = f"{minutes} mins"
+    else:
+        hours = minutes // 60
+        rest = minutes % 60
+        text = f"{hours} hr {rest} mins" if rest else f"{hours} hr"
+    return {
+        "text": text,
+        "value": round(seconds),
+    }
 
-        shift = 0
-        result = 0
 
-        while True:
-            b = ord(encoded[index]) - 63
-            index += 1
-            result |= (b & 0x1f) << shift
-            shift += 5
+def encode_polyline(points):
+    result = []
+    prev_lat = 0
+    prev_lng = 0
 
-            if b < 0x20:
-                break
+    for point in points:
+        lat = int(round(point["lat"] * 1e5))
+        lng = int(round(point["lng"] * 1e5))
+        result.append(encode_polyline_value(lat - prev_lat))
+        result.append(encode_polyline_value(lng - prev_lng))
+        prev_lat = lat
+        prev_lng = lng
 
-        dlat = ~(result >> 1) if result & 1 else (result >> 1)
-        lat += dlat
+    return "".join(result)
 
-        shift = 0
-        result = 0
 
-        while True:
-            b = ord(encoded[index]) - 63
-            index += 1
-            result |= (b & 0x1f) << shift
-            shift += 5
+def encode_polyline_value(value):
+    value = ~(value << 1) if value < 0 else value << 1
+    chunks = []
+    while value >= 0x20:
+        chunks.append(chr((0x20 | (value & 0x1F)) + 63))
+        value >>= 5
+    chunks.append(chr(value + 63))
+    return "".join(chunks)
 
-            if b < 0x20:
-                break
 
-        dlng = ~(result >> 1) if result & 1 else (result >> 1)
-        lng += dlng
+def fetch_osrm_routes(start, destination, travel_mode):
+    endpoint = OSRM_ENDPOINTS.get(travel_mode.upper(), OSRM_ENDPOINTS["WALKING"])
+    coords = f"{start['lng']},{start['lat']};{destination['lng']},{destination['lat']}"
+    params = urllib.parse.urlencode({
+        "overview": "full",
+        "geometries": "geojson",
+        "alternatives": "true",
+        "steps": "false",
+    })
+    url = f"{endpoint}/{coords}?{params}"
 
-        points.append({
-            "lat": lat / 1e5,
-            "lng": lng / 1e5
-        })
+    with urllib.request.urlopen(url, timeout=12) as response:
+        payload = json.loads(response.read())
 
-    return points
+    if payload.get("code") != "Ok":
+        raise RuntimeError(payload.get("message") or "No route found")
+
+    return payload.get("routes", [])
+
+
+def post_json(url, payload):
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=12) as response:
+        return json.loads(response.read())
 
 
 def lambda_handler(event, context):
+    if event.get("requestContext", {}).get("http", {}).get("method") == "OPTIONS":
+        return {
+            "statusCode": 204,
+            "headers": cors_headers(),
+            "body": "",
+        }
 
     try:
-
         body = json.loads(event.get("body", "{}"))
 
         start = body.get("start")
@@ -72,129 +119,74 @@ def lambda_handler(event, context):
                 "headers": cors_headers(),
                 "body": json.dumps({
                     "error": "start and destination are required"
-                })
+                }),
             }
 
-        # ===== Google Directions API =====
-
-        params = {
-            "origin": f"{start['lat']},{start['lng']}",
-            "destination": f"{destination['lat']},{destination['lng']}",
-            "mode": travel_mode.lower(),
-            "alternatives": "true",
-            "key": GOOGLE_MAPS_API_KEY
-        }
-
-        url = (
-            "https://maps.googleapis.com/maps/api/directions/json?"
-            + urllib.parse.urlencode(params)
-        )
-
-        with urllib.request.urlopen(url) as response:
-            directions_data = json.loads(response.read())
-
-        routes = directions_data.get("routes", [])
-
-        # ===== Decode route polylines =====
+        routes = fetch_osrm_routes(start, destination, travel_mode)
 
         scoring_routes = []
-
         for route in routes:
-
-            polyline = route["overview_polyline"]["points"]
-
-            decoded_path = decode_polyline(polyline)
-
+            coordinates = route.get("geometry", {}).get("coordinates", [])
+            decoded_path = [
+                {"lat": lat, "lng": lng}
+                for lng, lat in coordinates
+            ]
             scoring_routes.append(decoded_path)
 
-        # ===== Call Shade Score API =====
-
-        shade_request = urllib.request.Request(
+        shade_data = post_json(
             f"{API_BASE_URL}/score/shade",
-            data=json.dumps({
-                "routes": scoring_routes
-            }).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
+            {"routes": scoring_routes},
         )
 
-        with urllib.request.urlopen(shade_request) as response:
-            shade_data = json.loads(response.read())
-
-        # ===== Call Pedestrian Score API =====
-
-        pedestrian_request = urllib.request.Request(
+        pedestrian_data = post_json(
             f"{API_BASE_URL}/score/pedestrian",
-            data=json.dumps({
-                "routes": scoring_routes
-            }).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
+            {"routes": scoring_routes},
         )
-
-        with urllib.request.urlopen(pedestrian_request) as response:
-            pedestrian_data = json.loads(response.read())
-
-        shade_scores = shade_data.get("results", [])
-        pedestrian_scores = pedestrian_data.get("results", [])
-
-        # ===== Build score maps =====
 
         shade_score_map = {
             item["id"]: item["shadeScore"]
-            for item in shade_scores
+            for item in shade_data.get("results", [])
         }
 
         social_score_map = {
             item["id"]: item["socialScore"]
-            for item in pedestrian_scores
+            for item in pedestrian_data.get("results", [])
         }
 
-        # ===== Merge scores =====
-
         formatted_routes = []
-
         for idx, route in enumerate(routes):
-
-            leg = route["legs"][0]
-
+            path = scoring_routes[idx]
             shade_score = shade_score_map.get(idx, 0)
-
             social_score = social_score_map.get(idx, 0)
-
-            overall_score = round(
-                (shade_score + social_score) / 2,
-                2
-            )
+            overall_score = round((shade_score + social_score) / 2, 2)
 
             formatted_routes.append({
                 "id": idx,
-                "summary": route.get("summary"),
-                "distance": leg["distance"],
-                "duration": leg["duration"],
-                "polyline": route["overview_polyline"]["points"],
+                "summary": route.get("name") or "",
+                "distance": format_distance(route.get("distance")),
+                "duration": format_duration(route.get("duration")),
+                "polyline": encode_polyline(path),
+                "path": path,
                 "shadeScore": shade_score,
                 "socialScore": social_score,
-                "overallScore": overall_score
+                "overallScore": overall_score,
             })
-
-        # ===== Sort routes =====
 
         formatted_routes.sort(
             key=lambda r: r["overallScore"],
-            reverse=True
+            reverse=True,
         )
 
         return {
             "statusCode": 200,
             "headers": cors_headers(),
             "body": json.dumps({
-                "routes": formatted_routes
-            })
+                "routes": formatted_routes,
+                "provider": "openstreetmap-osrm",
+            }),
         }
 
     except Exception as e:
-
         print("Error:", str(e))
 
         return {
@@ -202,7 +194,7 @@ def lambda_handler(event, context):
             "headers": cors_headers(),
             "body": json.dumps({
                 "error": str(e)
-            })
+            }),
         }
 
 
@@ -210,5 +202,5 @@ def cors_headers():
     return {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type,Authorization",
-        "Access-Control-Allow-Methods": "OPTIONS,POST"
+        "Access-Control-Allow-Methods": "OPTIONS,POST",
     }

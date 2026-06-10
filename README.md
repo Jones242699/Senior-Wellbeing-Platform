@@ -66,7 +66,7 @@ The frontend is maintained in a **separate GitHub repository**, but linked into 
 The frontend includes:
 
 - Vue.js application
-- Google Maps integration
+- Leaflet and OpenStreetMap integration
 - Route visualization
 - User interaction and UI components
 - API integration with backend services
@@ -110,7 +110,8 @@ The system is organised into multiple stacks (e.g. ApiStack, PlacesStack, Pedest
 
 ### Frontend
 - Vue.js
-- Google Maps API
+- Leaflet
+- OpenStreetMap / OSRM routing
 - Git Submodule integration
 
 ---
@@ -194,7 +195,7 @@ Calculate shade scores based on nearby tree canopy coverage.
 ### POST /routes
 
 Generate and rank walking routes using:
-- Google Maps routing
+- OSRM routing
 - Shade score
 - Pedestrian density score
 

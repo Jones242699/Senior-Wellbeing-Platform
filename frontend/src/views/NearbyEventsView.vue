@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { loadOsmMapsApi } from '../utils/osmMaps'
 
 const MELBOURNE_CENTER = { lat: -37.8136, lng: 144.9631 }
 const FILTER_CATEGORIES = [
@@ -22,7 +23,7 @@ const MELBOURNE_METRO_BOUNDS = {
   minLng: 144.2,
   maxLng: 145.9,
 }
-const DEFAULT_EVENTS_API_BASE = 'https://mk3ban19bb.execute-api.ap-southeast-2.amazonaws.com'
+const DEFAULT_EVENTS_API_BASE = 'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
 const EVENTS_FETCH_LIMIT = 100
 const EVENTS_KEYWORD_SEARCH_LIMIT = 20
 
@@ -175,38 +176,7 @@ async function geocodeAddress(query) {
 }
 
 function loadGoogleMapsApi() {
-  if (window.google?.maps?.places) return Promise.resolve(window.google.maps)
-
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!apiKey) {
-    return Promise.reject(
-      new Error('Missing VITE_GOOGLE_MAPS_API_KEY. Please configure it in your .env file.'),
-    )
-  }
-
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[data-google-maps-events="1"]')
-    if (existing) {
-      existing.addEventListener('load', () => resolve(window.google.maps), { once: true })
-      existing.addEventListener(
-        'error',
-        () => reject(new Error('Failed to load Google Maps script.')),
-        {
-          once: true,
-        },
-      )
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly`
-    script.async = true
-    script.defer = true
-    script.dataset.googleMapsEvents = '1'
-    script.onload = () => resolve(window.google.maps)
-    script.onerror = () => reject(new Error('Failed to load Google Maps script.'))
-    document.head.appendChild(script)
-  })
+  return loadOsmMapsApi()
 }
 
 function setupQueryAutocomplete() {
