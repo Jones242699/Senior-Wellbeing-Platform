@@ -12,6 +12,7 @@ from stacks.crowd_density_stack import CrowdDensityStack
 from stacks.events_stack import EventsStack
 
 PROJECT_STACK_PREFIX = "SWP"
+DEFAULT_API_BASE_URL = "https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com"
 
 
 app = cdk.App()
@@ -69,6 +70,7 @@ RoutesStack(
     app,
     f"{PROJECT_STACK_PREFIX}RoutesStack",
     api=api_stack.api,
+    api_base_url=os.getenv("SWP_API_BASE_URL", DEFAULT_API_BASE_URL),
     env=env
 )
 

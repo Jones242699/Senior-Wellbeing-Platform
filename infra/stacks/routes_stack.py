@@ -12,7 +12,7 @@ from constructs import Construct
 
 class RoutesStack(Stack):
 
-    def __init__(self, scope: Construct, id: str, api: apigwv2.HttpApi, **kwargs):
+    def __init__(self, scope: Construct, id: str, api: apigwv2.HttpApi, api_base_url: str, **kwargs):
         super().__init__(scope, id, **kwargs)
 
         # ===== Lambda =====
@@ -31,6 +31,10 @@ class RoutesStack(Stack):
             timeout=Duration.seconds(15),
 
             memory_size=256,
+
+            environment={
+                "API_BASE_URL": api_base_url,
+            },
         )
 
         # ===== Integration =====

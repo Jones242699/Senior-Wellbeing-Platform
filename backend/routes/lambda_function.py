@@ -1,8 +1,9 @@
 import json
+import os
 import urllib.parse
 import urllib.request
 
-API_BASE_URL = "https://mk3ban19bb.execute-api.ap-southeast-2.amazonaws.com"
+API_BASE_URL = os.environ["API_BASE_URL"].rstrip("/")
 
 OSRM_ENDPOINTS = {
     "WALKING": "https://routing.openstreetmap.de/routed-foot/route/v1/foot",
