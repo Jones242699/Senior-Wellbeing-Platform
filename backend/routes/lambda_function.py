@@ -67,9 +67,13 @@ def encode_polyline_value(value):
     return "".join(chunks)
 
 
-def fetch_osrm_routes(start, destination, travel_mode):
+def fetch_osrm_routes(start, destination, travel_mode, waypoints=None):
     endpoint = OSRM_ENDPOINTS.get(travel_mode.upper(), OSRM_ENDPOINTS["WALKING"])
-    coords = f"{start['lng']},{start['lat']};{destination['lng']},{destination['lat']}"
+    route_points = [start] + (waypoints or []) + [destination]
+    coords = ";".join(
+        f"{point['lng']},{point['lat']}"
+        for point in route_points
+    )
     params = urllib.parse.urlencode({
         "overview": "full",
         "geometries": "geojson",
@@ -111,6 +115,7 @@ def lambda_handler(event, context):
 
         start = body.get("start")
         destination = body.get("destination")
+        waypoints = body.get("waypoints") or []
         travel_mode = body.get("travelMode", "WALKING")
 
         if not start or not destination:
@@ -121,8 +126,16 @@ def lambda_handler(event, context):
                     "error": "start and destination are required"
                 }),
             }
+        if not isinstance(waypoints, list):
+            return {
+                "statusCode": 400,
+                "headers": cors_headers(),
+                "body": json.dumps({
+                    "error": "waypoints must be a list"
+                }),
+            }
 
-        routes = fetch_osrm_routes(start, destination, travel_mode)
+        routes = fetch_osrm_routes(start, destination, travel_mode, waypoints)
 
         scoring_routes = []
         for route in routes:

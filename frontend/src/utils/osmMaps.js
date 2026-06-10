@@ -1,14 +1,9 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { buildApiUrl, getApiBase } from '../config/api'
 
 const MELBOURNE_VIEWBOX = '144.2,-37.2,145.9,-38.55'
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org'
-const OSRM_ENDPOINTS = {
-  WALKING: 'https://routing.openstreetmap.de/routed-foot/route/v1/foot',
-  BICYCLING: 'https://routing.openstreetmap.de/routed-bike/route/v1/bike',
-  DRIVING: 'https://routing.openstreetmap.de/routed-car/route/v1/driving',
-  TRANSIT: 'https://routing.openstreetmap.de/routed-foot/route/v1/foot',
-}
 
 function toNumber(value) {
   const numeric = Number(value)
@@ -33,6 +28,11 @@ function makeLatLng(lat, lng) {
     lng: () => resolved.lng,
     toJSON: () => ({ lat: resolved.lat, lng: resolved.lng }),
   }
+}
+
+function buildRoutesGenerateUrl() {
+  if (import.meta.env.DEV) return '/__routes/routes/generate'
+  return buildApiUrl('/routes/generate', getApiBase(import.meta.env.VITE_ROUTES_API_BASE)).toString()
 }
 
 function haversineMeters(a, b) {
@@ -336,58 +336,61 @@ class OsmPlacesService {
   }
 }
 
-async function fetchRoute(origin, destination, mode) {
+function normalizeWaypoint(waypoint) {
+  return toLatLngLiteral(waypoint?.location || waypoint)
+}
+
+function toDirectionsRoute(route, start, end) {
+  const overviewPath = (route.path || []).map((point) => makeLatLng(point.lat, point.lng))
+  const bounds = new OsmLatLngBounds()
+  overviewPath.forEach((p) => bounds.extend(p))
+  return {
+    ...route,
+    overview_path: overviewPath,
+    bounds,
+    legs: [
+      {
+        start_location: makeLatLng(start.lat, start.lng),
+        end_location: makeLatLng(end.lat, end.lng),
+        distance: route.distance,
+        duration: route.duration,
+        steps: [],
+      },
+    ],
+  }
+}
+
+async function fetchRoute(origin, destination, mode, waypoints = []) {
   const start = toLatLngLiteral(origin)
   const end = toLatLngLiteral(destination)
   if (!start || !end) throw new Error('Invalid route endpoints.')
 
-  const endpoint = OSRM_ENDPOINTS[mode] || OSRM_ENDPOINTS.WALKING
-  const coords = `${start.lng},${start.lat};${end.lng},${end.lat}`
-  const params = new URLSearchParams({
-    overview: 'full',
-    geometries: 'geojson',
-    alternatives: 'true',
-    steps: 'true',
+  const response = await fetch(buildRoutesGenerateUrl(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      start,
+      destination: end,
+      waypoints: waypoints.map(normalizeWaypoint).filter(Boolean),
+      travelMode: mode || 'WALKING',
+    }),
   })
-  const response = await fetch(`${endpoint}/${coords}?${params}`)
   if (!response.ok) throw new Error(`Route service failed (${response.status})`)
   const payload = await response.json()
-  if (payload.code !== 'Ok' || !Array.isArray(payload.routes) || payload.routes.length === 0) {
+  if (!Array.isArray(payload.routes) || payload.routes.length === 0) {
     throw new Error('No route found. Try another travel mode or adjust locations.')
   }
-  return payload.routes.map((route) => {
-    const overviewPath = (route.geometry?.coordinates || []).map(([lng, lat]) => makeLatLng(lat, lng))
-    const bounds = new OsmLatLngBounds()
-    overviewPath.forEach((p) => bounds.extend(p))
-    const steps = []
-    for (const leg of route.legs || []) {
-      for (const step of leg.steps || []) {
-        const path = (step.geometry?.coordinates || []).map(([lng, lat]) => makeLatLng(lat, lng))
-        steps.push({ path })
-      }
-    }
-    return {
-      overview_path: overviewPath,
-      bounds,
-      legs: [
-        {
-          start_location: makeLatLng(start.lat, start.lng),
-          end_location: makeLatLng(end.lat, end.lng),
-          distance: { text: formatDistance(route.distance), value: route.distance },
-          duration: { text: formatDuration(route.duration), value: route.duration },
-          steps,
-        },
-      ],
-    }
-  })
+  return payload.routes.map((route) => toDirectionsRoute(route, start, end))
 }
 
 class OsmDirectionsService {
   route(request, callback) {
     const mode = request.travelMode || 'WALKING'
-    const promise = fetchRoute(request.origin, request.destination, mode).then((routes) => ({
-      routes,
-    }))
+    const promise = fetchRoute(request.origin, request.destination, mode, request.waypoints).then(
+      (routes) => ({
+        routes,
+      }),
+    )
     if (callback) {
       promise
         .then((result) => callback(result, 'OK'))
