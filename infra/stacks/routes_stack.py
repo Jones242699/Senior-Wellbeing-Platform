@@ -8,7 +8,6 @@ from aws_cdk import aws_apigatewayv2 as apigwv2
 from aws_cdk import aws_apigatewayv2_integrations as integrations
 
 from constructs import Construct
-import os
 
 
 class RoutesStack(Stack):
@@ -21,7 +20,7 @@ class RoutesStack(Stack):
             self,
             "GenerateRoutesFunction",
 
-            function_name="elderly-support-generateRoutes",
+            function_name="swp-generateRoutes",
 
             runtime=lambda_.Runtime.PYTHON_3_12,
 
@@ -32,10 +31,6 @@ class RoutesStack(Stack):
             timeout=Duration.seconds(15),
 
             memory_size=256,
-
-            environment={
-                "GOOGLE_MAPS_API_KEY": os.getenv("GOOGLE_MAPS_API_KEY")
-            }
         )
 
         # ===== Integration =====

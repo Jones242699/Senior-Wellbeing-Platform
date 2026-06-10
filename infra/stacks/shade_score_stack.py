@@ -17,7 +17,7 @@ class ShadeScoreStack(Stack):
             self,
             "ScoreRoutesByShadeFunction",
 
-            function_name="elderly-support-scoreRoutesByShade",
+            function_name="swp-scoreRoutesByShade",
 
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="lambda_function.lambda_handler",

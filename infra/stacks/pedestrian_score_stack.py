@@ -17,7 +17,7 @@ class PedestrianScoreStack(Stack):
             self,
             "ScoreRoutesByPedestrianFunction",
 
-            function_name="elderly-support-scoreRoutesByPedestrian",
+            function_name="swp-scoreRoutesByPedestrian",
 
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="lambda_function.lambda_handler",

@@ -7,14 +7,14 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 const DEFAULT_COUNSELING_API_BASE =
-  'https://mk3ban19bb.execute-api.ap-southeast-2.amazonaws.com'
+  'https://k2algu70g6.execute-api.ap-southeast-2.amazonaws.com'
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, projectRoot, 'VITE_')
-  let counselingProxyTarget = 'https://mk3ban19bb.execute-api.ap-southeast-2.amazonaws.com'
+  let counselingProxyTarget = DEFAULT_COUNSELING_API_BASE
   let counselingPathPrefix = ''
   try {
     const base = (env.VITE_COUNSELING_API_BASE || DEFAULT_COUNSELING_API_BASE).replace(/\/$/, '')

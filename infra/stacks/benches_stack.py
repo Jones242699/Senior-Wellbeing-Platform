@@ -18,7 +18,7 @@ class BenchesStack(Stack):
             self,
             "GetNearbyBenchesFunction",
 
-            function_name="elderly-support-getNearbyBenches",
+            function_name="swp-getNearbyBenches",
 
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="lambda_function.lambda_handler",

@@ -19,7 +19,7 @@ class CrowdDensityStack(Stack):
             self,
             "GetCrowdDensityFunction",
 
-            function_name="elderly-support-getCrowdDensity",
+            function_name="swp-getCrowdDensity",
 
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="lambda_function.lambda_handler",

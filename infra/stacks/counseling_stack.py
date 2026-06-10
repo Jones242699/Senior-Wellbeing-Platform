@@ -25,7 +25,7 @@ class CounselingStack(Stack):
             self,
             "GetCounselingCenters",
 
-            function_name="elderly-support-GetCounselingCenters",
+            function_name="swp-getCounselingCenters",
             
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="lambda_function.lambda_handler",

@@ -1,4 +1,4 @@
-from aws_cdk import Stack
+from aws_cdk import CfnOutput, Stack
 from aws_cdk import aws_apigatewayv2 as apigwv2
 from constructs import Construct
 
@@ -8,8 +8,8 @@ class ApiStack(Stack):
 
         self.api = apigwv2.HttpApi(
             self,
-            "ElderlySupportAPI",
-            api_name="Elderly Support API",
+            "SWPAPI",
+            api_name="Senior Wellbeing Platform API",
             cors_preflight=apigwv2.CorsPreflightOptions(
                 allow_origins=[
                     "http://localhost:5173",
@@ -27,4 +27,11 @@ class ApiStack(Stack):
                     "Content-Type",
                 ],
             ),
+        )
+
+        CfnOutput(
+            self,
+            "SWPApiUrl",
+            value=self.api.api_endpoint,
+            description="Base URL for the SWP API",
         )

@@ -18,7 +18,7 @@ class VenuesStack(Stack):
             self,
             "GetNearbyVenuesFunction",
 
-            function_name="elderly-support-getNearbyVenues",
+            function_name="swp-getNearbyVenues",
 
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="lambda_function.lambda_handler",

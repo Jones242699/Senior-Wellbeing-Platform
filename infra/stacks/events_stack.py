@@ -22,7 +22,7 @@ class EventsStack(Stack):
             self,
             "GetEventsFunction",
 
-            function_name="elderly-support-getEvents",
+            function_name="swp-getEvents",
 
             runtime=lambda_.Runtime.PYTHON_3_12,
 

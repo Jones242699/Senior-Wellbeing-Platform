@@ -18,7 +18,7 @@ class PlacesStack(Stack):
             self,
             "GetNearbyPlacesFunction",
 
-            function_name="elderly-support-getNearbyPlaces",
+            function_name="swp-getNearbyPlaces",
 
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="lambda_function.lambda_handler",

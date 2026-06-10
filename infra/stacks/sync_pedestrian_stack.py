@@ -17,7 +17,7 @@ class SyncPedestrianStack(Stack):
             self,
             "SyncPedestrianDataFunction",
 
-            function_name="elderly-support-syncPedestrianData",
+            function_name="swp-syncPedestrianData",
 
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="lambda_function.lambda_handler",
@@ -48,7 +48,7 @@ class SyncPedestrianStack(Stack):
             schedule=scheduler.ScheduleExpression.rate(Duration.minutes(10)),
             target=targets.LambdaInvoke(sync_data),
 
-            schedule_name="elderly-support-syncPedestrianData-schedule",
+            schedule_name="swp-syncPedestrianData-schedule",
 
             schedule_group=scheduler.ScheduleGroup.from_schedule_group_name(
                 self,
