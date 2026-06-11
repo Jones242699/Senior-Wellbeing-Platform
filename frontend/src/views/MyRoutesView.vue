@@ -2,7 +2,7 @@
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getApiBase } from '../config/api'
-import { loadOsmMapsApi } from '../utils/osmMaps'
+import { loadMapApi } from '../utils/osmMaps'
 
 const route = useRoute()
 
@@ -34,21 +34,17 @@ const userLatLng = ref(null)
 let startPlace = null
 let endPlace = null
 
+let mapApi
 let map
 let geocoder
 let directionsService
 let directionsRenderer
 let placesService
 let infoWindow
-/** @type {google.maps.Marker[]} */
 let toiletMarkers = []
-/** @type {google.maps.Marker[]} */
 let benchMarkers = []
-/** @type {google.maps.Marker | null} */
 let userMarker
-/** @type {google.maps.Marker | null} */
 let startMarker
-/** @type {google.maps.Marker | null} */
 let destMarker
 let startAutocomplete
 let endAutocomplete
@@ -108,24 +104,20 @@ function assertWithinMelbourne(point, label) {
   return point
 }
 
-function loadGoogleMapsApi() {
-  return loadOsmMapsApi()
-}
-
 function ensureUserMarker(position) {
-  if (!map || !window.google?.maps) return
+  if (!map || !mapApi) return
 
   if (userMarker) {
     userMarker.setPosition(position)
     userMarker.setMap(map)
   } else {
-    userMarker = new window.google.maps.Marker({
+    userMarker = new mapApi.Marker({
       map,
       position,
       title: 'Your location',
       zIndex: 999,
       icon: {
-        path: window.google.maps.SymbolPath.CIRCLE,
+        path: mapApi.SymbolPath.CIRCLE,
         scale: 12,
         fillColor: '#22c55e',
         fillOpacity: 1,
@@ -137,14 +129,14 @@ function ensureUserMarker(position) {
 }
 
 function setEndpointMarker(kind, position) {
-  if (!map || !window.google?.maps) return
+  if (!map || !mapApi) return
 
   const isStart = kind === 'start'
   const label = isStart ? 'S' : 'D'
   const markerRef = isStart ? startMarker : destMarker
 
   const icon = {
-    path: window.google.maps.SymbolPath.CIRCLE,
+    path: mapApi.SymbolPath.CIRCLE,
     scale: 13,
     fillColor: '#dc2626',
     fillOpacity: 1,
@@ -158,7 +150,7 @@ function setEndpointMarker(kind, position) {
     return
   }
 
-  const marker = new window.google.maps.Marker({
+  const marker = new mapApi.Marker({
     map,
     position,
     zIndex: 900,
@@ -224,13 +216,13 @@ function requestCurrentPosition() {
 function setupAutocomplete() {
   const startEl = startInputRef.value
   const endEl = destInputRef.value
-  if (!startEl || !endEl || !window.google?.maps) return
+  if (!startEl || !endEl || !mapApi?.places) return
 
-  startAutocomplete = new window.google.maps.places.Autocomplete(startEl, {
+  startAutocomplete = new mapApi.places.Autocomplete(startEl, {
     fields: ['geometry', 'formatted_address', 'name'],
     componentRestrictions: { country: 'au' },
   })
-  endAutocomplete = new window.google.maps.places.Autocomplete(endEl, {
+  endAutocomplete = new mapApi.places.Autocomplete(endEl, {
     fields: ['geometry', 'formatted_address', 'name'],
     componentRestrictions: { country: 'au' },
   })
@@ -266,7 +258,7 @@ function geocodeAddress(address) {
 
 function findPlaceByText(address) {
   return new Promise((resolve, reject) => {
-    if (!placesService || !window.google?.maps?.places) {
+    if (!placesService || !mapApi?.places) {
       reject(new Error('Places service unavailable'))
       return
     }
@@ -277,7 +269,7 @@ function findPlaceByText(address) {
       },
       (results, status) => {
         if (
-          status === window.google.maps.places.PlacesServiceStatus.OK &&
+          status === mapApi.places.PlacesServiceStatus.OK &&
           Array.isArray(results) &&
           results[0]?.geometry?.location
         ) {
@@ -402,11 +394,11 @@ async function resolveDestination() {
 function directionsRoute(request) {
   return new Promise((resolve, reject) => {
     directionsService.route(request, (result, status) => {
-      if (status === window.google.maps.DirectionsStatus.OK && result) {
+      if (status === mapApi.DirectionsStatus.OK && result) {
         resolve(result)
       } else {
         const msg =
-          status === window.google.maps.DirectionsStatus.ZERO_RESULTS
+          status === mapApi.DirectionsStatus.ZERO_RESULTS
             ? 'No route found. Try another travel mode or adjust locations.'
             : `Route planning failed (${status}).`
         reject(new Error(msg))
@@ -422,7 +414,7 @@ function clearDirectionsDisplay() {
 }
 
 function initMap() {
-  map = new window.google.maps.Map(mapContainerRef.value, {
+  map = new mapApi.Map(mapContainerRef.value, {
     center: MELBOURNE,
     zoom: 14,
     minZoom: 14,
@@ -435,9 +427,9 @@ function initMap() {
     },
   })
 
-  geocoder = new window.google.maps.Geocoder()
-  directionsService = new window.google.maps.DirectionsService()
-  directionsRenderer = new window.google.maps.DirectionsRenderer({
+  geocoder = new mapApi.Geocoder()
+  directionsService = new mapApi.DirectionsService()
+  directionsRenderer = new mapApi.DirectionsRenderer({
     map,
     suppressMarkers: true,
     polylineOptions: {
@@ -445,8 +437,8 @@ function initMap() {
       strokeWeight: 5,
     },
   })
-  placesService = new window.google.maps.places.PlacesService(map)
-  infoWindow = new window.google.maps.InfoWindow()
+  placesService = new mapApi.places.PlacesService(map)
+  infoWindow = new mapApi.InfoWindow()
 }
 
 function clearToiletMarkers() {
@@ -464,7 +456,7 @@ function createToiletMarker(toilet) {
   }
   if (!Number.isFinite(position.lat) || !Number.isFinite(position.lng)) return
 
-  const marker = new window.google.maps.Marker({
+  const marker = new mapApi.Marker({
     map,
     position,
     title: toilet.name || 'Public Toilet',
@@ -545,13 +537,13 @@ function buildRouteFacilitiesFetchUrl() {
 function createBenchMarker(bench) {
   if (!bench.lat || !bench.lng) return
 
-  const marker = new window.google.maps.Marker({
+  const marker = new mapApi.Marker({
     map,
     position: { lat: parseFloat(bench.lat), lng: parseFloat(bench.lng) },
     title: bench.desc || 'Rest Bench',
     zIndex: 750,
     icon: {
-      path: window.google.maps.SymbolPath.CIRCLE,
+      path: mapApi.SymbolPath.CIRCLE,
       scale: 14,
       fillColor: '#d99a2b',
       fillOpacity: 1,
@@ -738,7 +730,7 @@ async function generateRoute() {
     const origin = await resolveOrigin()
     const dest = await resolveDestination()
 
-    const mode = window.google.maps.TravelMode[travelMode.value]
+    const mode = mapApi.TravelMode[travelMode.value]
     if (mode === undefined) {
       throw new Error('Unsupported travel mode')
     }
@@ -847,12 +839,12 @@ onMounted(async () => {
   }
 
   try {
-    await loadGoogleMapsApi()
+    mapApi = await loadMapApi()
     initMap()
     await nextTick()
     setupAutocomplete()
     if (destinationPointFromQuery) {
-      const presetLocation = new window.google.maps.LatLng(
+      const presetLocation = new mapApi.LatLng(
         destinationPointFromQuery.lat,
         destinationPointFromQuery.lng,
       )

@@ -551,3 +551,7 @@ export async function loadOsmMapsApi() {
   }
   return window.google.maps
 }
+
+export async function loadMapApi() {
+  return loadOsmMapsApi()
+}
