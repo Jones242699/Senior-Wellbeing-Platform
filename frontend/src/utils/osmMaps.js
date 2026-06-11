@@ -105,18 +105,73 @@ function makeIcon(options = {}) {
   })
 }
 
+function toLeafletBounds(value) {
+  if (!value) return null
+  const rawBounds = value.leaflet ? null : value
+  if (value.leaflet?.isValid?.()) return value.leaflet
+
+  const south = toNumber(rawBounds?.south ?? rawBounds?.minLat)
+  const west = toNumber(rawBounds?.west ?? rawBounds?.minLng)
+  const north = toNumber(rawBounds?.north ?? rawBounds?.maxLat)
+  const east = toNumber(rawBounds?.east ?? rawBounds?.maxLng)
+  if (south === null || west === null || north === null || east === null) return null
+  return L.latLngBounds([south, west], [north, east])
+}
+
+function addBoundsMask(map, bounds) {
+  if (!bounds?.isValid?.()) return
+
+  const south = bounds.getSouth()
+  const west = bounds.getWest()
+  const north = bounds.getNorth()
+  const east = bounds.getEast()
+  const world = [
+    [-90, -180],
+    [-90, 180],
+    [90, 180],
+    [90, -180],
+  ]
+  const clearArea = [
+    [south, west],
+    [north, west],
+    [north, east],
+    [south, east],
+  ]
+
+  L.polygon([world, clearArea], {
+    stroke: false,
+    fillColor: '#0f172a',
+    fillOpacity: 0.28,
+    interactive: false,
+  }).addTo(map)
+
+  L.rectangle(bounds, {
+    color: '#16a34a',
+    weight: 2,
+    opacity: 0.9,
+    fill: false,
+    interactive: false,
+  }).addTo(map)
+}
+
 class OsmMap {
   constructor(element, options = {}) {
     const center = toLatLngLiteral(options.center) || { lat: -37.8136, lng: 144.9631 }
+    const maxBounds = toLeafletBounds(options.restriction?.latLngBounds || options.maxBounds)
+    const maskBounds = toLeafletBounds(options.restriction?.maskBounds)
     this.leaflet = L.map(element, {
       center: [center.lat, center.lng],
       zoom: options.zoom || 13,
+      minZoom: options.minZoom,
       zoomControl: true,
+      maxBounds: maxBounds || undefined,
+      maxBoundsViscosity: maxBounds ? 1 : 0,
     })
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(this.leaflet)
+    addBoundsMask(this.leaflet, maskBounds)
   }
 
   panTo(position) {

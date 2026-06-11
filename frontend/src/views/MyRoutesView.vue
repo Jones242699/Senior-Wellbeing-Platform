@@ -62,11 +62,17 @@ const TRAVEL_MODES = [
 ]
 
 const MELBOURNE = { lat: -37.8136, lng: 144.9631 }
-const MELBOURNE_METRO_BOUNDS = {
-  minLat: -38.55,
-  maxLat: -37.2,
-  minLng: 144.2,
-  maxLng: 145.9,
+const CITY_OF_MELBOURNE_BOUNDS = {
+  minLat: -37.84,
+  maxLat: -37.78,
+  minLng: 144.9,
+  maxLng: 145.02,
+}
+const CITY_OF_MELBOURNE_MAP_BOUNDS = {
+  south: -37.845,
+  north: -37.775,
+  west: 144.895,
+  east: 145.025,
 }
 
 /** Cap bench markers on the map so dense datasets stay readable; full along-route set still drives alerts. */
@@ -94,9 +100,9 @@ function isWithinBounds(point, bounds) {
 
 function assertWithinMelbourne(point, label) {
   const coords = toLatLngLiteral(point)
-  if (!coords || !isWithinBounds(coords, MELBOURNE_METRO_BOUNDS)) {
+  if (!coords || !isWithinBounds(coords, CITY_OF_MELBOURNE_BOUNDS)) {
     throw new Error(
-      `${label} is outside Melbourne. Please enter an address within metropolitan Melbourne.`,
+      `${label} is outside the City of Melbourne. Please enter an address within the City of Melbourne.`,
     )
   }
   return point
@@ -418,10 +424,15 @@ function clearDirectionsDisplay() {
 function initMap() {
   map = new window.google.maps.Map(mapContainerRef.value, {
     center: MELBOURNE,
-    zoom: 13,
+    zoom: 14,
+    minZoom: 14,
     mapTypeControl: false,
     streetViewControl: false,
     fullscreenControl: false,
+    restriction: {
+      latLngBounds: CITY_OF_MELBOURNE_MAP_BOUNDS,
+      maskBounds: CITY_OF_MELBOURNE_BOUNDS,
+    },
   })
 
   geocoder = new window.google.maps.Geocoder()
@@ -1504,8 +1515,9 @@ onUnmounted(() => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   font-size: 13px;
   color: #475569;
-  z-index: 10;
+  z-index: 1000;
   border: 1px solid #e2e8f0;
+  pointer-events: auto;
 }
 
 .legend-box h4 {
