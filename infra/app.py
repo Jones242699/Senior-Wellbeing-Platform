@@ -7,6 +7,7 @@ from stacks.benches_stack import BenchesStack
 from stacks.pedestrian_score_stack import PedestrianScoreStack
 from stacks.shade_score_stack import ShadeScoreStack
 from stacks.routes_stack import RoutesStack
+from stacks.route_facilities_stack import RouteFacilitiesStack
 from stacks.venues_stack import VenuesStack
 from stacks.crowd_density_stack import CrowdDensityStack
 from stacks.events_stack import EventsStack
@@ -71,6 +72,13 @@ RoutesStack(
     f"{PROJECT_STACK_PREFIX}RoutesStack",
     api=api_stack.api,
     api_base_url=os.getenv("SWP_API_BASE_URL", DEFAULT_API_BASE_URL),
+    env=env
+)
+
+RouteFacilitiesStack(
+    app,
+    f"{PROJECT_STACK_PREFIX}RouteFacilitiesStack",
+    api=api_stack.api,
     env=env
 )
 

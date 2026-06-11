@@ -19,12 +19,14 @@ const originMode = ref('manual') // 'manual' | 'current'
 const routeError = ref('')
 const routeSummary = ref('')
 const routing = ref(false)
+const loadingFacilities = ref(false)
 const preferencesDirty = ref(false)
 
 const socialDensity = ref('normal') // 'busy' | 'normal' | 'quiet' (UI only)
 const shadeLevel = ref('normal') // 'more' | 'normal' | 'less' (UI only)
 const noToiletsFound = ref(false)
 const noBenchesFound = ref(false)
+const facilityCounts = ref({ toilets: 0, benches: 0 })
 
 /** @type {{ lat: number, lng: number } | null} */
 const userLatLng = ref(null)
@@ -57,7 +59,6 @@ const TRAVEL_MODES = [
   { id: 'WALKING', label: 'Walking 🚶' },
   { id: 'BICYCLING', label: 'Cycling 🚲' },
   { id: 'DRIVING', label: 'Driving 🚗' },
-  { id: 'TRANSIT', label: 'Transit 🚌' },
 ]
 
 const MELBOURNE = { lat: -37.8136, lng: 144.9631 }
@@ -68,54 +69,9 @@ const MELBOURNE_METRO_BOUNDS = {
   maxLng: 145.9,
 }
 
-/** Bbox for GET /benches: dataset lives in Melbourne city; do not shrink to route bounds or distant routes miss the API window. */
-const MELBOURNE_CITY_BENCH_BOUNDS = {
-  minLat: -37.84,
-  maxLat: -37.78,
-  minLng: 144.9,
-  maxLng: 145.02,
-}
-
 /** Cap bench markers on the map so dense datasets stay readable; full along-route set still drives alerts. */
 const MAX_BENCH_MARKERS_ON_ROUTE_MAP = 32
-
-/**
- * Bbox for shade scoring: backend canopy data is only for Melbourne CBD.
- * If a route is far outside this bbox, skip shade API to avoid backend 500s.
- */
-const MELBOURNE_CITY_SHADE_BOUNDS = {
-  minLat: -37.84,
-  maxLat: -37.78,
-  minLng: 144.9,
-  maxLng: 145.02,
-}
-
-function isPathWithinBounds(pathPoints, bounds) {
-  if (!Array.isArray(pathPoints) || pathPoints.length === 0) return false
-  let minLat = Number.POSITIVE_INFINITY
-  let maxLat = Number.NEGATIVE_INFINITY
-  let minLng = Number.POSITIVE_INFINITY
-  let maxLng = Number.NEGATIVE_INFINITY
-
-  for (const p of pathPoints) {
-    const lat = typeof p.lat === 'function' ? p.lat() : p.lat
-    const lng = typeof p.lng === 'function' ? p.lng() : p.lng
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
-    if (lat < minLat) minLat = lat
-    if (lat > maxLat) maxLat = lat
-    if (lng < minLng) minLng = lng
-    if (lng > maxLng) maxLng = lng
-  }
-
-  if (!Number.isFinite(minLat) || !Number.isFinite(minLng)) return false
-
-  return (
-    minLat >= bounds.minLat &&
-    maxLat <= bounds.maxLat &&
-    minLng >= bounds.minLng &&
-    maxLng <= bounds.maxLng
-  )
-}
+const ROUTE_FACILITIES_DISTANCE_METERS = 10
 
 function toLatLngLiteral(value) {
   if (!value) return null
@@ -463,14 +419,9 @@ function initMap() {
   map = new window.google.maps.Map(mapContainerRef.value, {
     center: MELBOURNE,
     zoom: 13,
-    mapId: 'aae9ba2249f23f6f5ac271a0',
     mapTypeControl: false,
     streetViewControl: false,
     fullscreenControl: false,
-    styles: [
-      { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#eef3eb' }] },
-      { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#dff1d3' }] },
-    ],
   })
 
   geocoder = new window.google.maps.Geocoder()
@@ -494,13 +445,18 @@ function clearToiletMarkers() {
   toiletMarkers = []
 }
 
-function createToiletMarker(place) {
-  if (!place.geometry || !place.geometry.location) return
+function createToiletMarker(toilet) {
+  if (!toilet.latitude || !toilet.longitude) return
+  const position = {
+    lat: Number(toilet.latitude),
+    lng: Number(toilet.longitude),
+  }
+  if (!Number.isFinite(position.lat) || !Number.isFinite(position.lng)) return
 
   const marker = new window.google.maps.Marker({
     map,
-    position: place.geometry.location,
-    title: place.name,
+    position,
+    title: toilet.name || 'Public Toilet',
     zIndex: 800,
     icon: {
       path: 'M -1.5,-1.5 L 1.5,-1.5 L 1.5,1.5 L -1.5,1.5 z',
@@ -517,51 +473,27 @@ function createToiletMarker(place) {
   })
 
   marker.addListener('click', () => {
+    const access = [
+      toilet.female_access ? `Female: ${toilet.female_access}` : '',
+      toilet.male_access ? `Male: ${toilet.male_access}` : '',
+      toilet.wheelchair_access ? `Wheelchair: ${toilet.wheelchair_access}` : '',
+      toilet.baby_facilities ? `Baby facilities: ${toilet.baby_facilities}` : '',
+    ].filter(Boolean)
+
     infoWindow.setContent(`
-      <div style="font-family: inherit; color: #1e293b; padding: 4px;">
-        <strong style="display: block; margin-bottom: 4px; font-size: 14px;">${place.name || 'Public Toilet'}</strong>
-        <span style="font-size: 13px;">Loading details...</span>
+      <div style="font-family: inherit; color: #1e293b; padding: 4px; max-width: 260px;">
+        <strong style="display: block; margin-bottom: 4px; font-size: 15px;">${toilet.name || 'Public Toilet'}</strong>
+        <div style="font-size: 12px; color: #64748b;">${toilet.operator || 'Public facility'}</div>
+        ${
+          access.length
+            ? `<ul style="font-size: 12px; padding-left: 16px; margin: 8px 0 0;">${access
+                .map((item) => `<li>${item}</li>`)
+                .join('')}</ul>`
+            : ''
+        }
       </div>
     `)
     infoWindow.open(map, marker)
-
-    placesService.getDetails(
-      { placeId: place.place_id, fields: ['name', 'opening_hours', 'formatted_address'] },
-      (details, status) => {
-        if (status === window.google.maps.places.PlacesServiceStatus.OK && details) {
-          let hoursHtml =
-            '<div style="font-size: 13px; margin-top: 8px;">No opening hours available.</div>'
-          if (details.opening_hours?.weekday_text) {
-            hoursHtml =
-              '<div style="font-size: 13px; margin-top: 8px;"><strong>Opening Hours:</strong><ul style="padding-left: 16px; margin: 4px 0 0 0;">'
-            details.opening_hours.weekday_text.forEach((day) => {
-              hoursHtml += `<li>${day}</li>`
-            })
-            hoursHtml += '</ul></div>'
-          } else if (details.opening_hours) {
-            const isOpen = details.opening_hours.isOpen()
-              ? '<span style="color:#16a34a; font-weight:700;">Open Now</span>'
-              : '<span style="color:#dc2626; font-weight:700;">Closed</span>'
-            hoursHtml = `<div style="font-size: 13px; margin-top: 8px;">${isOpen}</div>`
-          }
-
-          infoWindow.setContent(`
-            <div style="font-family: inherit; color: #1e293b; padding: 4px; max-width: 250px;">
-              <strong style="display: block; margin-bottom: 4px; font-size: 15px;">${details.name || 'Public Toilet'}</strong>
-              <div style="font-size: 12px; color: #64748b;">${details.formatted_address || ''}</div>
-              ${hoursHtml}
-            </div>
-          `)
-        } else {
-          infoWindow.setContent(`
-            <div style="font-family: inherit; color: #1e293b; padding: 4px;">
-              <strong style="display: block; margin-bottom: 4px; font-size: 14px;">${place.name || 'Public Toilet'}</strong>
-              <span style="font-size: 13px; color: #dc2626;">Failed to load opening hours.</span>
-            </div>
-          `)
-        }
-      },
-    )
   })
 
   toiletMarkers.push(marker)
@@ -584,85 +516,6 @@ function getRoutePath(route) {
   return points.length > 0 ? points : route.overview_path || []
 }
 
-/** Minimum geodesic distance from a point to the route polyline (sampled along segments; not just vertices). */
-function minDistanceMetersToRoutePolyline(location, routePath) {
-  const geom = window.google?.maps?.geometry?.spherical
-  if (!geom || !location || routePath.length === 0) return Number.POSITIVE_INFINITY
-
-  const loc =
-    typeof location.lat === 'function'
-      ? location
-      : new window.google.maps.LatLng(location.lat, location.lng)
-
-  let minDist = Number.POSITIVE_INFINITY
-  for (let i = 0; i < routePath.length - 1; i++) {
-    const a = routePath[i]
-    const b = routePath[i + 1]
-    const segLen = geom.computeDistanceBetween(a, b)
-    const stepMeters = 25
-    const steps = Math.min(8000, Math.max(1, Math.ceil(segLen / stepMeters)))
-    for (let s = 0; s <= steps; s++) {
-      const p = geom.interpolate(a, b, s / steps)
-      const d = geom.computeDistanceBetween(loc, p)
-      if (d < minDist) minDist = d
-    }
-  }
-  return minDist
-}
-
-function isNearRoutePath(location, routePath, maxDistanceMeters = 120) {
-  if (!location || routePath.length === 0) return false
-  return minDistanceMetersToRoutePolyline(location, routePath) <= maxDistanceMeters
-}
-
-function searchToiletsForRoute(route) {
-  clearToiletMarkers()
-  if (!placesService || !route) {
-    noToiletsFound.value = true
-    return
-  }
-
-  const bounds = route.bounds
-  if (!bounds) {
-    noToiletsFound.value = true
-    return
-  }
-
-  const routePath = getRoutePath(route)
-
-  const request = {
-    bounds,
-    query: 'public toilet',
-  }
-
-  placesService.textSearch(request, (results, status) => {
-    const hasResults = Boolean(
-      status === window.google.maps.places.PlacesServiceStatus.OK && results && results.length > 0,
-    )
-
-    if (!hasResults) {
-      noToiletsFound.value = true
-      return
-    }
-
-    const toiletsWithinDisplayRange = results.filter((place) => {
-      const loc = place.geometry?.location
-      return loc && isNearRoutePath(loc, routePath, 800)
-    })
-
-    // Alert logic: "along-route toilet" uses a tighter threshold than display range.
-    const toiletsAlongRoute = toiletsWithinDisplayRange.filter((place) => {
-      const loc = place.geometry?.location
-      return loc && isNearRoutePath(loc, routePath, 120)
-    })
-
-    noToiletsFound.value = toiletsAlongRoute.length === 0
-    for (const place of toiletsWithinDisplayRange) {
-      createToiletMarker(place)
-    }
-  })
-}
-
 function clearBenchMarkers() {
   for (const marker of benchMarkers) {
     if (marker) marker.setMap(null)
@@ -670,17 +523,12 @@ function clearBenchMarkers() {
   benchMarkers = []
 }
 
-/** Same-origin in dev (Vite proxy); absolute URL in production. */
-function buildBenchesFetchUrl(params) {
-  const qs = params.toString()
+function buildRouteFacilitiesFetchUrl() {
   if (import.meta.env.DEV) {
-    return `/__counseling/benches?${qs}`
+    return '/__route-facilities/route-facilities'
   }
-  const base = getApiBase(
-    import.meta.env.VITE_BENCHES_API_BASE,
-    import.meta.env.VITE_COUNSELING_API_BASE,
-  )
-  return `${base}/benches?${qs}`
+  const base = getApiBase(import.meta.env.VITE_ROUTE_FACILITIES_API_BASE)
+  return `${base}/route-facilities`
 }
 
 function createBenchMarker(bench) {
@@ -720,63 +568,67 @@ function createBenchMarker(bench) {
   benchMarkers.push(marker)
 }
 
-/**
- * Fetches benches for Melbourne city from the backend, then keeps only points near the route polyline.
- */
-async function fetchBenchesForRoute(route) {
+async function fetchFacilitiesForRoute(route) {
   clearBenchMarkers()
+  clearToiletMarkers()
+  facilityCounts.value = { toilets: 0, benches: 0 }
+  loadingFacilities.value = true
   if (!route) {
     noBenchesFound.value = true
+    noToiletsFound.value = true
+    loadingFacilities.value = false
     return
   }
 
   const routePath = getRoutePath(route)
   if (routePath.length === 0) {
     noBenchesFound.value = true
+    noToiletsFound.value = true
+    loadingFacilities.value = false
     return
   }
 
   try {
-    const params = new URLSearchParams({
-      minLat: String(MELBOURNE_CITY_BENCH_BOUNDS.minLat),
-      maxLat: String(MELBOURNE_CITY_BENCH_BOUNDS.maxLat),
-      minLng: String(MELBOURNE_CITY_BENCH_BOUNDS.minLng),
-      maxLng: String(MELBOURNE_CITY_BENCH_BOUNDS.maxLng),
+    const path = routePath.map((point) => ({
+      lat: typeof point.lat === 'function' ? point.lat() : point.lat,
+      lng: typeof point.lng === 'function' ? point.lng() : point.lng,
+    }))
+    const response = await fetch(buildRouteFacilitiesFetchUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        path,
+        distanceMeters: ROUTE_FACILITIES_DISTANCE_METERS,
+        limitPerType: 80,
+      }),
     })
-
-    const response = await fetch(buildBenchesFetchUrl(params))
-    if (!response.ok) throw new Error(`Failed to fetch benches (HTTP ${response.status})`)
-    const raw = await response.text()
-    // Backend may emit NaN/Infinity for numeric fields; those are not valid JSON.
-    const payload = JSON.parse(
-      raw
-        .replace(/\bNaN\b/g, 'null')
-        .replace(/-Infinity\b/g, 'null')
-        .replace(/\bInfinity\b/g, 'null'),
-    )
-    if (payload?.status !== 'success' || !Array.isArray(payload?.data)) {
-      throw new Error('Unexpected benches API response')
+    if (!response.ok) throw new Error(`Failed to fetch route facilities (HTTP ${response.status})`)
+    const payload = await response.json()
+    if (
+      payload?.status !== 'success' ||
+      !Array.isArray(payload?.benches) ||
+      !Array.isArray(payload?.toilets)
+    ) {
+      throw new Error('Unexpected route facilities API response')
     }
 
-    const benchData = payload.data.map((row) => ({
+    const nearbyBenches = payload.benches.map((row) => ({
       lat: row.latitude,
       lng: row.longitude,
       desc: row.description ?? '',
+      type: row.type,
+      condition: row.condition,
+      distanceMeters: row.distance_meters,
     }))
+    const nearbyToilets = payload.toilets
 
-    // Wider than toilets: footpaths offset from the road centreline; polyline follows carriageway.
-    const benchMaxDistanceMeters = 240
-
-    const nearbyBenches = benchData.filter((bench) => {
-      if (bench.lat === undefined || bench.lng === undefined) return false
-      const lat = Number(bench.lat)
-      const lng = Number(bench.lng)
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false
-      const position = new window.google.maps.LatLng(lat, lng)
-      return isNearRoutePath(position, routePath, benchMaxDistanceMeters)
-    })
-
+    noToiletsFound.value = nearbyToilets.length === 0
     noBenchesFound.value = nearbyBenches.length === 0
+    facilityCounts.value = {
+      toilets: nearbyToilets.length,
+      benches: nearbyBenches.length,
+    }
+    nearbyToilets.forEach((toilet) => createToiletMarker(toilet))
 
     let benchesToPlot = nearbyBenches
     if (nearbyBenches.length > MAX_BENCH_MARKERS_ON_ROUTE_MAP) {
@@ -789,8 +641,11 @@ async function fetchBenchesForRoute(route) {
     }
     benchesToPlot.forEach((bench) => createBenchMarker(bench))
   } catch (error) {
-    console.error('[Benches] Error fetching bench data:', error)
+    console.error('[Route Facilities] Error fetching facilities:', error)
     noBenchesFound.value = true
+    noToiletsFound.value = true
+  } finally {
+    loadingFacilities.value = false
   }
 }
 
@@ -859,6 +714,7 @@ async function generateRoute() {
   routeSummary.value = ''
   noToiletsFound.value = false
   noBenchesFound.value = false
+  facilityCounts.value = { toilets: 0, benches: 0 }
 
   if (!directionsService || !directionsRenderer) return
 
@@ -881,13 +737,6 @@ async function generateRoute() {
       destination: dest,
       travelMode: mode,
       region: 'au',
-      provideRouteAlternatives: true,
-    }
-
-    if (travelMode.value === 'TRANSIT') {
-      request.transitOptions = {
-        departureTime: new Date(),
-      }
     }
 
     const result = await directionsRoute(request)
@@ -959,8 +808,7 @@ async function generateRoute() {
       setEndpointMarker('dest', leg.end_location)
     }
 
-    searchToiletsForRoute(route)
-    fetchBenchesForRoute(route)
+    await fetchFacilitiesForRoute(route)
 
     preferencesDirty.value = false
   } catch (e) {
@@ -1094,6 +942,20 @@ onUnmounted(() => {
       </div>
 
       <p v-if="routeSummary" class="route-summary">Estimate: {{ routeSummary }}</p>
+
+      <div
+        v-if="routeSummary || loadingFacilities || facilityCounts.toilets || facilityCounts.benches"
+        class="facility-summary"
+      >
+        <div class="facility-summary-item">
+          <span class="facility-summary-icon toilet-summary-icon">🚻</span>
+          <span>{{ loadingFacilities ? 'Checking toilets...' : `${facilityCounts.toilets} toilets near route` }}</span>
+        </div>
+        <div class="facility-summary-item">
+          <span class="facility-summary-icon bench-summary-icon">B</span>
+          <span>{{ loadingFacilities ? 'Checking benches...' : `${facilityCounts.benches} benches near route` }}</span>
+        </div>
+      </div>
 
       <p v-if="routeError" class="route-error">{{ routeError }}</p>
 
@@ -1318,9 +1180,6 @@ onUnmounted(() => {
 .label-green {
   color: #16a34a;
 }
-.label-red {
-  color: #dc2626;
-}
 .label-mode {
   color: #334155;
 }
@@ -1380,16 +1239,6 @@ onUnmounted(() => {
 }
 .btn-green:hover {
   background: #15803d;
-}
-
-.btn-outline {
-  border: 1px solid #16a34a;
-  background: #ffffff;
-  color: #15803d;
-}
-
-.btn-outline:hover:not(:disabled) {
-  background: #dcfce7;
 }
 
 .mode-toolbar {
@@ -1484,12 +1333,46 @@ onUnmounted(() => {
   line-height: 1.4;
 }
 
-.shade-coverage-hint {
-  margin: 0 0 10px;
-  font-size: 16px;
-  font-weight: 650;
-  line-height: 1.55;
-  color: #15803d; /* lighter than summary, still high-contrast */
+.facility-summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #d9e5d8;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.facility-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.facility-summary-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.toilet-summary-icon {
+  color: #1f2937;
+  background: #eef2f7;
+}
+
+.bench-summary-icon {
+  color: #ffffff;
+  background: #d99a2b;
 }
 
 .route-error {
