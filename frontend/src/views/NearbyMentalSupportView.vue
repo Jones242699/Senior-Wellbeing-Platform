@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { getApiBase } from '../config/api'
-import { loadOsmMapsApi } from '../utils/osmMaps'
+import { loadMapApi } from '../utils/osmMaps'
 
 const MELBOURNE_CENTER = { lat: -37.8136, lng: 144.9631 }
 
@@ -28,6 +28,7 @@ const routing = ref(false)
 const rooms = ref([])
 const routeSummary = ref('')
 
+let mapApi
 let map
 let userMarker
 let filterCenterMarker
@@ -36,9 +37,7 @@ let directionsRenderer
 let placesService
 let queryAutocomplete
 const roomMarkers = []
-/** @type {google.maps.Marker | null} */
 let startMarker = null
-/** @type {google.maps.Marker | null} */
 let destMarker = null
 
 const TRAVEL_MODES = [
@@ -89,26 +88,22 @@ function sortRoomsByWalkingDistance() {
   )
 }
 
-function loadGoogleMapsApi() {
-  return loadOsmMapsApi()
-}
-
 function clearRoomMarkers() {
   roomMarkers.forEach((marker) => marker.setMap(null))
   roomMarkers.length = 0
 }
 
 function renderRoomMarkers() {
-  if (!map || !window.google?.maps) return
+  if (!map || !mapApi) return
 
   clearRoomMarkers()
   rooms.value.forEach((room) => {
-    const marker = new window.google.maps.Marker({
+    const marker = new mapApi.Marker({
       map,
       position: room.position,
       title: room.name,
       icon: {
-        path: window.google.maps.SymbolPath.CIRCLE,
+        path: mapApi.SymbolPath.CIRCLE,
         scale: 7,
         fillColor: '#ef4444',
         fillOpacity: 1,
@@ -123,18 +118,18 @@ function renderRoomMarkers() {
 }
 
 function setUserMarker(position) {
-  if (!map || !window.google?.maps) return
+  if (!map || !mapApi) return
 
   userPosition.value = position
   if (userMarker) {
     userMarker.setPosition(position)
   } else {
-    userMarker = new window.google.maps.Marker({
+    userMarker = new mapApi.Marker({
       map,
       position,
       title: 'Your location',
       icon: {
-        path: window.google.maps.SymbolPath.CIRCLE,
+        path: mapApi.SymbolPath.CIRCLE,
         scale: 8,
         fillColor: '#16a34a',
         fillOpacity: 1,
@@ -146,7 +141,7 @@ function setUserMarker(position) {
 }
 
 function setFilterCenterMarker(position) {
-  if (!map || !window.google?.maps) return
+  if (!map || !mapApi) return
 
   if (filterCenterMarker) {
     filterCenterMarker.setPosition(position)
@@ -154,12 +149,12 @@ function setFilterCenterMarker(position) {
     return
   }
 
-  filterCenterMarker = new window.google.maps.Marker({
+  filterCenterMarker = new mapApi.Marker({
     map,
     position,
     title: 'Filtered address',
     icon: {
-      path: window.google.maps.SymbolPath.CIRCLE,
+      path: mapApi.SymbolPath.CIRCLE,
       scale: 8,
       fillColor: '#7c3aed',
       fillOpacity: 1,
@@ -178,13 +173,13 @@ function clearAddressFilterState() {
 }
 
 function setEndpointMarker(kind, position) {
-  if (!map || !window.google?.maps) return
+  if (!map || !mapApi) return
 
   const isStart = kind === 'start'
   const labelText = isStart ? 'S' : 'D'
 
   const icon = {
-    path: window.google.maps.SymbolPath.CIRCLE,
+    path: mapApi.SymbolPath.CIRCLE,
     scale: 13,
     fillColor: '#dc2626',
     fillOpacity: 1,
@@ -203,7 +198,7 @@ function setEndpointMarker(kind, position) {
     return
   }
 
-  const marker = new window.google.maps.Marker({
+  const marker = new mapApi.Marker({
     map,
     position,
     zIndex: 900,
@@ -230,7 +225,7 @@ async function resolveAddressFromPlaces(address) {
       },
       (results, status) => {
         if (
-          status === window.google.maps.places.PlacesServiceStatus.OK &&
+          status === mapApi.places.PlacesServiceStatus.OK &&
           results?.[0]?.geometry?.location
         ) {
           const location = results[0].geometry.location
@@ -321,9 +316,9 @@ async function fetchRoomsNearby(userOrigin) {
 const DISTANCE_MATRIX_MAX_DESTINATIONS = 25
 
 async function updateDistanceDurationForAll(origin) {
-  if (!window.google?.maps || rooms.value.length === 0) return
+  if (!mapApi || rooms.value.length === 0) return
 
-  const service = new window.google.maps.DistanceMatrixService()
+  const service = new mapApi.DistanceMatrixService()
   const list = rooms.value
   const elementsByIndex = []
 
@@ -333,8 +328,8 @@ async function updateDistanceDurationForAll(origin) {
     const result = await service.getDistanceMatrix({
       origins: [origin],
       destinations,
-      travelMode: window.google.maps.TravelMode.WALKING,
-      unitSystem: window.google.maps.UnitSystem.METRIC,
+      travelMode: mapApi.TravelMode.WALKING,
+      unitSystem: mapApi.UnitSystem.METRIC,
     })
     const row = result?.rows?.[0]?.elements || []
     for (let i = 0; i < slice.length; i++) {
@@ -383,12 +378,12 @@ async function locateUser() {
 }
 
 async function drawRoute(origin, destination, mode = travelMode.value) {
-  if (!directionsService || !directionsRenderer || !window.google?.maps) return
+  if (!directionsService || !directionsRenderer || !mapApi) return
 
   const request = {
     origin,
     destination,
-    travelMode: window.google.maps.TravelMode[mode],
+    travelMode: mapApi.TravelMode[mode],
   }
   if (mode === 'TRANSIT') request.transitOptions = { departureTime: new Date() }
 
@@ -504,9 +499,9 @@ function onQueryInput() {
 
 function setupQueryAutocomplete() {
   const input = queryInputRef.value
-  if (!input || !window.google?.maps?.places) return
+  if (!input || !mapApi?.places) return
 
-  queryAutocomplete = new window.google.maps.places.Autocomplete(input, {
+  queryAutocomplete = new mapApi.places.Autocomplete(input, {
     fields: ['geometry', 'formatted_address', 'name'],
     componentRestrictions: { country: 'au' },
   })
@@ -524,20 +519,19 @@ function setupQueryAutocomplete() {
 }
 
 onMounted(async () => {
-  await loadGoogleMapsApi()
+  mapApi = await loadMapApi()
 
-  map = new window.google.maps.Map(mapContainerRef.value, {
+  map = new mapApi.Map(mapContainerRef.value, {
     center: MELBOURNE_CENTER,
     zoom: 13,
-    mapId: 'aae9ba2249f23f6f5ac271a0',
     mapTypeControl: false,
     streetViewControl: false,
     fullscreenControl: false,
   })
 
-  directionsService = new window.google.maps.DirectionsService()
-  placesService = new window.google.maps.places.PlacesService(map)
-  directionsRenderer = new window.google.maps.DirectionsRenderer({
+  directionsService = new mapApi.DirectionsService()
+  placesService = new mapApi.places.PlacesService(map)
+  directionsRenderer = new mapApi.DirectionsRenderer({
     map,
     suppressMarkers: true,
     polylineOptions: { strokeColor: '#059669', strokeWeight: 5 },
@@ -546,7 +540,7 @@ onMounted(async () => {
   mapReady.value = true
   await nextTick()
   setupQueryAutocomplete()
-  window.google.maps.event.trigger(map, 'resize')
+  mapApi.event.trigger(map, 'resize')
   await locateUser()
 })
 </script>

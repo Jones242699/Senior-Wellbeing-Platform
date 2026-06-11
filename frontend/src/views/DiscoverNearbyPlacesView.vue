@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { buildApiUrl, getApiBase } from '../config/api'
-import { loadOsmMapsApi } from '../utils/osmMaps'
+import { loadMapApi } from '../utils/osmMaps'
 
 const router = useRouter()
 
@@ -162,8 +162,9 @@ function normalizeApiPayload(payload) {
   return payload
 }
 
-function loadGoogleMapsApi() {
-  return loadOsmMapsApi()
+async function loadDiscoverMapApi() {
+  if (!mapApi) mapApi = await loadMapApi()
+  return mapApi
 }
 
 function normalizeCategory(rawCategory) {
@@ -1270,6 +1271,7 @@ let geocoder = null
 let addressAutocomplete = null
 let geoWatchId = null
 let discoverMap = null
+let mapApi = null
 let mapMarkers = []
 let placeMarkersById = new Map()
 let activeHighlightMarker = null
@@ -1283,10 +1285,10 @@ const crowdDensityRoutePathCache = new Map()
 const crowdDensityRoadLabelCache = new Map()
 
 function buildMarkerIcon(color, isActive = false, categoryKey = '') {
-  if (!window.google?.maps?.SymbolPath) return undefined
+  if (!mapApi?.SymbolPath) return undefined
   const isRestaurant = categoryKey === 'cafes_restaurants'
   return {
-    path: window.google.maps.SymbolPath.CIRCLE,
+    path: mapApi.SymbolPath.CIRCLE,
     scale: isActive ? (isRestaurant ? 16 : 12) : isRestaurant ? 9 : 8,
     fillColor: color,
     fillOpacity: 1,
@@ -1304,16 +1306,16 @@ function clearActiveHighlightMarker() {
 
 function updateActiveHighlightMarker(place) {
   clearActiveHighlightMarker()
-  if (!place || !discoverMap || !window.google?.maps?.Marker) return
+  if (!place || !discoverMap || !mapApi?.Marker) return
   if (!Number.isFinite(place.lat) || !Number.isFinite(place.lng)) return
 
   const ringColor = mapMarkerColorByCategory[place.categoryKey] || '#ec4899'
-  activeHighlightMarker = new window.google.maps.Marker({
+  activeHighlightMarker = new mapApi.Marker({
     map: discoverMap,
     position: { lat: place.lat, lng: place.lng },
     clickable: false,
     icon: {
-      path: window.google.maps.SymbolPath.CIRCLE,
+      path: mapApi.SymbolPath.CIRCLE,
       scale: 24,
       fillColor: ringColor,
       fillOpacity: 0.22,
@@ -1325,7 +1327,7 @@ function updateActiveHighlightMarker(place) {
 }
 
 function upsertPlaceMarker(place) {
-  if (!discoverMap || !window.google?.maps?.Marker) return null
+  if (!discoverMap || !mapApi?.Marker) return null
   if (!Number.isFinite(place?.lat) || !Number.isFinite(place?.lng)) return null
 
   const existing = placeMarkersById.get(place.id)
@@ -1333,7 +1335,7 @@ function upsertPlaceMarker(place) {
 
   const markerColor = mapMarkerColorByCategory[place.categoryKey] || '#f97316'
   const isActive = activeMapPlaceId.value === place.id
-  const marker = new window.google.maps.Marker({
+  const marker = new mapApi.Marker({
     map: discoverMap,
     position: { lat: place.lat, lng: place.lng },
     title: place.name,
@@ -1364,7 +1366,7 @@ function syncActiveMarkerVisual() {
     const isActive = activeMapPlaceId.value === placeId
     marker.setIcon(buildMarkerIcon(markerColor, isActive, place?.categoryKey))
     marker.setZIndex(isActive ? 30 : 1)
-    marker.setAnimation(isActive ? window.google?.maps?.Animation?.BOUNCE || null : null)
+    marker.setAnimation(isActive ? mapApi?.Animation?.BOUNCE || null : null)
     if (isActive) {
       window.setTimeout(() => {
         if (activeMapPlaceId.value === placeId) marker.setAnimation(null)
@@ -1448,7 +1450,7 @@ function clearCrowdDensityOverlay() {
 
 async function resolveRoadLabelForRecord(record) {
   if (record?.streetName) return record.streetName
-  if (!crowdGeocoder || !window.google?.maps?.GeocoderStatus) return ''
+  if (!crowdGeocoder || !mapApi?.GeocoderStatus) return ''
   const cacheKey = `${record.lat.toFixed(5)},${record.lng.toFixed(5)}`
   const cached = crowdDensityRoadLabelCache.get(cacheKey)
   if (cached !== undefined) return cached
@@ -1467,7 +1469,7 @@ async function resolveRoadLabelForRecord(record) {
 }
 
 async function loadRoutePathForRoadGroup(group) {
-  if (!crowdDirectionsService || !window.google?.maps?.DirectionsStatus) return null
+  if (!crowdDirectionsService || !mapApi?.DirectionsStatus) return null
   if (!group?.records?.length) return null
   const cacheKey = group.records.map((item) => item.id).join('>')
   const cachedPath = crowdDensityRoutePathCache.get(cacheKey)
@@ -1495,7 +1497,7 @@ async function loadRoutePathForRoadGroup(group) {
           origin,
           destination,
           waypoints: [{ location: { lat: point.lat, lng: point.lng }, stopover: false }],
-          travelMode: window.google.maps.TravelMode.WALKING,
+          travelMode: mapApi.TravelMode.WALKING,
           provideRouteAlternatives: false,
         })
         const firstRoute = singleResult?.routes?.[0]
@@ -1529,7 +1531,7 @@ async function loadRoutePathForRoadGroup(group) {
         lng: destinationRecord.lng,
       },
       waypoints,
-      travelMode: window.google.maps.TravelMode.WALKING,
+      travelMode: mapApi.TravelMode.WALKING,
       provideRouteAlternatives: false,
     })
     const firstRoute = result?.routes?.[0]
@@ -1546,16 +1548,16 @@ async function loadRoutePathForRoadGroup(group) {
 }
 
 async function renderCrowdDensityOverlay() {
-  if (!discoverMap || !window.google?.maps?.Polyline) return
+  if (!discoverMap || !mapApi?.Polyline) return
   clearCrowdDensityOverlay()
   const renderId = ++crowdDensityRenderSeq
-  const canUseDirections = !!window.google?.maps?.DirectionsService
-  const canUseGeocoder = !!window.google?.maps?.Geocoder
+  const canUseDirections = !!mapApi?.DirectionsService
+  const canUseGeocoder = !!mapApi?.Geocoder
   if (canUseDirections && !crowdDirectionsService) {
-    crowdDirectionsService = new window.google.maps.DirectionsService()
+    crowdDirectionsService = new mapApi.DirectionsService()
   }
   if (canUseGeocoder && !crowdGeocoder) {
-    crowdGeocoder = new window.google.maps.Geocoder()
+    crowdGeocoder = new mapApi.Geocoder()
   }
 
   const roadLabelByRecordId = new Map()
@@ -1616,7 +1618,7 @@ async function renderCrowdDensityOverlay() {
   let drawnCount = 0
   resolvedPaths.filter(Boolean).forEach(({ group, path }) => {
     const levelColor = CROWD_DENSITY_COLORS[group.level] || CROWD_DENSITY_COLORS.moderate
-    const polyline = new window.google.maps.Polyline({
+    const polyline = new mapApi.Polyline({
       map: discoverMap,
       path,
       geodesic: true,
@@ -1636,7 +1638,7 @@ async function renderCrowdDensityOverlay() {
       const path = buildLocalFallbackPathForGroup(group)
       if (path.length < 2) return
       const levelColor = CROWD_DENSITY_COLORS[group.level] || CROWD_DENSITY_COLORS.moderate
-      const polyline = new window.google.maps.Polyline({
+      const polyline = new mapApi.Polyline({
         map: discoverMap,
         path,
         geodesic: true,
@@ -1653,7 +1655,7 @@ async function renderCrowdDensityOverlay() {
 
 async function refreshCrowdDensityOverlay() {
   const requestId = ++crowdDensityRequestSeq
-  if (!discoverMap || !window.google?.maps?.Polyline) return
+  if (!discoverMap || !mapApi?.Polyline) return
   if (!shouldShowCrowdDensityOverlay.value) {
     crowdDensityRecords.value = []
     clearCrowdDensityOverlay()
@@ -1681,8 +1683,8 @@ async function refreshCrowdDensityOverlay() {
 }
 
 function initDiscoverMap() {
-  if (discoverMap || !mapContainerRef.value || !window.google?.maps?.Map) return
-  discoverMap = new window.google.maps.Map(mapContainerRef.value, {
+  if (discoverMap || !mapContainerRef.value || !mapApi?.Map) return
+  discoverMap = new mapApi.Map(mapContainerRef.value, {
     center: { lat: -37.8136, lng: 144.9631 },
     zoom: 14,
     disableDefaultUI: false,
@@ -1693,10 +1695,10 @@ function initDiscoverMap() {
 }
 
 function updateDiscoverMapMarkers() {
-  if (!discoverMap || !window.google?.maps?.Marker) return
+  if (!discoverMap || !mapApi?.Marker) return
   clearMapMarkers()
 
-  const mapBounds = new window.google.maps.LatLngBounds()
+  const mapBounds = new mapApi.LatLngBounds()
   let hasAnyPoint = false
 
   if (
@@ -1705,12 +1707,12 @@ function updateDiscoverMapMarkers() {
     Number.isFinite(userLocation.value.lng)
   ) {
     const userPos = { lat: userLocation.value.lat, lng: userLocation.value.lng }
-    const userMarker = new window.google.maps.Marker({
+    const userMarker = new mapApi.Marker({
       map: discoverMap,
       position: userPos,
       title: 'Your location',
       icon: {
-        path: window.google.maps.SymbolPath.CIRCLE,
+        path: mapApi.SymbolPath.CIRCLE,
         scale: 8,
         fillColor: '#ef4444',
         fillOpacity: 1,
@@ -1726,7 +1728,7 @@ function updateDiscoverMapMarkers() {
 
   mapRenderablePlaces.value.forEach((place) => {
     const markerColor = mapMarkerColorByCategory[place.categoryKey] || '#f97316'
-    const marker = new window.google.maps.Marker({
+    const marker = new mapApi.Marker({
       map: discoverMap,
       position: { lat: place.lat, lng: place.lng },
       title: place.name,
@@ -1823,9 +1825,9 @@ function assertWithinMelbourne(lat, lng, label = 'Address') {
 
 function setupAddressAutocomplete() {
   const input = addressInputRef.value
-  if (!input || !window.google?.maps?.places) return
+  if (!input || !mapApi?.places) return
 
-  addressAutocomplete = new window.google.maps.places.Autocomplete(input, {
+  addressAutocomplete = new mapApi.places.Autocomplete(input, {
     fields: ['geometry', 'formatted_address'],
     componentRestrictions: { country: 'au' },
   })
@@ -1869,8 +1871,8 @@ async function applyAddressFilter() {
   addressFilterError.value = ''
   applyingAddressFilter.value = true
   try {
-    await loadGoogleMapsApi()
-    if (!geocoder && window.google?.maps?.Geocoder) geocoder = new window.google.maps.Geocoder()
+    await loadDiscoverMapApi()
+    if (!geocoder && mapApi?.Geocoder) geocoder = new mapApi.Geocoder()
     const target = await resolveAddressCoordinates()
     userLocation.value = { lat: target.lat, lng: target.lng }
     addressQuery.value = target.formattedAddress
@@ -1946,10 +1948,10 @@ async function loadPlaces() {
 
 onMounted(async () => {
   readSessionState()
-  await Promise.allSettled([loadPlaces(), requestBrowserLocation(), loadGoogleMapsApi()])
-  if (window.google?.maps?.Geocoder) geocoder = new window.google.maps.Geocoder()
+  await Promise.allSettled([loadPlaces(), requestBrowserLocation(), loadDiscoverMapApi()])
+  if (mapApi?.Geocoder) geocoder = new mapApi.Geocoder()
   await nextTick()
-  if (window.google?.maps?.Map) {
+  if (mapApi?.Map) {
     initDiscoverMap()
     updateDiscoverMapMarkers()
   } else {

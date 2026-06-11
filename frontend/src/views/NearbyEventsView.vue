@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getApiBase } from '../config/api'
-import { loadOsmMapsApi } from '../utils/osmMaps'
+import { loadMapApi } from '../utils/osmMaps'
 
 const MELBOURNE_CENTER = { lat: -37.8136, lng: 144.9631 }
 const FILTER_CATEGORIES = [
@@ -44,6 +44,7 @@ const queryInputRef = ref(null)
 const queryPlace = ref(null)
 const searchMeta = ref('Using Melbourne CBD')
 const selectedLocation = ref({ ...MELBOURNE_CENTER })
+let mapApi
 let queryAutocomplete
 
 const categoryOptions = computed(() => FILTER_CATEGORIES)
@@ -159,15 +160,11 @@ async function geocodeAddress(query) {
   }
 }
 
-function loadGoogleMapsApi() {
-  return loadOsmMapsApi()
-}
-
 function setupQueryAutocomplete() {
   const input = queryInputRef.value
-  if (!input || !window.google?.maps?.places) return
+  if (!input || !mapApi?.places) return
 
-  queryAutocomplete = new window.google.maps.places.Autocomplete(input, {
+  queryAutocomplete = new mapApi.places.Autocomplete(input, {
     fields: ['geometry', 'formatted_address', 'name'],
     componentRestrictions: { country: 'au' },
   })
@@ -357,7 +354,7 @@ function onFilterSelectChange(event) {
 
 onMounted(async () => {
   try {
-    await loadGoogleMapsApi()
+    mapApi = await loadMapApi()
     await nextTick()
     setupQueryAutocomplete()
   } catch (error) {
