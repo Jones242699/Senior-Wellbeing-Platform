@@ -363,8 +363,16 @@ function buildQueryOptions() {
   return { queryLimit, queryRadius }
 }
 
+function buildDiscoverApiUrl(path) {
+  if (import.meta.env.DEV) {
+    const normalizedPath = path.replace(/^\//, '')
+    return new URL(normalizedPath, `${window.location.origin}/__discover/`)
+  }
+  return buildApiUrl(path, getApiBase(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL))
+}
+
 function buildPlacesApiUrl() {
-  const endpoint = buildApiUrl('/places', getApiBase(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL))
+  const endpoint = buildDiscoverApiUrl('/places')
   const { queryLimit, queryRadius } = buildQueryOptions()
   endpoint.searchParams.set('limit', String(queryLimit))
   endpoint.searchParams.set('radius', String(queryRadius))
@@ -376,7 +384,7 @@ function buildPlacesApiUrl() {
 }
 
 function buildVenuesApiUrl() {
-  const endpoint = buildApiUrl('/venues', getApiBase(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL))
+  const endpoint = buildDiscoverApiUrl('/venues')
   const { queryRadius } = buildQueryOptions()
   // Venues around CBD are dense; wider radius bands need a higher limit to avoid top-N truncation.
   const venuesLimit =
@@ -832,7 +840,7 @@ function buildAddressDerivedRoadGroups(places, existingRoadLabelSet, crowdRecord
 }
 
 function buildCrowdDensityApiUrl() {
-  const endpoint = buildApiUrl('/crowd-density', getApiBase(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL))
+  const endpoint = buildDiscoverApiUrl('/crowd-density')
   const { queryRadius } = buildQueryOptions()
   endpoint.searchParams.set('radius', String(Math.max(queryRadius, CROWD_DENSITY_MIN_RADIUS)))
   endpoint.searchParams.set('limit', String(CROWD_DENSITY_DEFAULT_LIMIT))
@@ -845,10 +853,13 @@ function buildCrowdDensityApiUrl() {
 
 function readSessionState() {
   try {
-    const storedCategories = JSON.parse(sessionStorage.getItem(STORAGE_KEY_CATEGORIES) || '[]')
-    if (Array.isArray(storedCategories)) {
-      const valid = storedCategories.filter((key) => DEFAULT_CATEGORY_KEYS.includes(key))
-      if (valid.length > 0 || storedCategories.length === 0) selectedCategories.value = valid
+    const storedCategoriesRaw = sessionStorage.getItem(STORAGE_KEY_CATEGORIES)
+    if (storedCategoriesRaw !== null) {
+      const storedCategories = JSON.parse(storedCategoriesRaw)
+      if (Array.isArray(storedCategories)) {
+        const valid = storedCategories.filter((key) => DEFAULT_CATEGORY_KEYS.includes(key))
+        if (valid.length > 0 || storedCategories.length === 0) selectedCategories.value = valid
+      }
     }
     const storedRadius = Number(sessionStorage.getItem(STORAGE_KEY_RADIUS))
     if (RADIUS_OPTIONS.some((option) => option.meters === storedRadius)) {
@@ -1149,10 +1160,7 @@ async function loadPlaceDetail(place) {
       place.sourceType === 'venues'
         ? `/venues/${encodeURIComponent(place.sourceId)}`
         : `/places/${encodeURIComponent(place.sourceId)}`
-    const detailUrl = buildApiUrl(
-      detailEndpoint,
-      getApiBase(import.meta.env.VITE_DISCOVER_PLACES_API_BASE_URL),
-    ).toString()
+    const detailUrl = buildDiscoverApiUrl(detailEndpoint).toString()
     const response = await fetch(detailUrl)
     if (!response.ok) throw new Error(`Failed to load place detail (${response.status})`)
     const detailPayload = parsePlacesPayload(await response.json())[0]
@@ -2664,7 +2672,7 @@ watch(
   top: 12px;
   left: 12px;
   right: 12px;
-  z-index: 8;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2753,6 +2761,7 @@ watch(
 .map-fallback {
   position: absolute;
   inset: 0;
+  z-index: 1003;
   display: grid;
   place-items: center;
   background: rgba(248, 250, 249, 0.92);
@@ -2765,7 +2774,7 @@ watch(
   position: absolute;
   right: 14px;
   bottom: 14px;
-  z-index: 8;
+  z-index: 1001;
   min-width: 190px;
   border-radius: 12px;
   border: 1px solid #d4dbe5;
@@ -2806,7 +2815,7 @@ watch(
   position: absolute;
   left: 14px;
   bottom: 14px;
-  z-index: 9;
+  z-index: 1002;
   width: min(430px, calc(100% - 28px));
   height: 380px;
   border-radius: 16px;

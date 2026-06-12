@@ -15,12 +15,26 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, projectRoot, 'VITE_')
   let counselingProxyTarget = DEFAULT_COUNSELING_API_BASE
   let counselingPathPrefix = ''
+  let discoverProxyTarget = DEFAULT_COUNSELING_API_BASE
+  let discoverPathPrefix = ''
   try {
     const base = (env.VITE_COUNSELING_API_BASE || DEFAULT_COUNSELING_API_BASE).replace(/\/$/, '')
     const parsed = new URL(base)
     counselingProxyTarget = `${parsed.protocol}//${parsed.host}`
     const stagePath = parsed.pathname.replace(/\/$/, '') || ''
     counselingPathPrefix = stagePath && stagePath !== '/' ? stagePath : ''
+  } catch {
+    /* keep defaults */
+  }
+  try {
+    const base = (env.VITE_DISCOVER_PLACES_API_BASE_URL || DEFAULT_COUNSELING_API_BASE).replace(
+      /\/$/,
+      '',
+    )
+    const parsed = new URL(base)
+    discoverProxyTarget = `${parsed.protocol}//${parsed.host}`
+    const stagePath = parsed.pathname.replace(/\/$/, '') || ''
+    discoverPathPrefix = stagePath && stagePath !== '/' ? stagePath : ''
   } catch {
     /* keep defaults */
   }
@@ -62,6 +76,16 @@ export default defineConfig(({ mode }) => {
           target: counselingProxyTarget,
           changeOrigin: true,
           rewrite: (proxyPath) => proxyPath.replace(/^\/__route-facilities/, counselingPathPrefix),
+        },
+        '/__discover': {
+          target: discoverProxyTarget,
+          changeOrigin: true,
+          rewrite: (proxyPath) => proxyPath.replace(/^\/__discover/, discoverPathPrefix),
+        },
+        '/__nominatim': {
+          target: 'https://nominatim.openstreetmap.org',
+          changeOrigin: true,
+          rewrite: (proxyPath) => proxyPath.replace(/^\/__nominatim/, ''),
         },
       },
     },

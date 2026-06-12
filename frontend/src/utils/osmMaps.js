@@ -5,6 +5,11 @@ import { buildApiUrl, getApiBase } from '../config/api'
 const MELBOURNE_VIEWBOX = '144.2,-37.2,145.9,-38.55'
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org'
 
+function buildNominatimSearchUrl(params) {
+  if (import.meta.env.DEV) return `/__nominatim/search?${params}`
+  return `${NOMINATIM_BASE}/search?${params}`
+}
+
 function toNumber(value) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : null
@@ -179,6 +184,11 @@ class OsmMap {
     if (point) this.leaflet.panTo([point.lat, point.lng])
   }
 
+  panBy(x, y) {
+    const offset = Array.isArray(x) ? x : [x, y]
+    this.leaflet.panBy(offset)
+  }
+
   setCenter(position) {
     const point = toLatLngLiteral(position)
     if (point) this.leaflet.setView([point.lat, point.lng], this.leaflet.getZoom())
@@ -239,6 +249,15 @@ class OsmMarker {
     return makeLatLng(point.lat, point.lng)
   }
 
+  setIcon(icon) {
+    this.options.icon = icon
+    this.marker.setIcon(makeIcon(this.options))
+  }
+
+  setZIndex(zIndex) {
+    this.marker.setZIndexOffset(zIndex || 0)
+  }
+
   setMap(map) {
     if (this.map) this.map.leaflet.removeLayer(this.marker)
     this.map = map || null
@@ -297,7 +316,7 @@ async function nominatimSearch(query, limit = 5) {
     viewbox: MELBOURNE_VIEWBOX,
     bounded: '0',
   })
-  const response = await fetch(`${NOMINATIM_BASE}/search?${params}`, {
+  const response = await fetch(buildNominatimSearchUrl(params), {
     headers: { Accept: 'application/json' },
   })
   if (!response.ok) throw new Error(`Geocode failed (${response.status})`)
