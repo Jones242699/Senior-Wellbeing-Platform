@@ -528,49 +528,46 @@ class OsmDistanceMatrixService {
   }
 }
 
-export async function loadOsmMapsApi() {
-  if (window.google?.maps?.__osmLeaflet) return window.google.maps
+const OSM_MAP_API = {
+  Map: OsmMap,
+  Marker: OsmMarker,
+  Polyline: OsmPolyline,
+  InfoWindow: OsmInfoWindow,
+  LatLng: makeLatLng,
+  LatLngBounds: OsmLatLngBounds,
+  Geocoder: OsmGeocoder,
+  DirectionsService: OsmDirectionsService,
+  DirectionsRenderer: OsmDirectionsRenderer,
+  DistanceMatrixService: OsmDistanceMatrixService,
+  SymbolPath: { CIRCLE: 'CIRCLE' },
+  Animation: { BOUNCE: 'BOUNCE' },
+  DirectionsStatus: { OK: 'OK', ZERO_RESULTS: 'ZERO_RESULTS' },
+  GeocoderStatus: { OK: 'OK', ZERO_RESULTS: 'ZERO_RESULTS' },
+  TravelMode: {
+    WALKING: 'WALKING',
+    BICYCLING: 'BICYCLING',
+    DRIVING: 'DRIVING',
+    TRANSIT: 'TRANSIT',
+  },
+  UnitSystem: { METRIC: 'METRIC' },
+  event: { trigger: () => {} },
+  geometry: {
+    spherical: {
+      computeDistanceBetween: haversineMeters,
+      interpolate: interpolateLatLng,
+    },
+  },
+  places: {
+    Autocomplete: OsmAutocomplete,
+    PlacesService: OsmPlacesService,
+    PlacesServiceStatus: { OK: 'OK', ZERO_RESULTS: 'ZERO_RESULTS' },
+  },
+}
 
-  window.google = window.google || {}
-  window.google.maps = {
-    __osmLeaflet: true,
-    Map: OsmMap,
-    Marker: OsmMarker,
-    Polyline: OsmPolyline,
-    InfoWindow: OsmInfoWindow,
-    LatLng: makeLatLng,
-    LatLngBounds: OsmLatLngBounds,
-    Geocoder: OsmGeocoder,
-    DirectionsService: OsmDirectionsService,
-    DirectionsRenderer: OsmDirectionsRenderer,
-    DistanceMatrixService: OsmDistanceMatrixService,
-    SymbolPath: { CIRCLE: 'CIRCLE' },
-    Animation: { BOUNCE: 'BOUNCE' },
-    DirectionsStatus: { OK: 'OK', ZERO_RESULTS: 'ZERO_RESULTS' },
-    GeocoderStatus: { OK: 'OK', ZERO_RESULTS: 'ZERO_RESULTS' },
-    TravelMode: {
-      WALKING: 'WALKING',
-      BICYCLING: 'BICYCLING',
-      DRIVING: 'DRIVING',
-      TRANSIT: 'TRANSIT',
-    },
-    UnitSystem: { METRIC: 'METRIC' },
-    event: { trigger: () => {} },
-    geometry: {
-      spherical: {
-        computeDistanceBetween: haversineMeters,
-        interpolate: interpolateLatLng,
-      },
-    },
-    places: {
-      Autocomplete: OsmAutocomplete,
-      PlacesService: OsmPlacesService,
-      PlacesServiceStatus: { OK: 'OK', ZERO_RESULTS: 'ZERO_RESULTS' },
-    },
-  }
-  return window.google.maps
+export async function loadOsmMapsApi() {
+  return OSM_MAP_API
 }
 
 export async function loadMapApi() {
-  return loadOsmMapsApi()
+  return OSM_MAP_API
 }
