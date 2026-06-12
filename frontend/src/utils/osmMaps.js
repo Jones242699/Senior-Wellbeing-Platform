@@ -159,6 +159,15 @@ function addBoundsMask(map, bounds) {
   }).addTo(map)
 }
 
+function ensurePane(map, name, zIndex) {
+  if (!map?.getPane(name)) {
+    map.createPane(name)
+  }
+  const pane = map.getPane(name)
+  if (pane && zIndex !== undefined) pane.style.zIndex = String(zIndex)
+  return name
+}
+
 class OsmMap {
   constructor(element, options = {}) {
     const center = toLatLngLiteral(options.center) || { lat: -37.8136, lng: 144.9631 }
@@ -282,6 +291,7 @@ class OsmPolyline {
         color: options.strokeColor || '#2563eb',
         weight: options.strokeWeight || 4,
         opacity: options.strokeOpacity ?? 0.9,
+        interactive: options.clickable !== false,
       },
     )
     this.map = null
@@ -291,7 +301,13 @@ class OsmPolyline {
   setMap(map) {
     if (this.map) this.map.leaflet.removeLayer(this.polyline)
     this.map = map || null
-    if (map) this.polyline.addTo(map.leaflet)
+    if (map) {
+      if (this.options.zIndex !== undefined) {
+        const zIndex = 650 + Number(this.options.zIndex || 0)
+        this.polyline.options.pane = ensurePane(map.leaflet, 'mapPolylinePane', zIndex)
+      }
+      this.polyline.addTo(map.leaflet)
+    }
   }
 }
 

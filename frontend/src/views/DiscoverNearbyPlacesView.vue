@@ -57,9 +57,7 @@ const CROWD_DENSITY_DEFAULT_LIMIT = 180
 const CROWD_DENSITY_MIN_RADIUS = 500
 const CROWD_DENSITY_MAX_POINTS_PER_GROUP = 14
 const CROWD_DENSITY_FALLBACK_MAX_NEIGHBOR_DISTANCE_METERS = 280
-const CROWD_DENSITY_ROAD_EXTENSION_METERS = 700
 const CROWD_DENSITY_SINGLE_POINT_HALF_SPAN_METERS = 130
-const CROWD_DENSITY_MAX_GEOCODE_RECORDS = 90
 const CROWD_DENSITY_MAX_ROUTE_GROUPS_PER_RENDER = 120
 const CROWD_DENSITY_MAX_ADDRESS_DERIVED_GROUPS = 140
 const CROWD_DENSITY_COLORS = {
@@ -302,15 +300,6 @@ function calculateDistanceMeters(from, to) {
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return earthRadiusMeters * c
-}
-
-function calculateBearingRadians(from, to) {
-  const lat1 = toRadians(from.lat)
-  const lat2 = toRadians(to.lat)
-  const dLng = toRadians(to.lng - from.lng)
-  const y = Math.sin(dLng) * Math.cos(lat2)
-  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
-  return Math.atan2(y, x)
 }
 
 function projectPointByMeters(start, distanceMeters, bearingRadians) {
@@ -643,13 +632,6 @@ function resolveHigherCrowdLevel(firstLevel, secondLevel) {
   return crowdLevelWeight(firstLevel) >= crowdLevelWeight(secondLevel) ? firstLevel : secondLevel
 }
 
-function pickRouteLabelFromGeocode(geocodeResult) {
-  const components = geocodeResult?.address_components || []
-  const routeComponent = components.find((component) => component.types?.includes('route'))
-  if (!routeComponent) return ''
-  return String(routeComponent.long_name || routeComponent.short_name || '').trim()
-}
-
 function sortRoadPoints(records) {
   if (records.length <= 2) return records
   const latMin = Math.min(...records.map((item) => item.lat))
@@ -740,20 +722,6 @@ function buildFallbackRoadOverlays(records) {
   })
 
   return overlays
-}
-
-function buildExtendedRoadEndpoints(records) {
-  if (!Array.isArray(records) || records.length < 2) return null
-  const first = records[0]
-  const second = records[Math.min(1, records.length - 1)]
-  const last = records[records.length - 1]
-  const beforeLast = records[Math.max(records.length - 2, 0)]
-  const startBearing = calculateBearingRadians(second, first)
-  const endBearing = calculateBearingRadians(beforeLast, last)
-  return {
-    origin: projectPointByMeters(first, CROWD_DENSITY_ROAD_EXTENSION_METERS, startBearing),
-    destination: projectPointByMeters(last, CROWD_DENSITY_ROAD_EXTENSION_METERS, endBearing),
-  }
 }
 
 function buildLocalFallbackPathForGroup(group) {
@@ -1287,10 +1255,6 @@ let crowdDensityPolylines = []
 let crowdDensityRequestSeq = 0
 let crowdDensityRenderSeq = 0
 const crowdDensityRecords = ref([])
-let crowdDirectionsService = null
-let crowdGeocoder = null
-const crowdDensityRoutePathCache = new Map()
-const crowdDensityRoadLabelCache = new Map()
 
 function buildMarkerIcon(color, isActive = false, categoryKey = '') {
   if (!mapApi?.SymbolPath) return undefined
@@ -1456,134 +1420,12 @@ function clearCrowdDensityOverlay() {
   crowdDensityPolylines = []
 }
 
-async function resolveRoadLabelForRecord(record) {
-  if (record?.streetName) return record.streetName
-  if (!crowdGeocoder || !mapApi?.GeocoderStatus) return ''
-  const cacheKey = `${record.lat.toFixed(5)},${record.lng.toFixed(5)}`
-  const cached = crowdDensityRoadLabelCache.get(cacheKey)
-  if (cached !== undefined) return cached
-  try {
-    const geocodeResult = await crowdGeocoder.geocode({
-      location: { lat: record.lat, lng: record.lng },
-    })
-    const firstResult = geocodeResult?.results?.[0]
-    const routeLabel = pickRouteLabelFromGeocode(firstResult)
-    crowdDensityRoadLabelCache.set(cacheKey, routeLabel || '')
-    return routeLabel
-  } catch {
-    crowdDensityRoadLabelCache.set(cacheKey, '')
-    return ''
-  }
-}
-
-async function loadRoutePathForRoadGroup(group) {
-  if (!crowdDirectionsService || !mapApi?.DirectionsStatus) return null
-  if (!group?.records?.length) return null
-  const cacheKey = group.records.map((item) => item.id).join('>')
-  const cachedPath = crowdDensityRoutePathCache.get(cacheKey)
-  if (cachedPath) return cachedPath
-
-  try {
-    if (group.records.length === 1) {
-      const point = group.records[0]
-      const candidates = [0, Math.PI / 2]
-      let bestPath = null
-      let bestDistance = Number.POSITIVE_INFINITY
-
-      for (const bearing of candidates) {
-        const origin = projectPointByMeters(
-          { lat: point.lat, lng: point.lng },
-          CROWD_DENSITY_SINGLE_POINT_HALF_SPAN_METERS,
-          bearing + Math.PI,
-        )
-        const destination = projectPointByMeters(
-          { lat: point.lat, lng: point.lng },
-          CROWD_DENSITY_SINGLE_POINT_HALF_SPAN_METERS,
-          bearing,
-        )
-        const singleResult = await crowdDirectionsService.route({
-          origin,
-          destination,
-          waypoints: [{ location: { lat: point.lat, lng: point.lng }, stopover: false }],
-          travelMode: mapApi.TravelMode.WALKING,
-          provideRouteAlternatives: false,
-        })
-        const firstRoute = singleResult?.routes?.[0]
-        const totalDistance = Number(firstRoute?.legs?.[0]?.distance?.value)
-        if (!firstRoute?.overview_path?.length) continue
-        if (!Number.isFinite(totalDistance)) continue
-        if (totalDistance < bestDistance) {
-          bestDistance = totalDistance
-          bestPath = firstRoute.overview_path.map((item) => ({ lat: item.lat(), lng: item.lng() }))
-        }
-      }
-
-      if (bestPath?.length) {
-        crowdDensityRoutePathCache.set(cacheKey, bestPath)
-        return bestPath
-      }
-      return null
-    }
-
-    const originRecord = group.records[0]
-    const destinationRecord = group.records[group.records.length - 1]
-    const extendedEndpoints = buildExtendedRoadEndpoints(group.records)
-    const waypoints = group.records.slice(1, -1).map((item) => ({
-      location: { lat: item.lat, lng: item.lng },
-      stopover: false,
-    }))
-    const result = await crowdDirectionsService.route({
-      origin: extendedEndpoints?.origin || { lat: originRecord.lat, lng: originRecord.lng },
-      destination: extendedEndpoints?.destination || {
-        lat: destinationRecord.lat,
-        lng: destinationRecord.lng,
-      },
-      waypoints,
-      travelMode: mapApi.TravelMode.WALKING,
-      provideRouteAlternatives: false,
-    })
-    const firstRoute = result?.routes?.[0]
-    if (!firstRoute?.overview_path?.length) return null
-    const normalizedPath = firstRoute.overview_path.map((point) => ({
-      lat: point.lat(),
-      lng: point.lng(),
-    }))
-    crowdDensityRoutePathCache.set(cacheKey, normalizedPath)
-    return normalizedPath
-  } catch {
-    return null
-  }
-}
-
 async function renderCrowdDensityOverlay() {
   if (!discoverMap || !mapApi?.Polyline) return
   clearCrowdDensityOverlay()
   const renderId = ++crowdDensityRenderSeq
-  const canUseDirections = !!mapApi?.DirectionsService
-  const canUseGeocoder = !!mapApi?.Geocoder
-  if (canUseDirections && !crowdDirectionsService) {
-    crowdDirectionsService = new mapApi.DirectionsService()
-  }
-  if (canUseGeocoder && !crowdGeocoder) {
-    crowdGeocoder = new mapApi.Geocoder()
-  }
 
   const roadLabelByRecordId = new Map()
-  if (canUseGeocoder && crowdGeocoder) {
-    const recordsForGeocode = crowdDensityRecords.value
-      .filter((record) => !record.streetName)
-      .slice()
-      .sort((a, b) => (b.volume || 0) - (a.volume || 0))
-      .slice(0, CROWD_DENSITY_MAX_GEOCODE_RECORDS)
-    await Promise.all(
-      recordsForGeocode.map(async (record) => {
-        const roadLabel = await resolveRoadLabelForRecord(record)
-        roadLabelByRecordId.set(record.id, roadLabel)
-      }),
-    )
-  }
-  if (renderId !== crowdDensityRenderSeq) return
-
   const roadGroups = buildGroupedRoadOverlays(crowdDensityRecords.value, roadLabelByRecordId)
   const groupedRecordIds = new Set(
     roadGroups.flatMap((group) => group.records.map((record) => record.id)),
@@ -1612,19 +1454,11 @@ async function renderCrowdDensityOverlay() {
     resolvedGroups.push(...globalFallback)
   }
 
-  let resolvedPaths = []
-  if (canUseDirections && crowdDirectionsService) {
-    resolvedPaths = await Promise.all(
-      resolvedGroups.map(async (group) => {
-        const path = await loadRoutePathForRoadGroup(group)
-        return path ? { group, path } : null
-      }),
-    )
-  }
   if (renderId !== crowdDensityRenderSeq) return
 
-  let drawnCount = 0
-  resolvedPaths.filter(Boolean).forEach(({ group, path }) => {
+  resolvedGroups.forEach((group) => {
+    const path = buildLocalFallbackPathForGroup(group)
+    if (path.length < 2) return
     const levelColor = CROWD_DENSITY_COLORS[group.level] || CROWD_DENSITY_COLORS.moderate
     const polyline = new mapApi.Polyline({
       map: discoverMap,
@@ -1632,33 +1466,12 @@ async function renderCrowdDensityOverlay() {
       geodesic: true,
       clickable: false,
       strokeColor: levelColor,
-      strokeOpacity: 0.5,
-      strokeWeight: 10,
-      zIndex: 2,
+      strokeOpacity: 0.68,
+      strokeWeight: 12,
+      zIndex: 5,
     })
     crowdDensityPolylines.push(polyline)
-    drawnCount += 1
   })
-
-  if (drawnCount === 0) {
-    // Rate-limit or routing failures should still render visible fallback overlays.
-    resolvedGroups.forEach((group) => {
-      const path = buildLocalFallbackPathForGroup(group)
-      if (path.length < 2) return
-      const levelColor = CROWD_DENSITY_COLORS[group.level] || CROWD_DENSITY_COLORS.moderate
-      const polyline = new mapApi.Polyline({
-        map: discoverMap,
-        path,
-        geodesic: true,
-        clickable: false,
-        strokeColor: levelColor,
-        strokeOpacity: 0.5,
-        strokeWeight: 10,
-        zIndex: 2,
-      })
-      crowdDensityPolylines.push(polyline)
-    })
-  }
 }
 
 async function refreshCrowdDensityOverlay() {
@@ -1684,8 +1497,6 @@ async function refreshCrowdDensityOverlay() {
     if (requestId !== crowdDensityRequestSeq) return
     crowdDensityRecords.value = []
     clearCrowdDensityOverlay()
-    crowdDensityRoutePathCache.clear()
-    crowdDensityRoadLabelCache.clear()
     console.error('[Discover Places] Failed to load crowd density:', error)
   }
 }
