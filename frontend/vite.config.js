@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => {
   let counselingPathPrefix = ''
   let discoverProxyTarget = DEFAULT_COUNSELING_API_BASE
   let discoverPathPrefix = ''
+  let geocodeProxyTarget = DEFAULT_COUNSELING_API_BASE
+  let geocodePathPrefix = ''
   try {
     const base = (env.VITE_COUNSELING_API_BASE || DEFAULT_COUNSELING_API_BASE).replace(/\/$/, '')
     const parsed = new URL(base)
@@ -35,6 +37,15 @@ export default defineConfig(({ mode }) => {
     discoverProxyTarget = `${parsed.protocol}//${parsed.host}`
     const stagePath = parsed.pathname.replace(/\/$/, '') || ''
     discoverPathPrefix = stagePath && stagePath !== '/' ? stagePath : ''
+  } catch {
+    /* keep defaults */
+  }
+  try {
+    const base = (env.VITE_GEOCODE_API_BASE || DEFAULT_COUNSELING_API_BASE).replace(/\/$/, '')
+    const parsed = new URL(base)
+    geocodeProxyTarget = `${parsed.protocol}//${parsed.host}`
+    const stagePath = parsed.pathname.replace(/\/$/, '') || ''
+    geocodePathPrefix = stagePath && stagePath !== '/' ? stagePath : ''
   } catch {
     /* keep defaults */
   }
@@ -82,10 +93,10 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (proxyPath) => proxyPath.replace(/^\/__discover/, discoverPathPrefix),
         },
-        '/__nominatim': {
-          target: 'https://nominatim.openstreetmap.org',
+        '/__geocode': {
+          target: geocodeProxyTarget,
           changeOrigin: true,
-          rewrite: (proxyPath) => proxyPath.replace(/^\/__nominatim/, ''),
+          rewrite: (proxyPath) => proxyPath.replace(/^\/__geocode/, geocodePathPrefix),
         },
       },
     },

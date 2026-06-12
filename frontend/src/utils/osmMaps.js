@@ -2,12 +2,15 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { buildApiUrl, getApiBase } from '../config/api'
 
-const MELBOURNE_VIEWBOX = '144.2,-37.2,145.9,-38.55'
-const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org'
+const geocodeCache = new globalThis.Map()
 
-function buildNominatimSearchUrl(params) {
-  if (import.meta.env.DEV) return `/__nominatim/search?${params}`
-  return `${NOMINATIM_BASE}/search?${params}`
+function buildGeocodeSearchUrl(query, limit) {
+  const endpoint = import.meta.env.DEV
+    ? new URL('/__geocode/geocode/search', window.location.origin)
+    : buildApiUrl('/geocode/search', getApiBase(import.meta.env.VITE_GEOCODE_API_BASE))
+  endpoint.searchParams.set('q', query)
+  endpoint.searchParams.set('limit', String(limit))
+  return endpoint.toString()
 }
 
 function toNumber(value) {
@@ -322,31 +325,28 @@ class OsmInfoWindow {
   }
 }
 
-async function nominatimSearch(query, limit = 5) {
-  const params = new URLSearchParams({
-    q: query,
-    format: 'jsonv2',
-    addressdetails: '1',
-    countrycodes: 'au',
-    limit: String(limit),
-    viewbox: MELBOURNE_VIEWBOX,
-    bounded: '0',
-  })
-  const response = await fetch(buildNominatimSearchUrl(params), {
+async function geocodeSearch(query, limit = 5) {
+  const cacheKey = `${String(query || '').trim().toLowerCase()}::${limit}`
+  if (geocodeCache.has(cacheKey)) return geocodeCache.get(cacheKey)
+
+  const response = await fetch(buildGeocodeSearchUrl(query, limit), {
     headers: { Accept: 'application/json' },
   })
   if (!response.ok) throw new Error(`Geocode failed (${response.status})`)
-  return response.json()
+  const payload = await response.json()
+  const results = Array.isArray(payload?.results) ? payload.results : []
+  geocodeCache.set(cacheKey, results)
+  return results
 }
 
 function toPlaceResult(item) {
   const lat = Number(item.lat)
-  const lng = Number(item.lon)
+  const lng = Number(item.lng)
   const location = makeLatLng(lat, lng)
   return {
-    place_id: item.place_id,
-    name: item.name || item.display_name?.split(',')[0] || 'Selected place',
-    formatted_address: item.display_name,
+    place_id: item.id,
+    name: item.name || item.address?.split(',')[0] || 'Selected place',
+    formatted_address: item.address,
     geometry: {
       location,
     },
@@ -355,7 +355,7 @@ function toPlaceResult(item) {
 
 class OsmGeocoder {
   geocode(request, callback) {
-    const promise = nominatimSearch(`${request.address || ''} Australia`, 1).then((items) => {
+    const promise = geocodeSearch(request.address || '', 1).then((items) => {
       const results = items.map(toPlaceResult)
       const status = results.length ? 'OK' : 'ZERO_RESULTS'
       if (callback) callback(results, status)
@@ -374,25 +374,102 @@ class OsmAutocomplete {
     this.input = input
     this.place = null
     this.listeners = new globalThis.Map()
+    this.suggestions = []
+    this.searchSeq = 0
+    this.debounceTimer = null
+    this.datalist = null
+    this.inputHandler = () => this.queueSuggestions()
+
+    if (input && globalThis.document) {
+      this.datalist = globalThis.document.createElement('datalist')
+      this.datalist.id = `osm-autocomplete-${Math.random().toString(36).slice(2)}`
+      input.setAttribute('list', this.datalist.id)
+      input.insertAdjacentElement('afterend', this.datalist)
+      input.addEventListener('input', this.inputHandler)
+    }
+  }
+
+  queueSuggestions() {
+    if (this.debounceTimer) window.clearTimeout(this.debounceTimer)
+    this.debounceTimer = window.setTimeout(() => {
+      void this.refreshSuggestions()
+    }, 220)
+  }
+
+  async refreshSuggestions() {
+    const value = this.input?.value?.trim()
+    const searchId = ++this.searchSeq
+    if (!value || value.length < 2) {
+      this.suggestions = []
+      this.renderSuggestions()
+      return
+    }
+
+    try {
+      const items = await geocodeSearch(value, 5)
+      if (searchId !== this.searchSeq) return
+      this.suggestions = items.map(toPlaceResult)
+      this.renderSuggestions()
+    } catch {
+      if (searchId !== this.searchSeq) return
+      this.suggestions = []
+      this.renderSuggestions()
+    }
+  }
+
+  renderSuggestions() {
+    if (!this.datalist) return
+    this.datalist.innerHTML = ''
+    this.suggestions.forEach((place) => {
+      const option = globalThis.document.createElement('option')
+      option.value = place.formatted_address || place.name
+      option.label = place.name
+      this.datalist.appendChild(option)
+    })
+  }
+
+  async resolveCurrentValue() {
+    const value = this.input?.value?.trim()
+    if (!value) {
+      this.place = null
+      return
+    }
+
+    const matchedSuggestion = this.suggestions.find(
+      (place) => place.formatted_address === value || place.name === value,
+    )
+    if (matchedSuggestion) {
+      this.place = matchedSuggestion
+      return
+    }
+
+    try {
+      const items = await geocodeSearch(value, 1)
+      this.place = items[0] ? toPlaceResult(items[0]) : null
+    } catch {
+      this.place = null
+    }
   }
 
   addListener(eventName, handler) {
     if (eventName !== 'place_changed') return { remove: () => {} }
     const wrapped = async () => {
-      const value = this.input?.value?.trim()
-      if (value) {
-        try {
-          const items = await nominatimSearch(`${value} Australia`, 1)
-          this.place = items[0] ? toPlaceResult(items[0]) : null
-        } catch {
-          this.place = null
-        }
-      }
+      await this.resolveCurrentValue()
       handler()
     }
+    const keydownWrapped = async (event) => {
+      if (event.key !== 'Enter') return
+      await wrapped()
+    }
     this.input?.addEventListener('change', wrapped)
-    this.listeners.set(handler, wrapped)
-    return { remove: () => this.input?.removeEventListener('change', wrapped) }
+    this.input?.addEventListener('keydown', keydownWrapped)
+    this.listeners.set(handler, { wrapped, keydownWrapped })
+    return {
+      remove: () => {
+        this.input?.removeEventListener('change', wrapped)
+        this.input?.removeEventListener('keydown', keydownWrapped)
+      },
+    }
   }
 
   getPlace() {
@@ -402,14 +479,14 @@ class OsmAutocomplete {
 
 class OsmPlacesService {
   findPlaceFromQuery(request, callback) {
-    nominatimSearch(`${request.query || ''} Australia`, 1)
+    geocodeSearch(request.query || '', 1)
       .then((items) => callback(items.map(toPlaceResult), items.length ? 'OK' : 'ZERO_RESULTS'))
       .catch(() => callback([], 'ERROR'))
   }
 
   textSearch(request, callback) {
     const query = request.query || ''
-    nominatimSearch(`${query} Melbourne Australia`, 20)
+    geocodeSearch(query, 20)
       .then((items) => callback(items.map(toPlaceResult), items.length ? 'OK' : 'ZERO_RESULTS'))
       .catch(() => callback([], 'ERROR'))
   }

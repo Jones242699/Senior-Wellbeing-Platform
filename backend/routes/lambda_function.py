@@ -2,8 +2,10 @@ import json
 import os
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 API_BASE_URL = os.environ["API_BASE_URL"].rstrip("/")
+SCORE_TIMEOUT_SECONDS = 5
 
 OSRM_ENDPOINTS = {
     "WALKING": "https://routing.openstreetmap.de/routed-foot/route/v1/foot",
@@ -92,15 +94,41 @@ def fetch_osrm_routes(start, destination, travel_mode, waypoints=None):
     return payload.get("routes", [])
 
 
-def post_json(url, payload):
+def post_json(url, payload, timeout=12):
     request = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=12) as response:
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.loads(response.read())
+
+
+def post_score_json(url, payload, label):
+    try:
+        return post_json(url, payload, timeout=SCORE_TIMEOUT_SECONDS)
+    except Exception as e:
+        print(f"{label} scoring failed:", str(e))
+        return {"results": []}
+
+
+def fetch_route_scores(scoring_routes):
+    payload = {"routes": scoring_routes}
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        shade_future = executor.submit(
+            post_score_json,
+            f"{API_BASE_URL}/score/shade",
+            payload,
+            "Shade",
+        )
+        pedestrian_future = executor.submit(
+            post_score_json,
+            f"{API_BASE_URL}/score/pedestrian",
+            payload,
+            "Pedestrian",
+        )
+        return shade_future.result(), pedestrian_future.result()
 
 
 def lambda_handler(event, context):
@@ -147,15 +175,7 @@ def lambda_handler(event, context):
             ]
             scoring_routes.append(decoded_path)
 
-        shade_data = post_json(
-            f"{API_BASE_URL}/score/shade",
-            {"routes": scoring_routes},
-        )
-
-        pedestrian_data = post_json(
-            f"{API_BASE_URL}/score/pedestrian",
-            {"routes": scoring_routes},
-        )
+        shade_data, pedestrian_data = fetch_route_scores(scoring_routes)
 
         shade_score_map = {
             item["id"]: item["shadeScore"]

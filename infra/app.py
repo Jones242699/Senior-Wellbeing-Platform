@@ -8,6 +8,7 @@ from stacks.pedestrian_score_stack import PedestrianScoreStack
 from stacks.shade_score_stack import ShadeScoreStack
 from stacks.routes_stack import RoutesStack
 from stacks.route_facilities_stack import RouteFacilitiesStack
+from stacks.geocode_stack import GeocodeStack
 from stacks.venues_stack import VenuesStack
 from stacks.crowd_density_stack import CrowdDensityStack
 from stacks.events_stack import EventsStack
@@ -78,6 +79,13 @@ RoutesStack(
 RouteFacilitiesStack(
     app,
     f"{PROJECT_STACK_PREFIX}RouteFacilitiesStack",
+    api=api_stack.api,
+    env=env
+)
+
+GeocodeStack(
+    app,
+    f"{PROJECT_STACK_PREFIX}GeocodeStack",
     api=api_stack.api,
     env=env
 )

@@ -811,7 +811,7 @@ async function generateRoute() {
       setEndpointMarker('dest', leg.end_location)
     }
 
-    await fetchFacilitiesForRoute(route)
+    void fetchFacilitiesForRoute(route)
 
     preferencesDirty.value = false
   } catch (e) {

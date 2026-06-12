@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getApiBase } from '../config/api'
+import { buildApiUrl, getApiBase } from '../config/api'
 import { loadMapApi } from '../utils/osmMaps'
 
 const MELBOURNE_CENTER = { lat: -37.8136, lng: 144.9631 }
@@ -138,11 +138,11 @@ function openEventDetail(event) {
 }
 
 async function geocodeAddress(query) {
-  const url = new URL('https://nominatim.openstreetmap.org/search')
+  const url = import.meta.env.DEV
+    ? new URL('/__geocode/geocode/search', window.location.origin)
+    : buildApiUrl('/geocode/search', getApiBase(import.meta.env.VITE_GEOCODE_API_BASE))
   url.searchParams.set('q', query)
-  url.searchParams.set('format', 'json')
   url.searchParams.set('limit', '1')
-  url.searchParams.set('addressdetails', '1')
 
   const response = await fetch(url, {
     headers: {
@@ -151,12 +151,12 @@ async function geocodeAddress(query) {
   })
   if (!response.ok) throw new Error(`Address lookup failed (${response.status})`)
   const payload = await response.json()
-  const item = Array.isArray(payload) ? payload[0] : null
+  const item = Array.isArray(payload?.results) ? payload.results[0] : null
   if (!item) throw new Error('Address not found. Please try a more specific address.')
   return {
     lat: Number(item.lat),
-    lng: Number(item.lon),
-    label: item.display_name || query,
+    lng: Number(item.lng),
+    label: item.address || item.name || query,
   }
 }
 
