@@ -60,7 +60,7 @@ function parseDistanceToMeters(distanceText) {
   return Number.POSITIVE_INFINITY
 }
 
-/** Backend `distance_meters` → list sort / display until Distance Matrix updates. */
+/** Backend `distance_meters` is used for list sort/display until batched route distances update. */
 function formatDistanceMeters(meters) {
   const m = Number(meters)
   if (!Number.isFinite(m) || m < 0) return ''
@@ -312,8 +312,8 @@ async function fetchRoomsNearby(userOrigin) {
   }
 }
 
-/** Google Distance Matrix allows at most 25 destinations per request (1 origin here). */
-const DISTANCE_MATRIX_MAX_DESTINATIONS = 25
+/** Keep batched distance lookups small enough for the current map adapter. */
+const DISTANCE_BATCH_MAX_DESTINATIONS = 25
 
 async function updateDistanceDurationForAll(origin) {
   if (!mapApi || rooms.value.length === 0) return
@@ -322,8 +322,8 @@ async function updateDistanceDurationForAll(origin) {
   const list = rooms.value
   const elementsByIndex = []
 
-  for (let offset = 0; offset < list.length; offset += DISTANCE_MATRIX_MAX_DESTINATIONS) {
-    const slice = list.slice(offset, offset + DISTANCE_MATRIX_MAX_DESTINATIONS)
+  for (let offset = 0; offset < list.length; offset += DISTANCE_BATCH_MAX_DESTINATIONS) {
+    const slice = list.slice(offset, offset + DISTANCE_BATCH_MAX_DESTINATIONS)
     const destinations = slice.map((room) => room.position)
     const result = await service.getDistanceMatrix({
       origins: [origin],
