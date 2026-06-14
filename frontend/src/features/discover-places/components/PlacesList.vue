@@ -21,6 +21,7 @@ defineProps({
   placesPerPage: { type: Number, required: true },
   formatDistance: { type: Function, required: true },
   showDetailsAction: { type: Boolean, default: false },
+  showLocationToolbar: { type: Boolean, default: true },
 })
 
 const emit = defineEmits([
@@ -45,7 +46,7 @@ onMounted(() => {
 
 <template>
   <section class="results-panel">
-    <section class="location-toolbar">
+    <section v-if="showLocationToolbar" class="location-toolbar">
       <div class="search-group">
         <input
           ref="addressInputRef"

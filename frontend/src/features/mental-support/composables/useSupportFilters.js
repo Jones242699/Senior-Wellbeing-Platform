@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { assertWithinSupportedArea } from '../../../shared/map/locationRules'
 
 export function useSupportFilters({
   clearFilterCenterMarker,
@@ -35,6 +36,10 @@ export function useSupportFilters({
     query.value = queryPlace.value.formattedAddress
   }
 
+  function setAddressFilterError(message) {
+    addressFilterError.value = message || ''
+  }
+
   async function applyAddressFilter() {
     addressFilterError.value = ''
     const address = query.value.trim()
@@ -46,6 +51,7 @@ export function useSupportFilters({
     applyingAddressFilter.value = true
     try {
       const target = queryPlace.value || (await resolveAddressFromPlaces(address))
+      assertWithinSupportedArea(target, 'Address')
       filterCenter.value = target
       setFilterCenterMarker({ lat: target.lat, lng: target.lng })
       panTo({ lat: target.lat, lng: target.lng }, 13)
@@ -72,6 +78,7 @@ export function useSupportFilters({
     clearAddressFilterState,
     getCurrentLocationLabel,
     onQueryInput,
+    setAddressFilterError,
     setQueryPlaceFromAutocomplete,
   }
 }

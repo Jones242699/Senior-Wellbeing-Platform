@@ -171,6 +171,7 @@ const {
   addressQuery,
   applyingAddressFilter,
   addressFilterError,
+  locationMode,
   applyAddressFilter,
   clearGeoWatch,
   setAddressInput,
@@ -435,6 +436,7 @@ const {
   clearAddressFilterState,
   getCurrentLocationLabel,
   onQueryInput: onSupportQueryInput,
+  setAddressFilterError: setSupportAddressFilterError,
   setQueryPlaceFromAutocomplete,
 } = useSupportFilters({
   clearFilterCenterMarker,
@@ -474,7 +476,8 @@ const {
   userPosition: supportUserPosition,
 })
 
-const { locateUser: locateSupportUser } = useSupportLocation({
+const { loadDefaultLocation: loadDefaultSupportLocation, locateUser: locateSupportUser } =
+  useSupportLocation({
   clearAddressFilterState,
   clearSelectedRoom,
   fetchRoomsNearby,
@@ -483,9 +486,24 @@ const { locateUser: locateSupportUser } = useSupportLocation({
   renderRoomMarkers,
   rooms,
   selectRoomAndRoute,
+  setLocationError: setSupportAddressFilterError,
   setUserMarker: setSupportUserMarker,
   updateDistanceDurationForAll,
 })
+
+const placesLocationLabel = computed(() => {
+  if (locationMode.value === 'device') return 'Current location'
+  if (locationMode.value === 'address') return addressQuery.value || 'Input address'
+  return 'Melbourne CBD'
+})
+
+const routeLocationLabel = computed(() => {
+  const label = startLocation.value.trim()
+  if (!label) return 'Melbourne CBD'
+  return label
+})
+
+const supportLocationLabel = computed(() => getCurrentLocationLabel(supportUserPosition.value))
 
 function shufflePlaces(places) {
   const arr = [...places]
@@ -739,7 +757,7 @@ watch(activeModeId, async () => {
     closeDetailPanel()
     clearRouteLayer()
     if (!rooms.value.length && !loadingRooms.value) {
-      void locateSupportUser()
+      void loadDefaultSupportLocation()
     } else {
       renderRoomMarkers(rooms.value, selectRoomAndRoute)
     }
@@ -815,7 +833,11 @@ watch(
       :is-active-map-place-loading="isActiveMapPlaceLoading"
       :is-active-map-place-rich="isActiveMapPlaceRich"
       :map-ready="mapReady"
+      :route-legend-visible="activeModeId === 'routes'"
       :show-crowd-density-legend="shouldShowCrowdDensityOverlay"
+      :support-filter-center="filterCenter"
+      :support-legend-visible="activeModeId === 'support'"
+      :support-selected-room-id="selectedRoomId"
       :user-location="userLocation"
       @close-map-place-card="closeMapPlaceCard"
       @directions="goToDirectionsForPlace"
@@ -840,6 +862,7 @@ watch(
         :category-counts="categoryCounts"
         :marker-colors="mapMarkerColorByCategory"
         :is-crowd-density-enabled="isCrowdDensityEnabled"
+        :location-label="placesLocationLabel"
         :show-select-category-hint="showSelectCategoryHint"
         :is-loading-places="isLoadingPlaces"
         :total-places="totalPlaces"
@@ -877,6 +900,7 @@ watch(
         :routing="routing"
         :route-summary="routeSummary"
         :loading-facilities="loadingFacilities"
+        :location-label="routeLocationLabel"
         :facility-counts="facilityCounts"
         :route-error="routeError"
         :no-toilets-found="noToiletsFound"
@@ -903,6 +927,7 @@ watch(
         :displayed-rooms="displayedRooms"
         :format-walk-duration="formatWalkDuration"
         :loading-rooms="loadingRooms"
+        :location-label="supportLocationLabel"
         :rooms-fetch-error="roomsFetchError"
         :route-summary="supportRouteSummary"
         :routing="supportRouting"

@@ -9,6 +9,7 @@ defineProps({
   displayedRooms: { type: Array, required: true },
   formatWalkDuration: { type: Function, required: true },
   loadingRooms: { type: Boolean, required: true },
+  locationLabel: { type: String, required: true },
   query: { type: String, required: true },
   roomsFetchError: { type: String, default: '' },
   routeSummary: { type: String, default: '' },
@@ -37,6 +38,7 @@ defineEmits([
       <p>Mental support</p>
       <h1>Mental Support</h1>
     </div>
+    <p class="explore-location-status">Using {{ locationLabel }}</p>
 
     <SupportFilters
       :query="query"
@@ -82,6 +84,17 @@ defineEmits([
   gap: 9px;
   margin-top: 12px;
   padding: 0;
+}
+
+.explore-location-status {
+  margin: 10px 0 0;
+  border: 1px solid #dbe4df;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  padding: 9px 11px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .explore-support-panel :deep(.back-link-top) {

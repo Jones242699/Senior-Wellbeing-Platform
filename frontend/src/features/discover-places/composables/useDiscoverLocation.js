@@ -1,6 +1,11 @@
 import { ref } from 'vue'
+import {
+  LOCATION_ACCESS_ERROR,
+  assertWithinSupportedArea,
+  buildOutsideSupportedAreaMessage,
+  isWithinBounds,
+} from '../../../shared/map/locationRules'
 import { setupPlaceAutocomplete, toPlacePoint } from '../../../shared/map/placeHelpers'
-import { MELBOURNE_METRO_BOUNDS } from './useDiscoverPlaces'
 
 export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationUnavailable, userLocation }) {
   const addressQuery = ref('')
@@ -8,6 +13,7 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
   const applyingAddressFilter = ref(false)
   const addressFilterError = ref('')
   const locationMode = ref('none') // none | device | address
+  const locationErrorMessage = ref('')
 
   let geocoder = null
   let addressAutocomplete = null
@@ -30,7 +36,16 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
     geoWatchId = navigator.geolocation.watchPosition(
       ({ coords }) => {
         if (locationMode.value !== 'device') return
-        userLocation.value = { lat: coords.latitude, lng: coords.longitude }
+        const position = { lat: coords.latitude, lng: coords.longitude }
+        if (!isWithinBounds(position)) {
+          locationErrorMessage.value = buildOutsideSupportedAreaMessage('Current location')
+          locationUnavailable.value = true
+          userLocation.value = null
+          locationMode.value = 'none'
+          clearGeoWatch()
+          return
+        }
+        userLocation.value = position
         locationUnavailable.value = false
       },
       () => {},
@@ -41,6 +56,7 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
   async function requestBrowserLocation() {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
+        locationErrorMessage.value = LOCATION_ACCESS_ERROR
         locationUnavailable.value = true
         locationMode.value = 'none'
         resolve(null)
@@ -49,12 +65,24 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
 
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
-          userLocation.value = { lat: coords.latitude, lng: coords.longitude }
+          const position = { lat: coords.latitude, lng: coords.longitude }
+          if (!isWithinBounds(position)) {
+            locationErrorMessage.value = buildOutsideSupportedAreaMessage('Current location')
+            locationUnavailable.value = true
+            locationMode.value = 'none'
+            userLocation.value = null
+            resolve(null)
+            return
+          }
+
+          userLocation.value = position
+          locationErrorMessage.value = ''
           locationUnavailable.value = false
           locationMode.value = 'device'
           resolve(userLocation.value)
         },
         () => {
+          locationErrorMessage.value = LOCATION_ACCESS_ERROR
           locationUnavailable.value = true
           if (locationMode.value === 'device' || locationMode.value === 'none') {
             userLocation.value = null
@@ -67,22 +95,8 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
     })
   }
 
-  function isWithinMelbourneMetro(lat, lng) {
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false
-    return (
-      lat >= MELBOURNE_METRO_BOUNDS.minLat &&
-      lat <= MELBOURNE_METRO_BOUNDS.maxLat &&
-      lng >= MELBOURNE_METRO_BOUNDS.minLng &&
-      lng <= MELBOURNE_METRO_BOUNDS.maxLng
-    )
-  }
-
   function assertWithinMelbourne(lat, lng, label = 'Address') {
-    if (!isWithinMelbourneMetro(lat, lng)) {
-      throw new Error(
-        `${label} is outside Melbourne. Please enter an address within metropolitan Melbourne.`,
-      )
-    }
+    assertWithinSupportedArea({ lat, lng }, label)
   }
 
   async function ensureGeocoder() {
@@ -160,8 +174,7 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
     addressFilterError.value = ''
     const position = await requestBrowserLocation()
     if (!position) {
-      addressFilterError.value =
-        'Unable to get your location. Please allow location access in browser settings.'
+      addressFilterError.value = locationErrorMessage.value || LOCATION_ACCESS_ERROR
       return
     }
     currentPage.value = 1

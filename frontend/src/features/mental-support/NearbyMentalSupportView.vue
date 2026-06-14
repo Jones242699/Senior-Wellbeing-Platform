@@ -54,6 +54,7 @@ const {
   clearAddressFilterState,
   getCurrentLocationLabel,
   onQueryInput,
+  setAddressFilterError,
   setQueryPlaceFromAutocomplete,
 } = useSupportFilters({
   clearFilterCenterMarker,
@@ -93,7 +94,7 @@ const {
   userPosition,
 })
 
-const { locateUser } = useSupportLocation({
+const { loadDefaultLocation, locateUser } = useSupportLocation({
   clearAddressFilterState,
   clearSelectedRoom,
   fetchRoomsNearby,
@@ -102,6 +103,7 @@ const { locateUser } = useSupportLocation({
   renderRoomMarkers,
   rooms,
   selectRoomAndRoute,
+  setLocationError: setAddressFilterError,
   setUserMarker,
   updateDistanceDurationForAll,
 })
@@ -111,7 +113,7 @@ onMounted(async () => {
   await nextTick()
   setupQueryAutocomplete(queryInputRef.value, setQueryPlaceFromAutocomplete)
   resizeMap()
-  await locateUser()
+  await loadDefaultLocation()
 })
 </script>
 
@@ -154,4 +156,3 @@ onMounted(async () => {
     </section>
   </main>
 </template>
-

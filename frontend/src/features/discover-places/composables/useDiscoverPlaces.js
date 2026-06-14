@@ -1,5 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { buildApiUrl, getApiBase } from '../../../config/api'
+import { MELBOURNE_CBD } from '../../../shared/map/locationRules'
 
 export const STORAGE_KEY_CATEGORIES = 'discoverPlaces.selectedCategories'
 export const STORAGE_KEY_RADIUS = 'discoverPlaces.selectedRadius'
@@ -393,7 +394,7 @@ export function useDiscoverPlaces({ isCrowdDensityEnabled, onPlacesLoaded } = {}
   const selectedCategories = ref([...DEFAULT_CATEGORY_KEYS])
   const selectedRadius = ref(DEFAULT_RADIUS)
   const currentPage = ref(1)
-  const userLocation = ref(null)
+  const userLocation = ref({ ...MELBOURNE_CBD })
   const venuesCacheByQuery = new Map()
   let placesRequestSeq = 0
 

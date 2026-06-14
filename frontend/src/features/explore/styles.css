@@ -104,6 +104,61 @@
   border-radius: 3px;
 }
 
+.explore-route-legend,
+.explore-support-legend {
+  left: 24px;
+  bottom: 24px;
+}
+
+.explore-legend-facility {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.explore-bench-icon {
+  background: #d99a2b;
+  color: #ffffff;
+}
+
+.explore-user-dot {
+  background: #16a34a;
+}
+
+.explore-room-dot {
+  background: #ef4444;
+}
+
+.explore-filter-dot {
+  background: #7c3aed;
+}
+
+.explore-route-color {
+  width: 24px;
+  height: 4px;
+  border-radius: 999px;
+  background: #16a34a;
+  flex-shrink: 0;
+}
+
+.explore-start-pin,
+.explore-dest-pin {
+  background: #dc2626;
+}
+
+.explore-legend-divider {
+  margin: 8px 0;
+  border-top: 1px solid #e2e8f0;
+}
+
 .explore-map-place-card {
   position: absolute;
   left: 24px;

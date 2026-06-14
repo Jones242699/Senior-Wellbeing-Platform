@@ -1,6 +1,10 @@
 import { ref } from 'vue'
+import {
+  LOCATION_ACCESS_ERROR,
+  MELBOURNE_CBD,
+  assertWithinSupportedArea,
+} from '../../../shared/map/locationRules'
 import { resolvePlaceFromQuery, setupPlaceAutocomplete } from '../../../shared/map/placeHelpers'
-import { CITY_OF_MELBOURNE_BOUNDS } from '../constants'
 
 export function useRouteInputs({
   ensureUserMarker,
@@ -11,7 +15,7 @@ export function useRouteInputs({
 }) {
   const startInputRef = ref(null)
   const destInputRef = ref(null)
-  const startLocation = ref('')
+  const startLocation = ref('Melbourne CBD')
   const destination = ref('')
   const originMode = ref('manual') // 'manual' | 'current'
   const userLatLng = ref(null)
@@ -31,33 +35,8 @@ export function useRouteInputs({
     destInputRef.value = element
   }
 
-  function toLatLngLiteral(value) {
-    if (!value) return null
-    const latRaw = typeof value.lat === 'function' ? value.lat() : value.lat
-    const lngRaw = typeof value.lng === 'function' ? value.lng() : value.lng
-    const lat = Number(latRaw)
-    const lng = Number(lngRaw)
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
-    return { lat, lng }
-  }
-
-  function isWithinBounds(point, bounds) {
-    return (
-      point.lat >= bounds.minLat &&
-      point.lat <= bounds.maxLat &&
-      point.lng >= bounds.minLng &&
-      point.lng <= bounds.maxLng
-    )
-  }
-
   function assertWithinMelbourne(point, label) {
-    const coords = toLatLngLiteral(point)
-    if (!coords || !isWithinBounds(coords, CITY_OF_MELBOURNE_BOUNDS)) {
-      throw new Error(
-        `${label} is outside the City of Melbourne. Please enter an address within the City of Melbourne.`,
-      )
-    }
-    return point
+    return assertWithinSupportedArea(point, label)
   }
 
   function watchPositionIfSupported() {
@@ -102,11 +81,7 @@ export function useRouteInputs({
         },
         (err) => {
           console.warn('Geolocation error:', err)
-          reject(
-            new Error(
-              'Unable to get your location. Please allow location access in the browser or enter the start manually.',
-            ),
-          )
+          reject(new Error(LOCATION_ACCESS_ERROR))
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
       )
@@ -237,7 +212,7 @@ export function useRouteInputs({
   async function resolveOrigin() {
     const text = startLocation.value.trim()
 
-    if (originMode.value === 'current' || !text || /^current\s*location$/i.test(text)) {
+    if (originMode.value === 'current' || /^current\s*location$/i.test(text)) {
       if (userLatLng.value) return assertWithinMelbourne(userLatLng.value, 'Start location')
 
       const pos = await requestCurrentPosition()
@@ -254,7 +229,11 @@ export function useRouteInputs({
     }
 
     if (!text) {
-      throw new Error('Please enter a start location or click "Use My Location".')
+      return MELBOURNE_CBD
+    }
+
+    if (/^melbourne\s+cbd$/i.test(text)) {
+      return MELBOURNE_CBD
     }
 
     const resolved = await geocodeToLatLng(text)

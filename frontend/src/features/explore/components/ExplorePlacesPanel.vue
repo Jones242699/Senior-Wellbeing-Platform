@@ -1,5 +1,6 @@
 <script setup>
 import '../../discover-places/styles.css'
+import { onMounted, ref } from 'vue'
 import DiscoverFilters from '../../discover-places/components/DiscoverFilters.vue'
 import PlacesList from '../../discover-places/components/PlacesList.vue'
 
@@ -14,6 +15,7 @@ defineProps({
   categoryCounts: { type: Object, required: true },
   markerColors: { type: Object, required: true },
   isCrowdDensityEnabled: { type: Boolean, required: true },
+  locationLabel: { type: String, required: true },
   showSelectCategoryHint: { type: Boolean, required: true },
   isLoadingPlaces: { type: Boolean, required: true },
   totalPlaces: { type: Number, required: true },
@@ -31,7 +33,7 @@ defineProps({
   formatDistance: { type: Function, required: true },
 })
 
-defineEmits([
+const emit = defineEmits([
   'update:address-query',
   'toggle-category',
   'select-radius',
@@ -46,6 +48,12 @@ defineEmits([
   'directions',
   'go-to-page',
 ])
+
+const addressInputRef = ref(null)
+
+onMounted(() => {
+  emit('input-ready', addressInputRef.value)
+})
 </script>
 
 <template>
@@ -54,6 +62,42 @@ defineEmits([
       <p>Nearby places</p>
       <h1>Discover Places</h1>
     </div>
+    <p class="explore-location-status">Using {{ locationLabel }}</p>
+
+    <section class="explore-location-toolbar">
+      <div class="search-group">
+        <input
+          ref="addressInputRef"
+          :value="addressQuery"
+          class="address-input"
+          type="text"
+          placeholder="E.g. Carlton"
+          @input="$emit('update:address-query', $event.target.value)"
+          @keydown.enter.prevent="$emit('apply-address-filter')"
+        />
+        <button
+          type="button"
+          class="toolbar-btn filter-btn search-btn"
+          :disabled="applyingAddressFilter"
+          @click="$emit('apply-address-filter')"
+        >
+          {{ applyingAddressFilter ? 'Filtering...' : 'Search' }}
+        </button>
+      </div>
+      <div class="location-actions-row">
+        <button
+          type="button"
+          class="toolbar-btn location-btn location-inline-btn"
+          @click="$emit('use-my-location')"
+        >
+          Use My Location
+        </button>
+        <button type="button" class="ideas-cta-btn inline-ideas-btn" @click="$emit('open-ideas-modal')">
+          No ideas?
+        </button>
+      </div>
+    </section>
+    <p v-if="addressFilterError" class="address-error">{{ addressFilterError }}</p>
 
     <DiscoverFilters
       :categories="categories"
@@ -88,8 +132,8 @@ defineEmits([
       :places-per-page="placesPerPage"
       :format-distance="formatDistance"
       show-details-action
+      :show-location-toolbar="false"
       @update:address-query="$emit('update:address-query', $event)"
-      @input-ready="$emit('input-ready', $event)"
       @apply-address-filter="$emit('apply-address-filter')"
       @use-my-location="$emit('use-my-location')"
       @open-ideas-modal="$emit('open-ideas-modal')"
@@ -111,6 +155,39 @@ defineEmits([
   position: static;
   margin-top: 12px;
   pointer-events: auto;
+}
+
+.explore-location-status {
+  margin: 10px 0 0;
+  border: 1px solid #dbe4df;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  padding: 9px 11px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.explore-location-toolbar {
+  margin-top: 12px;
+}
+
+.explore-location-toolbar .search-group {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+}
+
+.explore-location-toolbar .address-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  height: 44px;
+}
+
+.explore-location-toolbar .search-btn {
+  height: 44px;
 }
 
 .explore-places-panel :deep(.category-row) {
@@ -147,19 +224,11 @@ defineEmits([
   box-shadow: none;
 }
 
-.explore-places-panel :deep(.location-toolbar) {
-  margin-top: 12px;
-}
-
-.explore-places-panel :deep(.search-row) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.explore-places-panel :deep(.location-actions-row) {
+.explore-location-toolbar .location-actions-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
+  margin-top: 8px;
 }
 
 .explore-places-panel :deep(.cards-wrap) {

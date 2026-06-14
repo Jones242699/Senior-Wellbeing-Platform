@@ -8,6 +8,7 @@ defineProps({
   destination: { type: String, required: true },
   facilityCounts: { type: Object, required: true },
   loadingFacilities: { type: Boolean, required: true },
+  locationLabel: { type: String, required: true },
   noBenchesFound: { type: Boolean, required: true },
   noToiletsFound: { type: Boolean, required: true },
   preferencesDirty: { type: Boolean, required: true },
@@ -42,6 +43,7 @@ defineEmits([
       <p>Route planning</p>
       <h1>Plan a Route</h1>
     </div>
+    <p class="explore-location-status">Using {{ locationLabel }}</p>
 
     <RouteFormPanel
       :start-location="startLocation"
@@ -87,6 +89,17 @@ defineEmits([
 
 .explore-routes-panel :deep(.form-group) {
   margin-top: 13px;
+}
+
+.explore-location-status {
+  margin: 10px 0 0;
+  border: 1px solid #dbe4df;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  padding: 9px 11px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .explore-routes-panel :deep(.input-row) {
