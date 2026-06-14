@@ -1,53 +1,48 @@
 import { ref } from 'vue'
-import { loadMapApi } from '../../../utils/osmMaps'
+import { useBaseMap } from '../../../shared/map/useBaseMap'
 import { MELBOURNE_CENTER } from '../constants'
 
 export function useSupportMap({ mapContainerRef }) {
-  const mapReady = ref(false)
   const routeSummary = ref('')
   const userPosition = ref(null)
 
-  let mapApi
-  let map
-  let userMarker
   let filterCenterMarker
-  let directionsService
-  let directionsRenderer
-  let placesService
   let queryAutocomplete
   const roomMarkers = []
-  let startMarker = null
-  let destMarker = null
 
-  function getMapApi() {
-    return mapApi
-  }
-
-  async function initMap() {
-    mapApi = await loadMapApi()
-
-    map = new mapApi.Map(mapContainerRef.value, {
+  const {
+    mapReady,
+    clearDirectionsDisplay,
+    clearEndpointMarkers,
+    directionsRoute,
+    ensureUserMarker,
+    getMap,
+    getMapApi,
+    getPlacesService,
+    getTravelMode,
+    initMap: initBaseMap,
+    markMapReady,
+    panTo: panBaseMapTo,
+    resizeMap,
+    setDirectionsResult,
+    setEndpointMarker,
+  } = useBaseMap({
+    mapContainerRef,
+    mapOptions: {
       center: MELBOURNE_CENTER,
       zoom: 13,
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
-    })
-
-    directionsService = new mapApi.DirectionsService()
-    placesService = new mapApi.places.PlacesService(map)
-    directionsRenderer = new mapApi.DirectionsRenderer({
-      map,
-      suppressMarkers: true,
+    },
+    directionsRendererOptions: {
       polylineOptions: { strokeColor: '#059669', strokeWeight: 5 },
-    })
+    },
+  })
 
-    mapReady.value = true
-  }
-
-  function resizeMap() {
-    if (!mapApi || !map) return
-    mapApi.event.trigger(map, 'resize')
+  async function initMap() {
+    await initBaseMap()
+    markMapReady()
   }
 
   function clearRoomMarkers() {
@@ -56,6 +51,8 @@ export function useSupportMap({ mapContainerRef }) {
   }
 
   function renderRoomMarkers(rooms, onRoomClick) {
+    const map = getMap()
+    const mapApi = getMapApi()
     if (!map || !mapApi) return
 
     clearRoomMarkers()
@@ -80,29 +77,13 @@ export function useSupportMap({ mapContainerRef }) {
   }
 
   function setUserMarker(position) {
-    if (!map || !mapApi) return
-
     userPosition.value = position
-    if (userMarker) {
-      userMarker.setPosition(position)
-    } else {
-      userMarker = new mapApi.Marker({
-        map,
-        position,
-        title: 'Your location',
-        icon: {
-          path: mapApi.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#16a34a',
-          fillOpacity: 1,
-          strokeWeight: 2,
-          strokeColor: '#ffffff',
-        },
-      })
-    }
+    ensureUserMarker(position)
   }
 
   function setFilterCenterMarker(position) {
+    const map = getMap()
+    const mapApi = getMapApi()
     if (!map || !mapApi) return
 
     if (filterCenterMarker) {
@@ -131,56 +112,13 @@ export function useSupportMap({ mapContainerRef }) {
     if (filterCenterMarker) filterCenterMarker.setMap(null)
   }
 
-  function setEndpointMarker(kind, position) {
-    if (!map || !mapApi) return
-
-    const isStart = kind === 'start'
-    const labelText = isStart ? 'S' : 'D'
-
-    const icon = {
-      path: mapApi.SymbolPath.CIRCLE,
-      scale: 13,
-      fillColor: '#dc2626',
-      fillOpacity: 1,
-      strokeColor: '#ffffff',
-      strokeWeight: 3,
-    }
-
-    if (isStart && startMarker) {
-      startMarker.setPosition(position)
-      startMarker.setMap(map)
-      return
-    }
-    if (!isStart && destMarker) {
-      destMarker.setPosition(position)
-      destMarker.setMap(map)
-      return
-    }
-
-    const marker = new mapApi.Marker({
-      map,
-      position,
-      zIndex: 900,
-      icon,
-      label: {
-        text: labelText,
-        color: '#ffffff',
-        fontSize: '14px',
-        fontWeight: '800',
-      },
-    })
-
-    if (isStart) startMarker = marker
-    else destMarker = marker
-  }
-
   function panTo(position, minZoom) {
-    if (!map) return
-    map.panTo(position)
-    if (minZoom && map.getZoom() < minZoom) map.setZoom(minZoom)
+    panBaseMapTo(position, minZoom, minZoom ? { minZoom: true } : undefined)
   }
 
   async function resolveAddressFromPlaces(address) {
+    const placesService = getPlacesService()
+    const mapApi = getMapApi()
     if (!placesService) throw new Error('Map is not ready yet.')
     return new Promise((resolve, reject) => {
       placesService.findPlaceFromQuery(
@@ -210,18 +148,19 @@ export function useSupportMap({ mapContainerRef }) {
   }
 
   async function drawRoute(origin, destination, mode) {
-    if (!directionsService || !directionsRenderer || !mapApi) return
+    const travelMode = getTravelMode(mode)
+    if (travelMode === undefined) return
 
     const request = {
       origin,
       destination,
-      travelMode: mapApi.TravelMode[mode],
+      travelMode,
     }
     if (mode === 'TRANSIT') request.transitOptions = { departureTime: new Date() }
 
-    const result = await directionsService.route(request)
+    const result = await directionsRoute(request)
+    setDirectionsResult(result, 0)
 
-    directionsRenderer.setDirections(result)
     const leg = result?.routes?.[0]?.legs?.[0]
     if (leg) {
       routeSummary.value = `${leg.distance?.text || ''} | ${leg.duration?.text || ''}`
@@ -231,13 +170,13 @@ export function useSupportMap({ mapContainerRef }) {
   }
 
   function clearSelectedRoute() {
-    if (startMarker) startMarker.setMap(null)
-    if (destMarker) destMarker.setMap(null)
-    directionsRenderer?.setDirections({ routes: [] })
+    clearEndpointMarkers()
+    clearDirectionsDisplay()
     routeSummary.value = ''
   }
 
   function setupQueryAutocomplete(input, onPlaceSelected) {
+    const mapApi = getMapApi()
     if (!input || !mapApi?.places) return
 
     queryAutocomplete = new mapApi.places.Autocomplete(input, {
