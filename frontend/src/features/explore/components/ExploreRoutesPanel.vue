@@ -6,8 +6,11 @@ import RouteSummary from '../../my-routes/components/RouteSummary.vue'
 
 defineProps({
   destination: { type: String, required: true },
+  destinationSuggestions: { type: Array, default: () => [] },
   facilityCounts: { type: Object, required: true },
+  loadingDestinationSuggestions: { type: Boolean, default: false },
   loadingFacilities: { type: Boolean, required: true },
+  loadingStartSuggestions: { type: Boolean, default: false },
   locationLabel: { type: String, required: true },
   noBenchesFound: { type: Boolean, required: true },
   noToiletsFound: { type: Boolean, required: true },
@@ -18,18 +21,19 @@ defineProps({
   shadeLevel: { type: String, required: true },
   socialDensity: { type: String, required: true },
   startLocation: { type: String, required: true },
+  startSuggestions: { type: Array, default: () => [] },
   travelMode: { type: String, default: null },
   travelModes: { type: Array, required: true },
 })
 
 defineEmits([
   'dest-input',
-  'dest-input-ready',
   'generate-route',
+  'select-destination-suggestion',
+  'select-start-suggestion',
   'set-shade-level',
   'set-social-density',
   'start-input',
-  'start-input-ready',
   'travel-mode-change',
   'update:destination',
   'update:start-location',
@@ -48,15 +52,19 @@ defineEmits([
     <RouteFormPanel
       :start-location="startLocation"
       :destination="destination"
+      :start-suggestions="startSuggestions"
+      :destination-suggestions="destinationSuggestions"
+      :loading-start-suggestions="loadingStartSuggestions"
+      :loading-destination-suggestions="loadingDestinationSuggestions"
       :travel-modes="travelModes"
       :travel-mode="travelMode"
       :routing="routing"
       @update:start-location="$emit('update:start-location', $event)"
       @update:destination="$emit('update:destination', $event)"
-      @start-input-ready="$emit('start-input-ready', $event)"
-      @dest-input-ready="$emit('dest-input-ready', $event)"
       @start-input="$emit('start-input')"
       @dest-input="$emit('dest-input')"
+      @select-start-suggestion="$emit('select-start-suggestion', $event)"
+      @select-destination-suggestion="$emit('select-destination-suggestion', $event)"
       @use-my-location="$emit('use-my-location')"
       @travel-mode-change="$emit('travel-mode-change', $event)"
     />
@@ -106,6 +114,26 @@ defineEmits([
   align-items: stretch;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+}
+
+.explore-routes-panel :deep(.address-suggestion-input) {
+  width: 100%;
+}
+
+.explore-routes-panel :deep(.search-input) {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 14px;
+  outline: none;
+  padding: 11px 12px;
+}
+
+.explore-routes-panel :deep(.search-input:focus) {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px #dcfce7;
 }
 
 .explore-routes-panel :deep(.form-group:first-of-type .input-row) {

@@ -1,30 +1,34 @@
 <script setup>
+import AddressSuggestionInput from '../../../shared/map/components/AddressSuggestionInput.vue'
+
 defineProps({
   destination: { type: String, required: true },
+  destinationSuggestions: { type: Array, default: () => [] },
+  loadingDestinationSuggestions: { type: Boolean, default: false },
+  loadingStartSuggestions: { type: Boolean, default: false },
   routing: { type: Boolean, required: true },
   startLocation: { type: String, required: true },
+  startSuggestions: { type: Array, default: () => [] },
   travelMode: { type: String, default: null },
   travelModes: { type: Array, required: true },
 })
 
 const emit = defineEmits([
   'dest-input',
-  'dest-input-ready',
+  'select-destination-suggestion',
+  'select-start-suggestion',
   'start-input',
-  'start-input-ready',
   'travel-mode-change',
   'update:destination',
   'update:start-location',
   'use-my-location',
 ])
 
-function onStartInput(event) {
-  emit('update:start-location', event.target.value)
+function onStartInput() {
   emit('start-input')
 }
 
-function onDestInput(event) {
-  emit('update:destination', event.target.value)
+function onDestInput() {
   emit('dest-input')
 }
 </script>
@@ -34,14 +38,14 @@ function onDestInput(event) {
     <label class="form-label label-green">A Start</label>
     <div class="input-row">
       <div class="input-icon-wrapper">
-        <span class="icon-magnify" aria-hidden="true">🔍</span>
-        <input
-          :ref="(el) => $emit('start-input-ready', el)"
-          :value="startLocation"
-          type="text"
+        <AddressSuggestionInput
+          :model-value="startLocation"
+          :suggestions="startSuggestions"
+          :loading="loadingStartSuggestions"
           placeholder="Where do you start from?"
-          autocomplete="off"
+          @update:model-value="emit('update:start-location', $event)"
           @input="onStartInput"
+          @select-suggestion="emit('select-start-suggestion', $event)"
         />
       </div>
       <button type="button" class="btn-sm btn-green" @click="$emit('use-my-location')">
@@ -54,14 +58,14 @@ function onDestInput(event) {
     <label class="form-label label-green">B Destination</label>
     <div class="input-row">
       <div class="input-icon-wrapper">
-        <span class="icon-magnify" aria-hidden="true">🔍</span>
-        <input
-          :ref="(el) => $emit('dest-input-ready', el)"
-          :value="destination"
-          type="text"
+        <AddressSuggestionInput
+          :model-value="destination"
+          :suggestions="destinationSuggestions"
+          :loading="loadingDestinationSuggestions"
           placeholder="Where do you want to go?"
-          autocomplete="off"
+          @update:model-value="emit('update:destination', $event)"
           @input="onDestInput"
+          @select-suggestion="emit('select-destination-suggestion', $event)"
         />
       </div>
     </div>

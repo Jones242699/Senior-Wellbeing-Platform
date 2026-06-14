@@ -138,6 +138,10 @@ const activeMapPlaceId = ref('')
 const detailPanelState = ref('closed')
 const pendingDetailPlace = ref(null)
 const directionsError = ref('')
+const routeStartSuggestions = ref([])
+const routeDestinationSuggestions = ref([])
+const loadingRouteStartSuggestions = ref(false)
+const loadingRouteDestinationSuggestions = ref(false)
 const supportAddressSuggestions = ref([])
 const loadingSupportAddressSuggestions = ref(false)
 const isIdeasModalOpen = ref(false)
@@ -351,10 +355,10 @@ const {
   requestCurrentPosition,
   resolveDestination,
   resolveOrigin,
-  setDestInput,
+  searchAddressSuggestions: searchRouteAddressSuggestions,
   setResolvedDestination,
-  setStartInput,
-  setupAutocomplete: setupRouteAutocomplete,
+  setResolvedDestinationFromSuggestion,
+  setResolvedOriginFromSuggestion,
   useCurrentLocationStart,
   watchPositionIfSupported,
 } = useRouteInputs({
@@ -438,6 +442,10 @@ const {
 
 let supportSuggestionTimeoutId = null
 let supportSuggestionRequestSeq = 0
+let routeStartSuggestionTimeoutId = null
+let routeDestinationSuggestionTimeoutId = null
+let routeStartSuggestionRequestSeq = 0
+let routeDestinationSuggestionRequestSeq = 0
 
 function updateSupportDistanceDurationFromMap(origin) {
   return updateDistanceDurationForAll(origin, getMapApi())
@@ -710,6 +718,8 @@ function clearRouteLayer() {
   clearEndpointMarkers()
   clearToiletMarkers()
   clearBenchMarkers()
+  clearRouteStartSuggestions()
+  clearRouteDestinationSuggestions()
   routeSummary.value = ''
   routeError.value = ''
 }
@@ -767,9 +777,132 @@ function selectSupportAddressSuggestion(suggestion) {
   setSupportAddressFilterError('')
 }
 
+function normalizeSuggestionMatchText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function applyMatchingSupportSuggestion() {
+  const query = normalizeSuggestionMatchText(supportQuery.value)
+  if (!query) return false
+
+  const matchingSuggestion = supportAddressSuggestions.value.find((suggestion) => {
+    const name = normalizeSuggestionMatchText(suggestion.name)
+    const address = normalizeSuggestionMatchText(suggestion.formattedAddress)
+    return query === name || query === address
+  })
+  if (!matchingSuggestion) return false
+
+  setQueryPlaceFromAutocomplete(matchingSuggestion)
+  clearSupportAddressSuggestions()
+  return true
+}
+
+async function applySupportAddressFilterFromInput() {
+  applyMatchingSupportSuggestion()
+  await applySupportAddressFilter()
+}
+
+function clearRouteStartSuggestions() {
+  routeStartSuggestions.value = []
+  loadingRouteStartSuggestions.value = false
+  if (routeStartSuggestionTimeoutId !== null) {
+    window.clearTimeout(routeStartSuggestionTimeoutId)
+    routeStartSuggestionTimeoutId = null
+  }
+}
+
+function clearRouteDestinationSuggestions() {
+  routeDestinationSuggestions.value = []
+  loadingRouteDestinationSuggestions.value = false
+  if (routeDestinationSuggestionTimeoutId !== null) {
+    window.clearTimeout(routeDestinationSuggestionTimeoutId)
+    routeDestinationSuggestionTimeoutId = null
+  }
+}
+
+function refreshRouteStartSuggestions() {
+  if (routeStartSuggestionTimeoutId !== null) window.clearTimeout(routeStartSuggestionTimeoutId)
+  const query = startLocation.value.trim()
+  if (query.length < 2 || /^current\s*location$/i.test(query)) {
+    clearRouteStartSuggestions()
+    return
+  }
+
+  loadingRouteStartSuggestions.value = true
+  const requestId = ++routeStartSuggestionRequestSeq
+  routeStartSuggestionTimeoutId = window.setTimeout(async () => {
+    try {
+      const suggestions = await searchRouteAddressSuggestions(query)
+      if (requestId !== routeStartSuggestionRequestSeq) return
+      routeStartSuggestions.value = suggestions
+    } catch {
+      if (requestId !== routeStartSuggestionRequestSeq) return
+      routeStartSuggestions.value = []
+    } finally {
+      if (requestId === routeStartSuggestionRequestSeq) {
+        loadingRouteStartSuggestions.value = false
+      }
+    }
+  }, 180)
+}
+
+function refreshRouteDestinationSuggestions() {
+  if (routeDestinationSuggestionTimeoutId !== null) {
+    window.clearTimeout(routeDestinationSuggestionTimeoutId)
+  }
+  const query = routeDestination.value.trim()
+  if (query.length < 2) {
+    clearRouteDestinationSuggestions()
+    return
+  }
+
+  loadingRouteDestinationSuggestions.value = true
+  const requestId = ++routeDestinationSuggestionRequestSeq
+  routeDestinationSuggestionTimeoutId = window.setTimeout(async () => {
+    try {
+      const suggestions = await searchRouteAddressSuggestions(query)
+      if (requestId !== routeDestinationSuggestionRequestSeq) return
+      routeDestinationSuggestions.value = suggestions
+    } catch {
+      if (requestId !== routeDestinationSuggestionRequestSeq) return
+      routeDestinationSuggestions.value = []
+    } finally {
+      if (requestId === routeDestinationSuggestionRequestSeq) {
+        loadingRouteDestinationSuggestions.value = false
+      }
+    }
+  }, 180)
+}
+
+function handleRouteStartInput() {
+  onStartInput()
+  refreshRouteStartSuggestions()
+}
+
+function handleRouteDestinationInput() {
+  onDestInput()
+  refreshRouteDestinationSuggestions()
+}
+
+function selectRouteStartSuggestion(suggestion) {
+  setResolvedOriginFromSuggestion(suggestion)
+  clearRouteStartSuggestions()
+  routeError.value = ''
+}
+
+function selectRouteDestinationSuggestion(suggestion) {
+  setResolvedDestinationFromSuggestion(suggestion)
+  clearRouteDestinationSuggestions()
+  routeError.value = ''
+}
+
 function useRouteMyLocation() {
   routeError.value = ''
   useCurrentLocationStart()
+  clearRouteStartSuggestions()
 
   const continueRouting = async () => {
     if (travelMode.value && hasDestinationInput()) {
@@ -809,7 +942,6 @@ onMounted(async () => {
     updateDiscoverMapMarkers()
     await refreshCrowdDensityOverlay()
     setupAddressAutocomplete()
-    setupRouteAutocomplete()
     if (activeModeId.value === 'routes') applyRouteDestinationFromQuery()
     window.addEventListener('keydown', onGlobalKeydown)
   } catch (error) {
@@ -823,6 +955,8 @@ onUnmounted(() => {
   clearCrowdDensityOverlay()
   clearGeoWatch()
   clearRouteGeoWatch()
+  clearRouteStartSuggestions()
+  clearRouteDestinationSuggestions()
   clearDetailTransitionTimeout()
   clearToiletMarkers()
   clearBenchMarkers()
@@ -849,7 +983,6 @@ watch(activeModeId, async () => {
     closeIdeasModal()
     closeDetailPanel()
     clearSupportLayer()
-    setupRouteAutocomplete()
     applyRouteDestinationFromQuery()
   } else if (activeModeId.value === 'support') {
     clearMapMarkers()
@@ -1017,6 +1150,10 @@ watch(
         v-else-if="activeModeId === 'routes'"
         v-model:start-location="startLocation"
         v-model:destination="routeDestination"
+        :start-suggestions="routeStartSuggestions"
+        :destination-suggestions="routeDestinationSuggestions"
+        :loading-start-suggestions="loadingRouteStartSuggestions"
+        :loading-destination-suggestions="loadingRouteDestinationSuggestions"
         :travel-modes="ROUTE_TRAVEL_MODES"
         :travel-mode="travelMode"
         :routing="routing"
@@ -1030,10 +1167,10 @@ watch(
         :social-density="socialDensity"
         :shade-level="shadeLevel"
         :preferences-dirty="preferencesDirty"
-        @start-input-ready="setStartInput"
-        @dest-input-ready="setDestInput"
-        @start-input="onStartInput"
-        @dest-input="onDestInput"
+        @start-input="handleRouteStartInput"
+        @dest-input="handleRouteDestinationInput"
+        @select-start-suggestion="selectRouteStartSuggestion"
+        @select-destination-suggestion="selectRouteDestinationSuggestion"
         @use-my-location="useRouteMyLocation"
         @travel-mode-change="onTravelModeChange"
         @set-social-density="setSocialDensity"
@@ -1059,7 +1196,7 @@ watch(
         :suggestions="supportAddressSuggestions"
         :travel-mode="supportTravelMode"
         :travel-modes="SUPPORT_TRAVEL_MODES"
-        @apply-address-filter="applySupportAddressFilter"
+        @apply-address-filter="applySupportAddressFilterFromInput"
         @clear-selected-room="clearSelectedRoom"
         @query-input="handleSupportQueryInput"
         @select-suggestion="selectSupportAddressSuggestion"

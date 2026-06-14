@@ -5,7 +5,7 @@ import {
   assertWithinSupportedArea,
 } from '../../../shared/map/locationRules'
 import { resolveAddressInput } from '../../../shared/map/addressResolver'
-import { setupPlaceAutocomplete } from '../../../shared/map/placeHelpers'
+import { searchPlaceSuggestions } from '../../../shared/map/placeHelpers'
 
 export function useRouteInputs({
   ensureUserMarker,
@@ -14,8 +14,6 @@ export function useRouteInputs({
   getMapApi,
   getPlacesService,
 }) {
-  const startInputRef = ref(null)
-  const destInputRef = ref(null)
   const startLocation = ref('Melbourne CBD')
   const destination = ref('')
   const originMode = ref('manual') // 'manual' | 'current'
@@ -23,18 +21,8 @@ export function useRouteInputs({
 
   let startPlace = null
   let endPlace = null
-  let _startAutocomplete = null
-  let _endAutocomplete = null
   /** @type {number | null} */
   let geoWatchId = null
-
-  function setStartInput(element) {
-    startInputRef.value = element
-  }
-
-  function setDestInput(element) {
-    destInputRef.value = element
-  }
 
   function assertWithinMelbourne(point, label) {
     return assertWithinSupportedArea(point, label)
@@ -89,31 +77,6 @@ export function useRouteInputs({
     })
   }
 
-  function setupAutocomplete() {
-    const startEl = startInputRef.value
-    const endEl = destInputRef.value
-    const mapApi = getMapApi()
-    if (!startEl || !endEl || !mapApi?.places) return
-
-    _startAutocomplete = setupPlaceAutocomplete({
-      input: startEl,
-      mapApi,
-      onPlaceSelected: (p) => {
-        startPlace = p?.geometry?.location ? p : null
-        if (p?.formatted_address) startLocation.value = p.formatted_address
-        originMode.value = 'manual'
-      },
-    })
-    _endAutocomplete = setupPlaceAutocomplete({
-      input: endEl,
-      mapApi,
-      onPlaceSelected: (p) => {
-        endPlace = p?.geometry?.location ? p : null
-        if (p?.formatted_address) destination.value = p.formatted_address
-      },
-    })
-  }
-
   async function geocodeToLatLng(address) {
     return resolveAddressInput({
       address,
@@ -136,6 +99,27 @@ export function useRouteInputs({
       formatted_address: formattedAddress || rawText,
       name: rawText,
     }
+  }
+
+  function normalizePlaceFromSuggestion(suggestion) {
+    const location = suggestion?.place?.geometry?.location || {
+      lat: suggestion?.lat,
+      lng: suggestion?.lng,
+    }
+    return normalizePlaceFromResolvedLocation(
+      location,
+      suggestion?.formattedAddress || suggestion?.name || '',
+      suggestion?.name || suggestion?.formattedAddress || '',
+    )
+  }
+
+  function searchAddressSuggestions(query) {
+    return searchPlaceSuggestions({
+      query,
+      mapApi: getMapApi(),
+      placesService: getPlacesService(),
+      limit: 5,
+    })
   }
 
   async function resolveOrigin() {
@@ -215,15 +199,24 @@ export function useRouteInputs({
     endPlace = null
   }
 
+  function setResolvedOriginFromSuggestion(suggestion) {
+    startPlace = normalizePlaceFromSuggestion(suggestion)
+    startLocation.value = startPlace.formatted_address || startPlace.name || ''
+    originMode.value = 'manual'
+  }
+
+  function setResolvedDestinationFromSuggestion(suggestion) {
+    endPlace = normalizePlaceFromSuggestion(suggestion)
+    destination.value = endPlace.formatted_address || endPlace.name || ''
+  }
+
   function setResolvedDestination(location, formattedAddress, rawText) {
     endPlace = normalizePlaceFromResolvedLocation(location, formattedAddress, rawText)
   }
 
   return {
     destination,
-    destInputRef,
     originMode,
-    startInputRef,
     startLocation,
     userLatLng,
     assertWithinMelbourne,
@@ -235,11 +228,11 @@ export function useRouteInputs({
     requestCurrentPosition,
     resolveDestination,
     resolveOrigin,
-    setDestInput,
+    searchAddressSuggestions,
     setDestinationFromQuery,
     setResolvedDestination,
-    setStartInput,
-    setupAutocomplete,
+    setResolvedDestinationFromSuggestion,
+    setResolvedOriginFromSuggestion,
     useCurrentLocationStart,
     watchPositionIfSupported,
   }

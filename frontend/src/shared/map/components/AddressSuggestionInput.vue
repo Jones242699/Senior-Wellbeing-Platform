@@ -50,7 +50,7 @@ function onInput(event) {
         class="address-suggestion-option"
         type="button"
         role="option"
-        @click="emit('select-suggestion', suggestion)"
+        @mousedown.prevent="emit('select-suggestion', suggestion)"
       >
         <span class="address-suggestion-name">
           {{ suggestion.name || suggestion.formattedAddress }}
