@@ -134,10 +134,22 @@ const ideasTransportMode = ref('')
 const ideasCategoryAnswers = ref([])
 
 const isDetailPanelVisible = computed(() => detailPanelState.value !== 'closed')
+const activeMapPlace = computed(() => {
+  if (!activeMapPlaceId.value) return null
+  return filteredPlaces.value.find((place) => place.id === activeMapPlaceId.value) || null
+})
 const isDetailCategoryRich = computed(
   () =>
     !!activeDetailPlace.value &&
     ['artworks_fountains', 'memorials_sculptures'].includes(activeDetailPlace.value.categoryKey),
+)
+const isActiveMapPlaceRich = computed(
+  () =>
+    !!activeMapPlace.value &&
+    ['artworks_fountains', 'memorials_sculptures'].includes(activeMapPlace.value.categoryKey),
+)
+const isActiveMapPlaceLoading = computed(
+  () => !!activeMapPlace.value && loadingDetailIds.value.has(activeMapPlace.value.id),
 )
 const shouldShowCrowdDensityOverlay = computed(
   () =>
@@ -146,7 +158,7 @@ const shouldShowCrowdDensityOverlay = computed(
     selectedCategories.value.length > 0,
 )
 
-const { clearPlaceDetails, loadPlaceDetail } = usePlaceDetails({
+const { loadingDetailIds, clearPlaceDetails, loadPlaceDetail } = usePlaceDetails({
   allPlaces,
   activeDetailPlace,
 })
@@ -797,9 +809,16 @@ watch(
   <main class="explore-page">
     <ExploreMap
       :active-mode="activeMode"
+      :active-map-place="activeMapPlace"
       :crowd-density-legend="CROWD_DENSITY_LEGEND"
+      :format-distance="formatDistance"
+      :is-active-map-place-loading="isActiveMapPlaceLoading"
+      :is-active-map-place-rich="isActiveMapPlaceRich"
       :map-ready="mapReady"
       :show-crowd-density-legend="shouldShowCrowdDensityOverlay"
+      :user-location="userLocation"
+      @close-map-place-card="closeMapPlaceCard"
+      @directions="goToDirectionsForPlace"
       @map-ready="setMapContainer"
     />
 
