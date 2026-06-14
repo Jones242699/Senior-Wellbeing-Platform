@@ -1,0 +1,433 @@
+.page {
+  --nearby-map-height: calc(100vh - 160px);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 18px 24px 24px;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+.top-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  align-items: flex-start;
+}
+
+.search-wrapper {
+  flex: 1;
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.back-link-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #1e293b;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.back-link-top:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateX(-2px);
+}
+
+.back-icon-top {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.search-input {
+  box-sizing: border-box;
+  width: 100%;
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 11px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px #d1fae5;
+}
+
+.search-action-btn {
+  border: none;
+  border-radius: 10px;
+  background: #0f766e;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 14px;
+  height: 44px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.search-action-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.search-error {
+  margin: 6px 0 0;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.location-btn {
+  border: none;
+  border-radius: 10px;
+  background: #16a34a;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 16px;
+  height: 44px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.map-panel {
+  position: relative;
+  width: 100%;
+  height: var(--nearby-map-height);
+  min-height: 360px;
+  max-height: var(--nearby-map-height);
+  background: #dfe8d9;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.map-canvas {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.map-panel .leaflet-container {
+  z-index: 0;
+}
+
+.map-panel .leaflet-tile-pane {
+  z-index: 200;
+}
+
+.map-panel .leaflet-overlay-pane {
+  z-index: 400;
+}
+
+.map-panel .leaflet-marker-pane {
+  z-index: 700;
+}
+
+.map-panel .leaflet-tooltip-pane {
+  z-index: 800;
+}
+
+.map-panel .leaflet-popup-pane {
+  z-index: 900;
+}
+
+.map-panel .leaflet-control-container {
+  position: relative;
+  z-index: 1000;
+}
+
+.map-panel .osm-marker-icon {
+  pointer-events: auto;
+}
+
+.map-mask {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  color: #374151;
+  z-index: 1300;
+}
+
+.legend {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  min-width: 180px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 1200;
+  pointer-events: auto;
+}
+
+.legend-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.legend-item:last-child {
+  margin-bottom: 0;
+}
+
+.legend-item > span:last-child {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.user-dot {
+  background: #16a34a;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #cbd5e1;
+}
+
+.room-dot {
+  background: #ef4444;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #cbd5e1;
+}
+
+.filter-dot {
+  background: #7c3aed;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #cbd5e1;
+}
+
+.legend-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.pin {
+  width: 22px;
+  height: 22px;
+  background: #dc2626;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff !important;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.start-pin,
+.dest-pin {
+  background: #dc2626;
+}
+
+.list-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 14px;
+  max-height: var(--nearby-map-height);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+h2 {
+  margin: 0;
+  color: #1f2937;
+}
+
+.sub {
+  margin: 4px 0 12px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.back-btn {
+  margin-bottom: 12px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.route-summary {
+  margin: 0 0 12px;
+  color: #065f46;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.state-tip {
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 12px;
+  color: #6b7280;
+}
+
+.state-tip--error {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.room-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.room-card.active {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px #d1fae5;
+}
+
+h3 {
+  margin: 0 0 10px;
+  color: #1f2937;
+  font-size: 19px;
+}
+
+.meta {
+  margin: 0 0 8px;
+  color: #374151;
+}
+
+.origin-line {
+  margin: 0 0 12px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.details-btn {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  border: 1px solid #059669;
+  border-radius: 8px;
+  color: #065f46;
+  font-weight: 600;
+  line-height: 34px;
+}
+
+.route-builder {
+  margin-top: 8px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 14px;
+}
+
+.route-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.mode-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.mode-chip {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 8px 10px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mode-chip.active {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.estimate-text {
+  margin: 10px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #166534;
+}
+
+@media (max-width: 1200px) {
+  .page {
+    /* Same idea as MyRoutesView narrow layout: fixed map block, not driven by list length. */
+    --nearby-map-height: min(65vh, calc(100vh - 160px));
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .list-panel {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+@media (max-width: 900px) {
+  .top-bar {
+    flex-wrap: wrap;
+  }
+  .search-wrapper {
+    order: 3;
+    width: 100%;
+    flex: none;
+  }
+}
