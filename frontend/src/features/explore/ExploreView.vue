@@ -7,8 +7,10 @@ import ExploreModeTabs from './components/ExploreModeTabs.vue'
 import ExplorePlacesPanel from './components/ExplorePlacesPanel.vue'
 import ExploreRoutesPanel from './components/ExploreRoutesPanel.vue'
 import ExploreSidePanel from './components/ExploreSidePanel.vue'
+import ExploreSupportPanel from './components/ExploreSupportPanel.vue'
 import { EXPLORE_DEFAULT_MODE, EXPLORE_MODES } from './constants'
 import { useExploreMap } from './composables/useExploreMap'
+import { useExploreSupportMap } from './composables/useExploreSupportMap'
 import {
   CATEGORY_OPTIONS,
   MAX_MAP_MARKERS,
@@ -26,12 +28,21 @@ import { useRouteFacilities } from '../my-routes/composables/useRouteFacilities'
 import { useRouteInputs } from '../my-routes/composables/useRouteInputs'
 import { useRoutePlanner } from '../my-routes/composables/useRoutePlanner'
 import { TRAVEL_MODES as ROUTE_TRAVEL_MODES } from '../my-routes/constants'
+import {
+  formatWalkDuration,
+  useSupportFacilities,
+} from '../mental-support/composables/useSupportFacilities'
+import { useSupportFilters } from '../mental-support/composables/useSupportFilters'
+import { useSupportLocation } from '../mental-support/composables/useSupportLocation'
+import { useSupportRouting } from '../mental-support/composables/useSupportRouting'
+import { TRAVEL_MODES as SUPPORT_TRAVEL_MODES } from '../mental-support/constants'
 
 const router = useRouter()
 const activeModeId = ref(EXPLORE_DEFAULT_MODE)
 const mapContainerRef = ref(null)
 const mapError = ref('')
 const isCrowdDensityEnabled = ref(true)
+const selectedRoomId = ref(null)
 
 const activeMode = computed(
   () => EXPLORE_MODES.find((mode) => mode.id === activeModeId.value) || EXPLORE_MODES[0],
@@ -235,6 +246,98 @@ const {
   setEndpointMarker,
 })
 
+const {
+  routeSummary: supportRouteSummary,
+  userPosition: supportUserPosition,
+  clearFilterCenterMarker,
+  clearRoomMarkers,
+  clearSelectedRoute: clearSelectedSupportRoute,
+  drawRoute: drawSupportRoute,
+  panTo: panSupportTo,
+  renderRoomMarkers,
+  resolveAddressFromPlaces: resolveSupportAddressFromPlaces,
+  setFilterCenterMarker,
+  setUserMarker: setSupportUserMarker,
+  setupQueryAutocomplete,
+} = useExploreSupportMap({
+  clearDirectionsDisplay,
+  clearEndpointMarkers,
+  directionsRoute,
+  ensureUserMarker,
+  getMap,
+  getMapApi,
+  getPlacesService,
+  getTravelMode,
+  panTo,
+  setDirectionsResult,
+  setEndpointMarker,
+})
+
+function updateSupportDistanceDurationFromMap(origin) {
+  return updateDistanceDurationForAll(origin, getMapApi())
+}
+
+const {
+  addressFilterError: supportAddressFilterError,
+  applyingAddressFilter: applyingSupportAddressFilter,
+  filterCenter,
+  query: supportQuery,
+  applyAddressFilter: applySupportAddressFilter,
+  clearAddressFilterState,
+  getCurrentLocationLabel,
+  onQueryInput: onSupportQueryInput,
+  setQueryPlaceFromAutocomplete,
+} = useSupportFilters({
+  clearFilterCenterMarker,
+  getMapApi,
+  panTo: panSupportTo,
+  resolveAddressFromPlaces: resolveSupportAddressFromPlaces,
+  selectedRoomId,
+  setFilterCenterMarker,
+  updateDistanceDurationForAll: updateSupportDistanceDurationFromMap,
+})
+
+const {
+  displayedRooms,
+  loadingRooms,
+  rooms,
+  roomsFetchError,
+  selectedRoom,
+  fetchRoomsNearby,
+  updateDistanceDurationForAll,
+} = useSupportFacilities({
+  filterCenter,
+  selectedRoomId,
+})
+
+const {
+  routing: supportRouting,
+  travelMode: supportTravelMode,
+  clearSelectedRoom,
+  selectRoomAndRoute,
+  selectTravelMode,
+} = useSupportRouting({
+  clearSelectedRoute: clearSelectedSupportRoute,
+  drawRoute: drawSupportRoute,
+  filterCenter,
+  rooms,
+  selectedRoomId,
+  userPosition: supportUserPosition,
+})
+
+const { locateUser: locateSupportUser } = useSupportLocation({
+  clearAddressFilterState,
+  clearSelectedRoom,
+  fetchRoomsNearby,
+  getMapApi,
+  panTo: panSupportTo,
+  renderRoomMarkers,
+  rooms,
+  selectRoomAndRoute,
+  setUserMarker: setSupportUserMarker,
+  updateDistanceDurationForAll,
+})
+
 function shufflePlaces(places) {
   const arr = [...places]
   for (let i = arr.length - 1; i > 0; i -= 1) {
@@ -289,6 +392,17 @@ function clearRouteLayer() {
   clearBenchMarkers()
   routeSummary.value = ''
   routeError.value = ''
+}
+
+function clearSupportLayer() {
+  clearSelectedRoom()
+  clearRoomMarkers()
+  clearFilterCenterMarker()
+  supportRouteSummary.value = ''
+}
+
+function setupSupportAutocomplete(element) {
+  setupQueryAutocomplete(element, setQueryPlaceFromAutocomplete)
 }
 
 function useRouteMyLocation() {
@@ -346,6 +460,8 @@ onUnmounted(() => {
   clearRouteGeoWatch()
   clearToiletMarkers()
   clearBenchMarkers()
+  clearRoomMarkers()
+  clearFilterCenterMarker()
   cleanupMap()
 })
 
@@ -354,15 +470,27 @@ watch(activeModeId, async () => {
   resizeMap()
   if (activeModeId.value === 'places') {
     clearRouteLayer()
+    clearSupportLayer()
     updateDiscoverMapMarkers()
   } else if (activeModeId.value === 'routes') {
     clearMapMarkers()
     closeMapPlaceCard()
+    clearSupportLayer()
     setupRouteAutocomplete()
+  } else if (activeModeId.value === 'support') {
+    clearMapMarkers()
+    closeMapPlaceCard()
+    clearRouteLayer()
+    if (!rooms.value.length && !loadingRooms.value) {
+      void locateSupportUser()
+    } else {
+      renderRoomMarkers(rooms.value, selectRoomAndRoute)
+    }
   } else {
     clearMapMarkers()
     closeMapPlaceCard()
     clearRouteLayer()
+    clearSupportLayer()
     resetMapView()
   }
 })
@@ -482,6 +610,30 @@ watch(activeMapPlaceId, (placeId) => {
         @set-social-density="setSocialDensity"
         @set-shade-level="setShadeLevel"
         @generate-route="generateRoute"
+      />
+      <ExploreSupportPanel
+        v-else-if="activeModeId === 'support'"
+        v-model:query="supportQuery"
+        :address-filter-error="supportAddressFilterError"
+        :applying-address-filter="applyingSupportAddressFilter"
+        :current-location-label="getCurrentLocationLabel(supportUserPosition)"
+        :displayed-rooms="displayedRooms"
+        :format-walk-duration="formatWalkDuration"
+        :loading-rooms="loadingRooms"
+        :rooms-fetch-error="roomsFetchError"
+        :route-summary="supportRouteSummary"
+        :routing="supportRouting"
+        :selected-room="selectedRoom"
+        :selected-room-id="selectedRoomId"
+        :travel-mode="supportTravelMode"
+        :travel-modes="SUPPORT_TRAVEL_MODES"
+        @apply-address-filter="applySupportAddressFilter"
+        @clear-selected-room="clearSelectedRoom"
+        @query-input="onSupportQueryInput"
+        @query-input-ready="setupSupportAutocomplete"
+        @select-room="selectRoomAndRoute"
+        @select-travel-mode="selectTravelMode"
+        @use-my-location="locateSupportUser"
       />
       <ExploreSidePanel v-else :mode="activeMode" />
       <p v-if="mapError" class="explore-map-error">{{ mapError }}</p>
