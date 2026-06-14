@@ -36,14 +36,14 @@
           <div class="hero-actions">
 
             <router-link
-              to="/discover-nearby-places"
+              to="/explore?mode=places"
               class="btn-solid"
             >
               Explore Community
             </router-link>
 
             <router-link
-              to="/my-routes"
+              to="/explore?mode=routes"
               class="btn-outline"
             >
               Route Planning
@@ -176,7 +176,7 @@
           <div class="card-actions">
 
             <router-link
-              to="/discover-nearby-places"
+              to="/explore?mode=places"
               class="btn-solid"
             >
               Explore Places
@@ -212,7 +212,7 @@
           </p>
 
           <router-link
-            to="/my-routes"
+            to="/explore?mode=routes"
             class="btn-solid light-btn"
           >
             Start Route Planning
@@ -239,7 +239,7 @@
           </p>
 
           <router-link
-            to="/nearby-mental-support"
+            to="/explore?mode=support"
             class="btn-solid"
           >
             View Support Services
@@ -274,7 +274,7 @@
 
         <div class="footer-links">
 
-          <router-link to="/discover-nearby-places">
+          <router-link to="/explore?mode=places">
             Places
           </router-link>
 
@@ -282,7 +282,7 @@
             Events
           </router-link>
 
-          <router-link to="/my-routes">
+          <router-link to="/explore?mode=routes">
             Routes
           </router-link>
 

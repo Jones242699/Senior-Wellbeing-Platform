@@ -1,6 +1,7 @@
 <script setup>
 import './styles.css'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ExploreMap from './components/ExploreMap.vue'
 import ExploreModeTabs from './components/ExploreModeTabs.vue'
 import ExplorePlacesPanel from './components/ExplorePlacesPanel.vue'
@@ -54,7 +55,16 @@ import { useSupportLocation } from '../mental-support/composables/useSupportLoca
 import { useSupportRouting } from '../mental-support/composables/useSupportRouting'
 import { TRAVEL_MODES as SUPPORT_TRAVEL_MODES } from '../mental-support/constants'
 
-const activeModeId = ref(EXPLORE_DEFAULT_MODE)
+const route = useRoute()
+const router = useRouter()
+const validModeIds = new Set(EXPLORE_MODES.map((mode) => mode.id))
+
+function normalizeExploreMode(mode) {
+  const resolvedMode = Array.isArray(mode) ? mode[0] : mode
+  return validModeIds.has(resolvedMode) ? resolvedMode : EXPLORE_DEFAULT_MODE
+}
+
+const activeModeId = ref(normalizeExploreMode(route.query.mode))
 const mapContainerRef = ref(null)
 const mapError = ref('')
 const isCrowdDensityEnabled = ref(true)
@@ -591,6 +601,46 @@ function goToDirectionsForPlace(place) {
   activeModeId.value = 'routes'
 }
 
+function applyRouteDestinationFromQuery() {
+  const destinationName = Array.isArray(route.query.destination)
+    ? route.query.destination[0]
+    : route.query.destination
+  const destinationAddress = Array.isArray(route.query.destinationAddress)
+    ? route.query.destinationAddress[0]
+    : route.query.destinationAddress
+  const destinationLat = Number(
+    Array.isArray(route.query.destinationLat)
+      ? route.query.destinationLat[0]
+      : route.query.destinationLat,
+  )
+  const destinationLng = Number(
+    Array.isArray(route.query.destinationLng)
+      ? route.query.destinationLng[0]
+      : route.query.destinationLng,
+  )
+  const destinationLabel = (destinationAddress || destinationName || '').trim()
+  if (!destinationLabel) return
+
+  routeDestination.value = destinationLabel
+  if (Number.isFinite(destinationLat) && Number.isFinite(destinationLng)) {
+    setResolvedDestination(
+      createLatLng(destinationLat, destinationLng),
+      destinationAddress || destinationName || destinationLabel,
+      destinationName || destinationLabel,
+    )
+  }
+}
+
+function syncExploreModeQuery(mode) {
+  if (normalizeExploreMode(route.query.mode) === mode && route.query.mode) return
+  router.replace({
+    query: {
+      ...route.query,
+      mode,
+    },
+  })
+}
+
 let detailTransitionTimeoutId = null
 
 function clearDetailTransitionTimeout() {
@@ -712,6 +762,7 @@ onMounted(async () => {
     await refreshCrowdDensityOverlay()
     setupAddressAutocomplete()
     setupRouteAutocomplete()
+    if (activeModeId.value === 'routes') applyRouteDestinationFromQuery()
     window.addEventListener('keydown', onGlobalKeydown)
   } catch (error) {
     console.error(error)
@@ -734,6 +785,7 @@ onUnmounted(() => {
 })
 
 watch(activeModeId, async () => {
+  syncExploreModeQuery(activeModeId.value)
   await nextTick()
   resizeMap()
   if (activeModeId.value === 'places') {
@@ -749,6 +801,7 @@ watch(activeModeId, async () => {
     closeDetailPanel()
     clearSupportLayer()
     setupRouteAutocomplete()
+    applyRouteDestinationFromQuery()
   } else if (activeModeId.value === 'support') {
     clearMapMarkers()
     clearCrowdDensityOverlay()
@@ -772,6 +825,26 @@ watch(activeModeId, async () => {
     resetMapView()
   }
 })
+
+watch(
+  () => route.query.mode,
+  (mode) => {
+    const nextMode = normalizeExploreMode(mode)
+    if (activeModeId.value !== nextMode) activeModeId.value = nextMode
+  },
+)
+
+watch(
+  () => [
+    route.query.destination,
+    route.query.destinationAddress,
+    route.query.destinationLat,
+    route.query.destinationLng,
+  ],
+  () => {
+    if (activeModeId.value === 'routes') applyRouteDestinationFromQuery()
+  },
+)
 
 watch(
   filteredPlaces,

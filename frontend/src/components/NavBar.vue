@@ -9,7 +9,7 @@ const navItems = [
   {
     name: 'Explore',
     path: '/explore',
-    activePaths: ['/explore', '/my-routes', '/discover-nearby-places', '/nearby-mental-support'],
+    activePaths: ['/explore'],
   },
   { name: 'Events', path: '/nearby-events' },
   { name: 'Dashboard', path: '/dashboard' },

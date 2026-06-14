@@ -275,7 +275,7 @@ const onAgeBarLeave = () => {
 }
 
 const goToEventPage = () => {
-  router.push({ name: 'discover-nearby-places' })
+  router.push({ name: 'explore', query: { mode: 'places' } })
 }
 
 </script>

@@ -338,8 +338,9 @@ function closeDetailPanel() {
 
 function buildDirectionsUrl(place) {
   const resolved = router.resolve({
-    path: '/my-routes',
+    path: '/explore',
     query: {
+      mode: 'routes',
       destination: place.name,
       destinationAddress: place.address || place.name,
       destinationLat: Number.isFinite(place.lat) ? String(place.lat) : undefined,
@@ -351,8 +352,9 @@ function buildDirectionsUrl(place) {
 
 function goToDirectionsForPlace(place) {
   router.push({
-    path: '/my-routes',
+    path: '/explore',
     query: {
+      mode: 'routes',
       destination: place.name,
       destinationAddress: place.address || place.name,
       destinationLat: Number.isFinite(place.lat) ? String(place.lat) : undefined,
@@ -605,4 +607,3 @@ watch(
     />
   </main>
 </template>
-
