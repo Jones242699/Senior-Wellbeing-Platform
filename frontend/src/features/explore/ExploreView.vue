@@ -1,7 +1,6 @@
 <script setup>
 import './styles.css'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import ExploreMap from './components/ExploreMap.vue'
 import ExploreModeTabs from './components/ExploreModeTabs.vue'
 import ExplorePlacesPanel from './components/ExplorePlacesPanel.vue'
@@ -11,8 +10,11 @@ import ExploreSupportPanel from './components/ExploreSupportPanel.vue'
 import { EXPLORE_DEFAULT_MODE, EXPLORE_MODES } from './constants'
 import { useExploreMap } from './composables/useExploreMap'
 import { useExploreSupportMap } from './composables/useExploreSupportMap'
+import IdeasModal from '../discover-places/components/IdeasModal.vue'
+import PlaceDetailPanel from '../discover-places/components/PlaceDetailPanel.vue'
 import {
   CATEGORY_OPTIONS,
+  IDEAS_CATEGORY_CHOICES,
   MAX_MAP_MARKERS,
   PLACES_PER_PAGE,
   RADIUS_OPTIONS,
@@ -37,7 +39,6 @@ import { useSupportLocation } from '../mental-support/composables/useSupportLoca
 import { useSupportRouting } from '../mental-support/composables/useSupportRouting'
 import { TRAVEL_MODES as SUPPORT_TRAVEL_MODES } from '../mental-support/constants'
 
-const router = useRouter()
 const activeModeId = ref(EXPLORE_DEFAULT_MODE)
 const mapContainerRef = ref(null)
 const mapError = ref('')
@@ -109,6 +110,20 @@ const {
 
 const activeDetailPlace = ref(null)
 const activeMapPlaceId = ref('')
+const detailPanelState = ref('closed')
+const pendingDetailPlace = ref(null)
+const directionsError = ref('')
+const isIdeasModalOpen = ref(false)
+const ideasStep = ref(1)
+const ideasTransportMode = ref('')
+const ideasCategoryAnswers = ref([])
+
+const isDetailPanelVisible = computed(() => detailPanelState.value !== 'closed')
+const isDetailCategoryRich = computed(
+  () =>
+    !!activeDetailPlace.value &&
+    ['artworks_fountains', 'memorials_sculptures'].includes(activeDetailPlace.value.categoryKey),
+)
 
 const { clearPlaceDetails, loadPlaceDetail } = usePlaceDetails({
   allPlaces,
@@ -370,7 +385,46 @@ function toggleCrowdDensityOverlay() {
 }
 
 function openIdeasModal() {
-  router.push('/discover-nearby-places')
+  isIdeasModalOpen.value = true
+  ideasStep.value = 1
+  ideasTransportMode.value = ''
+  ideasCategoryAnswers.value = []
+}
+
+function closeIdeasModal() {
+  isIdeasModalOpen.value = false
+}
+
+function goToIdeasStep(step) {
+  ideasStep.value = step
+}
+
+function toggleIdeasCategory(choiceKey) {
+  if (ideasCategoryAnswers.value.includes(choiceKey)) {
+    ideasCategoryAnswers.value = ideasCategoryAnswers.value.filter((item) => item !== choiceKey)
+    return
+  }
+  ideasCategoryAnswers.value = [...ideasCategoryAnswers.value, choiceKey]
+}
+
+async function applyIdeasAnswers() {
+  if (!ideasCategoryAnswers.value.length || !ideasTransportMode.value) return
+
+  if (addressQuery.value.trim()) {
+    await applyAddressFilter()
+    if (addressFilterError.value) return
+  }
+
+  const resolvedCategories = IDEAS_CATEGORY_CHOICES.filter((item) =>
+    ideasCategoryAnswers.value.includes(item.key),
+  ).map((item) => item.categoryKey)
+  const uniqueCategoryKeys = [...new Set(resolvedCategories)]
+  if (!uniqueCategoryKeys.length) return
+
+  selectedCategories.value = uniqueCategoryKeys
+  selectRadius(ideasTransportMode.value === 'walking' ? 500 : 3000)
+  currentPage.value = 1
+  closeIdeasModal()
 }
 
 function goToDirectionsForPlace(place) {
@@ -383,6 +437,64 @@ function goToDirectionsForPlace(place) {
     )
   }
   activeModeId.value = 'routes'
+}
+
+let detailTransitionTimeoutId = null
+
+function clearDetailTransitionTimeout() {
+  if (detailTransitionTimeoutId !== null) {
+    window.clearTimeout(detailTransitionTimeoutId)
+    detailTransitionTimeoutId = null
+  }
+}
+
+function openDetailPanel(place) {
+  clearDetailTransitionTimeout()
+  directionsError.value = ''
+  activeDetailPlace.value = place
+  detailPanelState.value = 'opening'
+  requestAnimationFrame(() => {
+    detailPanelState.value = 'open'
+  })
+}
+
+function closeDetailPanel() {
+  if (detailPanelState.value === 'closed' || detailPanelState.value === 'closing') return
+
+  clearDetailTransitionTimeout()
+  detailPanelState.value = 'closing'
+  detailTransitionTimeoutId = window.setTimeout(() => {
+    detailPanelState.value = 'closed'
+    activeDetailPlace.value = null
+    directionsError.value = ''
+    if (pendingDetailPlace.value) {
+      const next = pendingDetailPlace.value
+      pendingDetailPlace.value = null
+      openDetailPanel(next)
+    }
+  }, 320)
+}
+
+async function openPlaceDetails(place) {
+  if (!place) return
+  await loadPlaceDetail(place)
+  openDetailPanel(place)
+}
+
+function openDirections() {
+  if (!activeDetailPlace.value) return
+  directionsError.value = ''
+  goToDirectionsForPlace(activeDetailPlace.value)
+  closeDetailPanel()
+}
+
+function onGlobalKeydown(event) {
+  if (event.key !== 'Escape') return
+  if (isIdeasModalOpen.value) {
+    closeIdeasModal()
+    return
+  }
+  closeDetailPanel()
 }
 
 function clearRouteLayer() {
@@ -448,6 +560,7 @@ onMounted(async () => {
     setupAddressAutocomplete()
     setupRouteAutocomplete()
     if (locationMode.value === 'device') watchDeviceLocation()
+    window.addEventListener('keydown', onGlobalKeydown)
   } catch (error) {
     console.error(error)
     mapError.value = error?.message || 'Failed to load map'
@@ -458,10 +571,12 @@ onUnmounted(() => {
   clearMapMarkers()
   clearGeoWatch()
   clearRouteGeoWatch()
+  clearDetailTransitionTimeout()
   clearToiletMarkers()
   clearBenchMarkers()
   clearRoomMarkers()
   clearFilterCenterMarker()
+  window.removeEventListener('keydown', onGlobalKeydown)
   cleanupMap()
 })
 
@@ -475,11 +590,15 @@ watch(activeModeId, async () => {
   } else if (activeModeId.value === 'routes') {
     clearMapMarkers()
     closeMapPlaceCard()
+    closeIdeasModal()
+    closeDetailPanel()
     clearSupportLayer()
     setupRouteAutocomplete()
   } else if (activeModeId.value === 'support') {
     clearMapMarkers()
     closeMapPlaceCard()
+    closeIdeasModal()
+    closeDetailPanel()
     clearRouteLayer()
     if (!rooms.value.length && !loadingRooms.value) {
       void locateSupportUser()
@@ -489,6 +608,8 @@ watch(activeModeId, async () => {
   } else {
     clearMapMarkers()
     closeMapPlaceCard()
+    closeIdeasModal()
+    closeDetailPanel()
     clearRouteLayer()
     clearSupportLayer()
     resetMapView()
@@ -583,6 +704,7 @@ watch(activeMapPlaceId, (placeId) => {
         @expand-to-2km="expandTo2Km"
         @focus-place="focusMapOnPlace"
         @directions="goToDirectionsForPlace"
+        @open-details="openPlaceDetails"
         @go-to-page="goToPage"
       />
       <ExploreRoutesPanel
@@ -638,5 +760,28 @@ watch(activeMapPlaceId, (placeId) => {
       <ExploreSidePanel v-else :mode="activeMode" />
       <p v-if="mapError" class="explore-map-error">{{ mapError }}</p>
     </section>
+
+    <IdeasModal
+      v-if="isIdeasModalOpen"
+      v-model:ideas-transport-mode="ideasTransportMode"
+      :ideas-step="ideasStep"
+      :ideas-category-answers="ideasCategoryAnswers"
+      :choices="IDEAS_CATEGORY_CHOICES"
+      @close="closeIdeasModal"
+      @go-to-step="goToIdeasStep"
+      @toggle-category="toggleIdeasCategory"
+      @apply="applyIdeasAnswers"
+    />
+
+    <PlaceDetailPanel
+      :visible="isDetailPanelVisible"
+      :panel-state="detailPanelState"
+      :place="activeDetailPlace"
+      :is-rich="isDetailCategoryRich"
+      :directions-error="directionsError"
+      :format-distance="formatDistance"
+      @close="closeDetailPanel"
+      @open-directions="openDirections"
+    />
   </main>
 </template>

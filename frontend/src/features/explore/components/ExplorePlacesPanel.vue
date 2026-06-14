@@ -42,6 +42,7 @@ defineEmits([
   'open-ideas-modal',
   'expand-to-2km',
   'focus-place',
+  'open-details',
   'directions',
   'go-to-page',
 ])
@@ -86,6 +87,7 @@ defineEmits([
       :total-pages="totalPages"
       :places-per-page="placesPerPage"
       :format-distance="formatDistance"
+      show-details-action
       @update:address-query="$emit('update:address-query', $event)"
       @input-ready="$emit('input-ready', $event)"
       @apply-address-filter="$emit('apply-address-filter')"
@@ -93,6 +95,7 @@ defineEmits([
       @open-ideas-modal="$emit('open-ideas-modal')"
       @expand-to-2km="$emit('expand-to-2km')"
       @focus-place="$emit('focus-place', $event)"
+      @open-details="$emit('open-details', $event)"
       @directions="$emit('directions', $event)"
       @go-to-page="$emit('go-to-page', $event)"
     />
@@ -124,8 +127,20 @@ defineEmits([
 }
 
 .explore-places-panel :deep(.place-card) {
+  align-items: flex-start;
   border-radius: 8px;
   padding: 12px;
+}
+
+.explore-places-panel :deep(.card-actions) {
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.explore-places-panel :deep(.more-info-btn),
+.explore-places-panel :deep(.direction-btn) {
+  min-width: 96px;
 }
 
 .explore-places-panel :deep(.place-icon) {

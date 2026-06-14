@@ -20,6 +20,7 @@ defineProps({
   totalPages: { type: Number, required: true },
   placesPerPage: { type: Number, required: true },
   formatDistance: { type: Function, required: true },
+  showDetailsAction: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -30,6 +31,7 @@ const emit = defineEmits([
   'open-ideas-modal',
   'expand-to-2km',
   'focus-place',
+  'open-details',
   'directions',
   'go-to-page',
 ])
@@ -134,6 +136,14 @@ onMounted(() => {
           </div>
         </div>
         <div class="card-actions">
+          <button
+            v-if="showDetailsAction"
+            type="button"
+            class="more-info-btn"
+            @click.stop="$emit('open-details', place)"
+          >
+            More info
+          </button>
           <button type="button" class="direction-btn" @click.stop="$emit('directions', place)">
             Direction
           </button>
