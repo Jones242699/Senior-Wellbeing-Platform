@@ -4,11 +4,14 @@ import { mapMarkerColorByCategory } from './useDiscoverPlaces'
 
 export function useDiscoverMap({
   activeMapPlaceId,
+  formatDistance,
   filteredPlaces,
+  getInfoWindow,
   loadPlaceDetail,
   mapContainerRef,
   mapRenderablePlaces,
   nextTick,
+  onDirections,
   refreshCrowdDensityOverlay,
   userLocation,
 }) {
@@ -18,6 +21,9 @@ export function useDiscoverMap({
   let mapMarkers = []
   let placeMarkersById = new Map()
   let activeHighlightMarker = null
+  let activePopupMarker = null
+  let placeInfoWindow = null
+  let placePopupRequestSeq = 0
   let mapApi = null
 
   function setMapApi(api) {
@@ -76,6 +82,106 @@ export function useDiscoverMap({
     })
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  }
+
+  function buildPlacePopupHtml(place, { loading = false } = {}) {
+    const distance =
+      userLocation.value && typeof place.distanceMeters === 'number'
+        ? `<p class="place-popup-line"><strong>Distance:</strong> ${escapeHtml(
+            formatDistance(place.distanceMeters),
+          )}</p>`
+        : ''
+    const description = place.description
+      ? `<p class="place-popup-line place-popup-desc"><strong>Description:</strong> ${escapeHtml(
+          place.description,
+        )}</p>`
+      : ''
+    const richDetails = ['artistOrSubject', 'year', 'workTitle', 'material']
+      .map((key) => {
+        const labels = {
+          artistOrSubject: 'Artist / Subject',
+          year: 'Year',
+          workTitle: 'Work title',
+          material: 'Material',
+        }
+        return place[key]
+          ? `<p class="place-popup-line"><strong>${labels[key]}:</strong> ${escapeHtml(place[key])}</p>`
+          : ''
+      })
+      .join('')
+
+    return `
+      <div class="place-map-popup" data-place-popup-id="${escapeHtml(place.id)}">
+        <div class="place-popup-header">
+          <div class="place-popup-icon" ${
+            place.imageUrl
+              ? `style="background-image: url('${escapeHtml(place.imageUrl)}');"`
+              : ''
+          }>${place.imageUrl ? '' : escapeHtml(place.icon || '')}</div>
+          <div class="place-popup-title">
+            <h3>${escapeHtml(place.name)}</h3>
+            <p>${escapeHtml(place.categoryLabel || '')}</p>
+          </div>
+        </div>
+        ${description}
+        <p class="place-popup-line"><strong>Address:</strong> ${escapeHtml(place.address || '')}</p>
+        ${distance}
+        ${richDetails}
+        ${loading ? '<p class="place-popup-loading">Loading details...</p>' : ''}
+        <button
+          type="button"
+          class="place-popup-direction-btn"
+          data-place-direction-id="${escapeHtml(place.id)}"
+        >
+          Direction
+        </button>
+      </div>
+    `
+  }
+
+  function attachPopupActions(place) {
+    window.setTimeout(() => {
+      const mapContainer = discoverMap?.getDiv?.()
+      const button = [...(mapContainer?.querySelectorAll('[data-place-direction-id]') || [])].find(
+        (item) => item.dataset.placeDirectionId === String(place.id),
+      )
+      if (!button) return
+      button.addEventListener(
+        'click',
+        (event) => {
+          event.preventDefault()
+          onDirections?.(place)
+        },
+        { once: true },
+      )
+    }, 0)
+  }
+
+  function closePlacePopup({ cancelRequest = true } = {}) {
+    if (cancelRequest) placePopupRequestSeq += 1
+    if (placeInfoWindow?.close) placeInfoWindow.close()
+    if (activePopupMarker?.marker?.closePopup) activePopupMarker.marker.closePopup()
+    activePopupMarker = null
+  }
+
+  function openPlacePopup(place, marker, options) {
+    if (!discoverMap || !marker) return
+    if (!placeInfoWindow) placeInfoWindow = getInfoWindow?.()
+    if (!placeInfoWindow) return
+
+    placeInfoWindow.setContent(buildPlacePopupHtml(place, options))
+    placeInfoWindow.open(discoverMap, marker)
+    activePopupMarker = marker
+    attachPopupActions(place)
+  }
+
   function upsertPlaceMarker(place) {
     if (!discoverMap || !mapApi?.Marker) return null
     if (!Number.isFinite(place?.lat) || !Number.isFinite(place?.lng)) return null
@@ -132,46 +238,32 @@ export function useDiscoverMap({
   function closeMapPlaceCard() {
     activeMapPlaceId.value = ''
     clearActiveHighlightMarker()
+    closePlacePopup()
     syncActiveMarkerVisual()
   }
 
-  function panMapToAvoidPlaceCard(place, source = 'list') {
+  function panMapToAvoidPlaceCard(place) {
     if (!discoverMap || !Number.isFinite(place?.lat) || !Number.isFinite(place?.lng)) return
-    const mapContainer = discoverMap.getDiv?.()
-    if (!mapContainer) return
-
-    const mapWidth = mapContainer.clientWidth || 0
-    const mapHeight = mapContainer.clientHeight || 0
-    const placeCard = mapContainer.closest('.map-panel')?.querySelector('.map-place-card')
-    const cardWidth = placeCard?.clientWidth || Math.min(430, Math.max(0, mapWidth - 28))
-    const cardHeight = placeCard?.clientHeight || Math.min(380, Math.max(0, mapHeight - 28))
-    const horizontalPadding = 20
-    const verticalPadding = 8
-    const horizontalFactor = source === 'map' ? 0.34 : 0.42
-    const minOffsetX = source === 'map' ? 100 : 130
-    const maxOffsetX = source === 'map' ? 200 : 250
-    const offsetX = Math.max(
-      minOffsetX,
-      Math.min(maxOffsetX, Math.round(cardWidth * horizontalFactor + horizontalPadding)),
-    )
-    const offsetY = Math.max(20, Math.min(90, Math.round(cardHeight * 0.14 + verticalPadding)))
-
     discoverMap.panTo({ lat: place.lat, lng: place.lng })
-    window.setTimeout(() => {
-      if (!discoverMap || activeMapPlaceId.value !== place.id) return
-      // Move selected point away from bottom-left info card footprint.
-      discoverMap.panBy(-offsetX, offsetY)
-    }, 80)
   }
 
-  async function showMapPlaceCard(place, source = 'list') {
+  async function showMapPlaceCard(place) {
     if (!place?.id) return
+    const requestId = ++placePopupRequestSeq
     activeMapPlaceId.value = place.id
+    const marker = upsertPlaceMarker(place)
+    closePlacePopup()
+    placePopupRequestSeq = requestId
+    openPlacePopup(place, marker, { loading: true })
     await nextTick()
-    panMapToAvoidPlaceCard(place, source)
+    if (requestId !== placePopupRequestSeq || activeMapPlaceId.value !== place.id) return
+    panMapToAvoidPlaceCard(place)
     await loadPlaceDetail(place)
     await nextTick()
-    panMapToAvoidPlaceCard(place, source)
+    if (requestId !== placePopupRequestSeq || activeMapPlaceId.value !== place.id) return
+    const updatedPlace = filteredPlaces.value.find((item) => item.id === place.id) || place
+    const updatedMarker = placeMarkersById.get(place.id) || upsertPlaceMarker(updatedPlace) || marker
+    openPlacePopup(updatedPlace, updatedMarker, { loading: false })
   }
 
   async function focusMapOnPlace(place) {
@@ -187,6 +279,7 @@ export function useDiscoverMap({
   }
 
   function clearMapMarkers() {
+    closePlacePopup({ cancelRequest: false })
     clearMarkers(mapMarkers)
     placeMarkersById = new Map()
     clearActiveHighlightMarker()
