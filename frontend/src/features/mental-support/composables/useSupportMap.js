@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { clearMarkers, createCircleMarker } from '../../../shared/map/markerHelpers'
 import { useBaseMap } from '../../../shared/map/useBaseMap'
 import { MELBOURNE_CENTER } from '../constants'
 
@@ -46,8 +47,7 @@ export function useSupportMap({ mapContainerRef }) {
   }
 
   function clearRoomMarkers() {
-    roomMarkers.forEach((marker) => marker.setMap(null))
-    roomMarkers.length = 0
+    clearMarkers(roomMarkers)
   }
 
   function renderRoomMarkers(rooms, onRoomClick) {
@@ -57,19 +57,16 @@ export function useSupportMap({ mapContainerRef }) {
 
     clearRoomMarkers()
     rooms.forEach((room) => {
-      const marker = new mapApi.Marker({
+      const marker = createCircleMarker(mapApi, map, {
         map,
         position: room.position,
         title: room.name,
-        icon: {
-          path: mapApi.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#ef4444',
-          fillOpacity: 1,
-          strokeWeight: 2,
-          strokeColor: '#ffffff',
-        },
+        scale: 7,
+        fillColor: '#ef4444',
+        strokeWeight: 2,
+        strokeColor: '#ffffff',
       })
+      if (!marker) return
 
       marker.addListener('click', () => onRoomClick(room))
       roomMarkers.push(marker)
@@ -92,18 +89,14 @@ export function useSupportMap({ mapContainerRef }) {
       return
     }
 
-    filterCenterMarker = new mapApi.Marker({
+    filterCenterMarker = createCircleMarker(mapApi, map, {
       map,
       position,
       title: 'Filtered address',
-      icon: {
-        path: mapApi.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: '#7c3aed',
-        fillOpacity: 1,
-        strokeWeight: 2,
-        strokeColor: '#ffffff',
-      },
+      scale: 8,
+      fillColor: '#7c3aed',
+      strokeWeight: 2,
+      strokeColor: '#ffffff',
       zIndex: 910,
     })
   }
