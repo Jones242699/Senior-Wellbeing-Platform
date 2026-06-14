@@ -435,50 +435,6 @@
   margin-bottom: 12px;
 }
 
-.route-alerts {
-  margin-top: 12px;
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.alert-card.warning {
-  background: #fffbeb;
-  border: 2px solid #f59e0b;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.alert-icon {
-  font-size: 28px;
-  flex-shrink: 0;
-}
-
-.alert-content {
-  flex: 1;
-}
-
-.alert-title {
-  display: block;
-  font-size: 16px;
-  font-weight: 800;
-  color: #92400e;
-  margin-bottom: 4px;
-}
-
-.alert-desc {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: #b45309;
-  line-height: 1.4;
-}
-
 @media (max-width: 1024px) {
   .my-routes-page {
     flex-direction: column;

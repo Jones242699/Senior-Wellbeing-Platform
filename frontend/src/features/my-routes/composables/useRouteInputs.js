@@ -190,10 +190,6 @@ export function useRouteInputs({
     startLocation.value = 'Current location'
   }
 
-  function hasDestinationInput() {
-    return Boolean(destination.value.trim() || endPlace)
-  }
-
   function setDestinationFromQuery(value) {
     destination.value = value
     endPlace = null
@@ -221,7 +217,6 @@ export function useRouteInputs({
     userLatLng,
     assertWithinMelbourne,
     clearGeoWatch,
-    hasDestinationInput,
     onDestInput,
     onStartInput,
     parseQueryLatLng,

@@ -8,7 +8,6 @@ export function useRoutePlanner({
   directionsRoute,
   fetchFacilitiesForRoute,
   getTravelMode,
-  hasDestinationInput,
   resetFacilityState,
   resolveDestination,
   resolveOrigin,
@@ -19,7 +18,6 @@ export function useRoutePlanner({
   const routeError = ref('')
   const routeSummary = ref('')
   const routing = ref(false)
-  const preferencesDirty = ref(false)
 
   const socialDensity = ref('normal') // 'busy' | 'normal' | 'quiet' (UI only)
   const shadeLevel = ref('normal') // 'more' | 'normal' | 'less' (UI only)
@@ -126,7 +124,6 @@ export function useRoutePlanner({
 
       void fetchFacilitiesForRoute(route)
 
-      preferencesDirty.value = false
     } catch (e) {
       routeError.value = e?.message || 'Failed to generate route'
       clearDirectionsDisplay()
@@ -137,24 +134,19 @@ export function useRoutePlanner({
     }
   }
 
-  async function onTravelModeChange(modeId) {
+  function onTravelModeChange(modeId) {
     travelMode.value = modeId
-    if (!hasDestinationInput()) return
-    await generateRoute()
   }
 
   function setSocialDensity(value) {
     socialDensity.value = value
-    preferencesDirty.value = true
   }
 
   function setShadeLevel(value) {
     shadeLevel.value = value
-    preferencesDirty.value = true
   }
 
   return {
-    preferencesDirty,
     routeError,
     routeSummary,
     routing,

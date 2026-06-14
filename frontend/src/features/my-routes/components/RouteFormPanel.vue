@@ -15,6 +15,7 @@ defineProps({
 
 const emit = defineEmits([
   'dest-input',
+  'generate-route',
   'select-destination-suggestion',
   'select-start-suggestion',
   'start-input',
@@ -35,7 +36,16 @@ function onDestInput() {
 
 <template>
   <div class="form-group">
-    <label class="form-label label-green">A Start</label>
+    <div class="form-label-row">
+      <label class="form-label label-green">A Start</label>
+      <button
+        type="button"
+        class="btn-sm btn-location-inline"
+        @click="$emit('use-my-location')"
+      >
+        Use My Location
+      </button>
+    </div>
     <div class="input-row">
       <div class="input-icon-wrapper">
         <AddressSuggestionInput
@@ -48,9 +58,6 @@ function onDestInput() {
           @select-suggestion="emit('select-start-suggestion', $event)"
         />
       </div>
-      <button type="button" class="btn-sm btn-green" @click="$emit('use-my-location')">
-        Use My Location
-      </button>
     </div>
   </div>
 
@@ -87,5 +94,13 @@ function onDestInput() {
       </div>
       <span v-show="routing" class="mode-spinner" aria-hidden="true" title="Updating route" />
     </div>
+    <button
+      type="button"
+      class="btn-generate route-plan-button"
+      :disabled="routing"
+      @click="$emit('generate-route')"
+    >
+      {{ routing ? 'Planning...' : 'Plan My Route' }}
+    </button>
   </div>
 </template>

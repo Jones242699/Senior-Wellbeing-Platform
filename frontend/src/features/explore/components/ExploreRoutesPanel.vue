@@ -12,9 +12,6 @@ defineProps({
   loadingFacilities: { type: Boolean, required: true },
   loadingStartSuggestions: { type: Boolean, default: false },
   locationLabel: { type: String, required: true },
-  noBenchesFound: { type: Boolean, required: true },
-  noToiletsFound: { type: Boolean, required: true },
-  preferencesDirty: { type: Boolean, required: true },
   routeError: { type: String, default: '' },
   routeSummary: { type: String, default: '' },
   routing: { type: Boolean, required: true },
@@ -67,6 +64,7 @@ defineEmits([
       @select-destination-suggestion="$emit('select-destination-suggestion', $event)"
       @use-my-location="$emit('use-my-location')"
       @travel-mode-change="$emit('travel-mode-change', $event)"
+      @generate-route="$emit('generate-route')"
     />
 
     <RouteSummary
@@ -74,18 +72,13 @@ defineEmits([
       :loading-facilities="loadingFacilities"
       :facility-counts="facilityCounts"
       :route-error="routeError"
-      :no-toilets-found="noToiletsFound"
-      :no-benches-found="noBenchesFound"
     />
 
     <RoutePreferences
       :social-density="socialDensity"
       :shade-level="shadeLevel"
-      :preferences-dirty="preferencesDirty"
-      :routing="routing"
       @set-social-density="$emit('set-social-density', $event)"
       @set-shade-level="$emit('set-shade-level', $event)"
-      @generate-route="$emit('generate-route')"
     />
   </aside>
 </template>
@@ -97,6 +90,18 @@ defineEmits([
 
 .explore-routes-panel :deep(.form-group) {
   margin-top: 13px;
+}
+
+.explore-routes-panel :deep(.form-label-row) {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.explore-routes-panel :deep(.form-label-row .form-label) {
+  margin-bottom: 0;
 }
 
 .explore-location-status {
@@ -136,19 +141,40 @@ defineEmits([
   box-shadow: 0 0 0 3px #dcfce7;
 }
 
-.explore-routes-panel :deep(.form-group:first-of-type .input-row) {
-  grid-template-columns: minmax(0, 1fr) auto;
+.explore-routes-panel :deep(.btn-location-inline) {
+  border: 1px solid #86c99b;
+  border-radius: 999px;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 32px;
+  padding: 7px 12px;
+  white-space: nowrap;
 }
 
-.explore-routes-panel :deep(.btn-sm) {
-  justify-content: center;
-  min-width: 138px;
+.explore-routes-panel :deep(.btn-location-inline:hover) {
+  background: #dcfce7;
+  color: #166534;
 }
 
 .explore-routes-panel :deep(.mode-row) {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.explore-routes-panel :deep(.route-plan-button) {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  font-size: 14px;
+  justify-content: center;
+  margin: 10px 0 0;
+  max-width: none;
+  min-height: 42px;
+  padding: 10px 12px;
+  width: 100%;
 }
 
 .explore-routes-panel :deep(.prefs) {
@@ -160,13 +186,8 @@ defineEmits([
 }
 
 @media (max-width: 900px) {
-  .explore-routes-panel :deep(.form-group:first-of-type .input-row),
   .explore-routes-panel :deep(.mode-row) {
     grid-template-columns: 1fr;
-  }
-
-  .explore-routes-panel :deep(.btn-sm) {
-    width: 100%;
   }
 }
 </style>

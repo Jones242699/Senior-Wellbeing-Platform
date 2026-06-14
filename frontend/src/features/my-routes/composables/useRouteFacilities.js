@@ -5,16 +5,12 @@ import { MAX_BENCH_MARKERS_ON_ROUTE_MAP, ROUTE_FACILITIES_DISTANCE_METERS } from
 
 export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
   const loadingFacilities = ref(false)
-  const noToiletsFound = ref(false)
-  const noBenchesFound = ref(false)
   const facilityCounts = ref({ toilets: 0, benches: 0 })
 
   let toiletMarkers = []
   let benchMarkers = []
 
   function resetFacilityState() {
-    noToiletsFound.value = false
-    noBenchesFound.value = false
     facilityCounts.value = { toilets: 0, benches: 0 }
   }
 
@@ -150,16 +146,12 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
     facilityCounts.value = { toilets: 0, benches: 0 }
     loadingFacilities.value = true
     if (!route) {
-      noBenchesFound.value = true
-      noToiletsFound.value = true
       loadingFacilities.value = false
       return
     }
 
     const routePath = getRoutePath(route)
     if (routePath.length === 0) {
-      noBenchesFound.value = true
-      noToiletsFound.value = true
       loadingFacilities.value = false
       return
     }
@@ -198,8 +190,6 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
       }))
       const nearbyToilets = payload.toilets
 
-      noToiletsFound.value = nearbyToilets.length === 0
-      noBenchesFound.value = nearbyBenches.length === 0
       facilityCounts.value = {
         toilets: nearbyToilets.length,
         benches: nearbyBenches.length,
@@ -218,8 +208,6 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
       benchesToPlot.forEach((bench) => createBenchMarker(bench))
     } catch (error) {
       console.error('[Route Facilities] Error fetching facilities:', error)
-      noBenchesFound.value = true
-      noToiletsFound.value = true
     } finally {
       loadingFacilities.value = false
     }
@@ -228,8 +216,6 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
   return {
     facilityCounts,
     loadingFacilities,
-    noBenchesFound,
-    noToiletsFound,
     clearBenchMarkers,
     clearToiletMarkers,
     fetchFacilitiesForRoute,

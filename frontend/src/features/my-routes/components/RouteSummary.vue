@@ -2,8 +2,6 @@
 defineProps({
   facilityCounts: { type: Object, required: true },
   loadingFacilities: { type: Boolean, required: true },
-  noBenchesFound: { type: Boolean, required: true },
-  noToiletsFound: { type: Boolean, required: true },
   routeError: { type: String, default: '' },
   routeSummary: { type: String, default: '' },
 })
@@ -31,21 +29,4 @@ defineProps({
   </div>
 
   <p v-if="routeError" class="route-error">{{ routeError }}</p>
-
-  <div v-if="noToiletsFound || noBenchesFound" class="route-alerts">
-    <div v-if="noToiletsFound" class="alert-card warning">
-      <span class="alert-icon" aria-hidden="true">⚠️</span>
-      <div class="alert-content">
-        <strong class="alert-title">Route notice: no public toilets</strong>
-        <p class="alert-desc">No public toilets were found along this route. Please plan ahead.</p>
-      </div>
-    </div>
-    <div v-if="noBenchesFound" class="alert-card warning">
-      <span class="alert-icon" aria-hidden="true">⚠️</span>
-      <div class="alert-content">
-        <strong class="alert-title">Route notice: no rest benches</strong>
-        <p class="alert-desc">No rest benches were found along this route.</p>
-      </div>
-    </div>
-  </div>
 </template>

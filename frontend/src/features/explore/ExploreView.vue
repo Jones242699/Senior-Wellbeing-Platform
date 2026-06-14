@@ -349,7 +349,6 @@ const {
   startLocation,
   userLatLng,
   clearGeoWatch: clearRouteGeoWatch,
-  hasDestinationInput,
   onDestInput,
   onStartInput,
   requestCurrentPosition,
@@ -372,8 +371,6 @@ const {
 const {
   facilityCounts,
   loadingFacilities,
-  noBenchesFound,
-  noToiletsFound,
   clearBenchMarkers,
   clearToiletMarkers,
   fetchFacilitiesForRoute,
@@ -385,7 +382,6 @@ const {
 })
 
 const {
-  preferencesDirty,
   routeError,
   routeSummary,
   routing,
@@ -404,7 +400,6 @@ const {
   directionsRoute,
   fetchFacilitiesForRoute,
   getTravelMode,
-  hasDestinationInput,
   resetFacilityState,
   resolveDestination,
   resolveOrigin,
@@ -904,24 +899,16 @@ function useRouteMyLocation() {
   useCurrentLocationStart()
   clearRouteStartSuggestions()
 
-  const continueRouting = async () => {
-    if (travelMode.value && hasDestinationInput()) {
-      await generateRoute()
-    }
-  }
-
   if (userLatLng.value) {
     panTo(userLatLng.value, 16)
     watchPositionIfSupported()
-    continueRouting()
     return
   }
 
   requestCurrentPosition()
-    .then(async (pos) => {
+    .then((pos) => {
       panTo(pos, 16)
       watchPositionIfSupported()
-      await continueRouting()
     })
     .catch((error) => {
       onStartInput()
@@ -1162,11 +1149,8 @@ watch(
         :location-label="routeLocationLabel"
         :facility-counts="facilityCounts"
         :route-error="routeError"
-        :no-toilets-found="noToiletsFound"
-        :no-benches-found="noBenchesFound"
         :social-density="socialDensity"
         :shade-level="shadeLevel"
-        :preferences-dirty="preferencesDirty"
         @start-input="handleRouteStartInput"
         @dest-input="handleRouteDestinationInput"
         @select-start-suggestion="selectRouteStartSuggestion"

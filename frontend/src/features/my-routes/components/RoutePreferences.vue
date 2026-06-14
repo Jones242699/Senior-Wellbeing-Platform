@@ -1,12 +1,10 @@
 <script setup>
 defineProps({
-  preferencesDirty: { type: Boolean, required: true },
-  routing: { type: Boolean, required: true },
   shadeLevel: { type: String, required: true },
   socialDensity: { type: String, required: true },
 })
 
-defineEmits(['generate-route', 'set-shade-level', 'set-social-density'])
+defineEmits(['set-shade-level', 'set-social-density'])
 </script>
 
 <template>
@@ -84,19 +82,5 @@ defineEmits(['generate-route', 'set-shade-level', 'set-social-density'])
         </button>
       </div>
     </div>
-    <button
-      type="button"
-      class="btn-generate btn-generate-prefs"
-      :disabled="routing"
-      @click="$emit('generate-route')"
-    >
-      {{
-        routing
-          ? 'Routing...'
-          : preferencesDirty
-            ? 'Generate Route — apply preferences'
-            : 'Generate Route'
-      }}
-    </button>
   </section>
 </template>
