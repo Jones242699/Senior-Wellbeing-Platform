@@ -8,6 +8,7 @@ defineProps({
   currentLocationLabel: { type: String, default: '' },
   displayedRooms: { type: Array, required: true },
   formatWalkDuration: { type: Function, required: true },
+  loadingSuggestions: { type: Boolean, default: false },
   loadingRooms: { type: Boolean, required: true },
   locationLabel: { type: String, required: true },
   query: { type: String, required: true },
@@ -16,6 +17,7 @@ defineProps({
   routing: { type: Boolean, required: true },
   selectedRoom: { type: Object, default: null },
   selectedRoomId: { type: [String, Number], default: null },
+  suggestions: { type: Array, default: () => [] },
   travelMode: { type: String, required: true },
   travelModes: { type: Array, required: true },
 })
@@ -24,8 +26,8 @@ defineEmits([
   'apply-address-filter',
   'clear-selected-room',
   'query-input',
-  'query-input-ready',
   'select-room',
+  'select-suggestion',
   'select-travel-mode',
   'update:query',
   'use-my-location',
@@ -44,10 +46,12 @@ defineEmits([
       :query="query"
       :address-filter-error="addressFilterError"
       :applying-address-filter="applyingAddressFilter"
+      :loading-suggestions="loadingSuggestions"
+      :suggestions="suggestions"
       @update:query="$emit('update:query', $event)"
       @apply-address-filter="$emit('apply-address-filter')"
       @query-input="$emit('query-input')"
-      @query-input-ready="$emit('query-input-ready', $event)"
+      @select-suggestion="$emit('select-suggestion', $event)"
       @use-my-location="$emit('use-my-location')"
     />
 

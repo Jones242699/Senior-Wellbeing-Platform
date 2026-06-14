@@ -36,6 +36,21 @@ export function resolvePlaceFromQuery({ address, mapApi, placesService, rejectMe
   })
 }
 
+export function searchPlaceSuggestions({ query, mapApi, placesService, limit = 5 }) {
+  const searchText = String(query || '').trim()
+  if (!searchText || !placesService) return Promise.resolve([])
+
+  return new Promise((resolve) => {
+    placesService.textSearch({ query: searchText }, (results, status) => {
+      if (status !== mapApi?.places?.PlacesServiceStatus?.OK || !Array.isArray(results)) {
+        resolve([])
+        return
+      }
+      resolve(results.map((place) => toPlacePoint(place, searchText)).filter(Boolean).slice(0, limit))
+    })
+  })
+}
+
 export function setupPlaceAutocomplete({
   componentRestrictions = { country: 'au' },
   fields = ['geometry', 'formatted_address', 'name'],

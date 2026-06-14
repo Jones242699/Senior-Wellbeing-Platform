@@ -1,7 +1,9 @@
 import { ref } from 'vue'
+import { resolveAddressInput } from '../../../shared/map/addressResolver'
+import { toLatLngLiteral } from '../../../shared/map/locationRules'
 import { clearMarkers, createCircleMarker } from '../../../shared/map/markerHelpers'
 import {
-  resolvePlaceFromQuery,
+  searchPlaceSuggestions,
   setupPlaceAutocomplete,
   toPlacePoint,
 } from '../../../shared/map/placeHelpers'
@@ -11,6 +13,7 @@ export function useExploreSupportMap({
   clearEndpointMarkers,
   directionsRoute,
   ensureUserMarker,
+  getGeocoder,
   getMap,
   getMapApi,
   getPlacesService,
@@ -91,10 +94,27 @@ export function useExploreSupportMap({
   }
 
   async function resolveAddressFromPlaces(address) {
-    return resolvePlaceFromQuery({
+    const resolved = await resolveAddressInput({
       address,
+      getGeocoder,
       mapApi: getMapApi(),
       placesService: getPlacesService(),
+    })
+    const point = toLatLngLiteral(resolved.location)
+    if (!point) throw new Error('Address not found. Please pick one from the suggestions.')
+    return {
+      ...point,
+      formattedAddress: resolved.formattedAddress || address,
+      name: resolved.name || address,
+    }
+  }
+
+  function searchAddressSuggestions(query) {
+    return searchPlaceSuggestions({
+      query,
+      mapApi: getMapApi(),
+      placesService: getPlacesService(),
+      limit: 5,
     })
   }
 
@@ -147,6 +167,7 @@ export function useExploreSupportMap({
     panTo,
     renderRoomMarkers,
     resolveAddressFromPlaces,
+    searchAddressSuggestions,
     setFilterCenterMarker,
     setUserMarker,
     setupQueryAutocomplete,

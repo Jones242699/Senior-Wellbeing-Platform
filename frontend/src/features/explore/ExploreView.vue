@@ -138,6 +138,8 @@ const activeMapPlaceId = ref('')
 const detailPanelState = ref('closed')
 const pendingDetailPlace = ref(null)
 const directionsError = ref('')
+const supportAddressSuggestions = ref([])
+const loadingSupportAddressSuggestions = ref(false)
 const isIdeasModalOpen = ref(false)
 const ideasStep = ref(1)
 const ideasTransportMode = ref('')
@@ -416,14 +418,15 @@ const {
   panTo: panSupportTo,
   renderRoomMarkers,
   resolveAddressFromPlaces: resolveSupportAddressFromPlaces,
+  searchAddressSuggestions: searchSupportAddressSuggestions,
   setFilterCenterMarker,
   setUserMarker: setSupportUserMarker,
-  setupQueryAutocomplete,
 } = useExploreSupportMap({
   clearDirectionsDisplay,
   clearEndpointMarkers,
   directionsRoute,
   ensureUserMarker,
+  getGeocoder,
   getMap,
   getMapApi,
   getPlacesService,
@@ -432,6 +435,9 @@ const {
   setDirectionsResult,
   setEndpointMarker,
 })
+
+let supportSuggestionTimeoutId = null
+let supportSuggestionRequestSeq = 0
 
 function updateSupportDistanceDurationFromMap(origin) {
   return updateDistanceDurationForAll(origin, getMapApi())
@@ -715,8 +721,50 @@ function clearSupportLayer() {
   supportRouteSummary.value = ''
 }
 
-function setupSupportAutocomplete(element) {
-  setupQueryAutocomplete(element, setQueryPlaceFromAutocomplete)
+function clearSupportAddressSuggestions() {
+  supportAddressSuggestions.value = []
+  loadingSupportAddressSuggestions.value = false
+  if (supportSuggestionTimeoutId !== null) {
+    window.clearTimeout(supportSuggestionTimeoutId)
+    supportSuggestionTimeoutId = null
+  }
+}
+
+function refreshSupportAddressSuggestions() {
+  if (supportSuggestionTimeoutId !== null) window.clearTimeout(supportSuggestionTimeoutId)
+  const query = supportQuery.value.trim()
+  if (query.length < 2) {
+    clearSupportAddressSuggestions()
+    return
+  }
+
+  loadingSupportAddressSuggestions.value = true
+  const requestId = ++supportSuggestionRequestSeq
+  supportSuggestionTimeoutId = window.setTimeout(async () => {
+    try {
+      const suggestions = await searchSupportAddressSuggestions(query)
+      if (requestId !== supportSuggestionRequestSeq) return
+      supportAddressSuggestions.value = suggestions
+    } catch {
+      if (requestId !== supportSuggestionRequestSeq) return
+      supportAddressSuggestions.value = []
+    } finally {
+      if (requestId === supportSuggestionRequestSeq) {
+        loadingSupportAddressSuggestions.value = false
+      }
+    }
+  }, 180)
+}
+
+function handleSupportQueryInput() {
+  onSupportQueryInput()
+  refreshSupportAddressSuggestions()
+}
+
+function selectSupportAddressSuggestion(suggestion) {
+  setQueryPlaceFromAutocomplete(suggestion)
+  clearSupportAddressSuggestions()
+  setSupportAddressFilterError('')
 }
 
 function useRouteMyLocation() {
@@ -780,6 +828,7 @@ onUnmounted(() => {
   clearBenchMarkers()
   clearRoomMarkers()
   clearFilterCenterMarker()
+  clearSupportAddressSuggestions()
   window.removeEventListener('keydown', onGlobalKeydown)
   cleanupMap()
 })
@@ -999,6 +1048,7 @@ watch(
         :current-location-label="getCurrentLocationLabel(supportUserPosition)"
         :displayed-rooms="displayedRooms"
         :format-walk-duration="formatWalkDuration"
+        :loading-suggestions="loadingSupportAddressSuggestions"
         :loading-rooms="loadingRooms"
         :location-label="supportLocationLabel"
         :rooms-fetch-error="roomsFetchError"
@@ -1006,12 +1056,13 @@ watch(
         :routing="supportRouting"
         :selected-room="selectedRoom"
         :selected-room-id="selectedRoomId"
+        :suggestions="supportAddressSuggestions"
         :travel-mode="supportTravelMode"
         :travel-modes="SUPPORT_TRAVEL_MODES"
         @apply-address-filter="applySupportAddressFilter"
         @clear-selected-room="clearSelectedRoom"
-        @query-input="onSupportQueryInput"
-        @query-input-ready="setupSupportAutocomplete"
+        @query-input="handleSupportQueryInput"
+        @select-suggestion="selectSupportAddressSuggestion"
         @select-room="selectRoomAndRoute"
         @select-travel-mode="selectTravelMode"
         @use-my-location="locateSupportUser"

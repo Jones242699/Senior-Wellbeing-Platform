@@ -4,7 +4,8 @@ import {
   MELBOURNE_CBD,
   assertWithinSupportedArea,
 } from '../../../shared/map/locationRules'
-import { resolvePlaceFromQuery, setupPlaceAutocomplete } from '../../../shared/map/placeHelpers'
+import { resolveAddressInput } from '../../../shared/map/addressResolver'
+import { setupPlaceAutocomplete } from '../../../shared/map/placeHelpers'
 
 export function useRouteInputs({
   ensureUserMarker,
@@ -113,85 +114,13 @@ export function useRouteInputs({
     })
   }
 
-  function geocodeAddress(address) {
-    return new Promise((resolve, reject) => {
-      const geocoder = getGeocoder()
-      geocoder.geocode({ address, region: 'au' }, (results, status) => {
-        if (status === 'OK' && results?.[0]?.geometry?.location) {
-          resolve({
-            location: results[0].geometry.location,
-            formattedAddress: results[0].formatted_address || address,
-          })
-          return
-        }
-        reject(new Error(`Geocode failed (${status || 'UNKNOWN'})`))
-      })
-    })
-  }
-
-  function findPlaceByText(address) {
-    const mapApi = getMapApi()
-    const placesService = getPlacesService()
-    if (!placesService || !mapApi?.places) {
-      return Promise.reject(new Error('Places service unavailable'))
-    }
-
-    return resolvePlaceFromQuery({
-      address,
-      mapApi,
-      placesService,
-      rejectMessage: (status) => `Place lookup failed (${status || 'UNKNOWN'})`,
-    }).then((place) => {
-      return {
-        location: place.place.geometry.location,
-        formattedAddress: place.formattedAddress || address,
-        name: place.name || address,
-      }
-    })
-  }
-
-  function buildAddressCandidates(address) {
-    const raw = String(address || '').trim()
-    if (!raw) return []
-    const candidates = [raw]
-
-    // Remove relative-position descriptors often included by backend text.
-    const withoutRelativePrefix = raw.replace(
-      /.*?\b(?:approximately|approx\.?|about)\b[^,]*\b(?:of|from)\b\s*/i,
-      '',
-    )
-    if (withoutRelativePrefix && withoutRelativePrefix !== raw) {
-      candidates.push(withoutRelativePrefix.trim())
-    }
-
-    // Keep the street-address tail when the string contains landmark prose.
-    const addressTailMatch = raw.match(/\d+\s+[^,]+(?:,\s*[^,]+){1,4}/)
-    if (addressTailMatch?.[0]) candidates.push(addressTailMatch[0].trim())
-
-    return [...new Set(candidates)]
-  }
-
   async function geocodeToLatLng(address) {
-    const candidates = buildAddressCandidates(address)
-    for (const candidate of candidates) {
-      try {
-        return await geocodeAddress(candidate)
-      } catch {
-        // try next candidate
-      }
-    }
-
-    for (const candidate of candidates) {
-      try {
-        return await findPlaceByText(candidate)
-      } catch {
-        // try next candidate
-      }
-    }
-
-    throw new Error(
-      `Unable to resolve address: "${address}". Please select an autocomplete suggestion or check spelling.`,
-    )
+    return resolveAddressInput({
+      address,
+      getGeocoder,
+      mapApi: getMapApi(),
+      placesService: getPlacesService(),
+    })
   }
 
   function parseQueryLatLng(rawLat, rawLng) {

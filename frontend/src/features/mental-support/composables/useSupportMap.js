@@ -1,10 +1,8 @@
 import { ref } from 'vue'
+import { resolveAddressInput } from '../../../shared/map/addressResolver'
+import { toLatLngLiteral } from '../../../shared/map/locationRules'
 import { clearMarkers, createCircleMarker } from '../../../shared/map/markerHelpers'
-import {
-  resolvePlaceFromQuery,
-  setupPlaceAutocomplete,
-  toPlacePoint,
-} from '../../../shared/map/placeHelpers'
+import { setupPlaceAutocomplete, toPlacePoint } from '../../../shared/map/placeHelpers'
 import { useBaseMap } from '../../../shared/map/useBaseMap'
 import { MELBOURNE_CENTER } from '../constants'
 
@@ -22,6 +20,7 @@ export function useSupportMap({ mapContainerRef }) {
     clearEndpointMarkers,
     directionsRoute,
     ensureUserMarker,
+    getGeocoder,
     getMap,
     getMapApi,
     getPlacesService,
@@ -115,11 +114,19 @@ export function useSupportMap({ mapContainerRef }) {
   }
 
   async function resolveAddressFromPlaces(address) {
-    return resolvePlaceFromQuery({
+    const resolved = await resolveAddressInput({
       address,
+      getGeocoder,
       mapApi: getMapApi(),
       placesService: getPlacesService(),
     })
+    const point = toLatLngLiteral(resolved.location)
+    if (!point) throw new Error('Address not found. Please pick one from the suggestions.')
+    return {
+      ...point,
+      formattedAddress: resolved.formattedAddress || address,
+      name: resolved.name || address,
+    }
   }
 
   async function drawRoute(origin, destination, mode) {
