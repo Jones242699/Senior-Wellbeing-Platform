@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import MyRoutesView from '../features/my-routes/MyRoutesView.vue'
-import NearbyMentalSupportView from '../views/NearbyMentalSupportView.vue'
+import NearbyMentalSupportView from '../features/mental-support/NearbyMentalSupportView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import DiscoverNearbyPlacesView from '../features/discover-places/DiscoverNearbyPlacesView.vue'
 import NearbyEventsView from '../views/NearbyEventsView.vue'
