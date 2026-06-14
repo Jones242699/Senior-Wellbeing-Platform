@@ -332,7 +332,7 @@ h3 {
 
 @media (max-width: 1200px) {
   .page {
-    /* Same idea as MyRoutesView narrow layout: fixed map block, not driven by list length. */
+    /* Same idea as the route layout: fixed map block, not driven by list length. */
     --nearby-map-height: min(65vh, calc(100vh - 160px));
   }
 
