@@ -10,7 +10,7 @@ export function toPlacePoint(place, fallbackText = '') {
   }
 }
 
-export function resolvePlaceFromQuery({ address, mapApi, placesService }) {
+export function resolvePlaceFromQuery({ address, mapApi, placesService, rejectMessage }) {
   if (!placesService) throw new Error('Map is not ready yet.')
 
   return new Promise((resolve, reject) => {
@@ -24,7 +24,13 @@ export function resolvePlaceFromQuery({ address, mapApi, placesService }) {
           resolve(toPlacePoint(results[0], address))
           return
         }
-        reject(new Error('Address not found. Please pick one from the suggestions.'))
+        reject(
+          new Error(
+            typeof rejectMessage === 'function'
+              ? rejectMessage(status)
+              : rejectMessage || 'Address not found. Please pick one from the suggestions.',
+          ),
+        )
       },
     )
   })

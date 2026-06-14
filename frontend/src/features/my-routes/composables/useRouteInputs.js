@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { resolvePlaceFromQuery, setupPlaceAutocomplete } from '../../../shared/map/placeHelpers'
 import { CITY_OF_MELBOURNE_BOUNDS } from '../constants'
 
 export function useRouteInputs({
@@ -17,8 +18,8 @@ export function useRouteInputs({
 
   let startPlace = null
   let endPlace = null
-  let startAutocomplete = null
-  let endAutocomplete = null
+  let _startAutocomplete = null
+  let _endAutocomplete = null
   /** @type {number | null} */
   let geoWatchId = null
 
@@ -118,26 +119,22 @@ export function useRouteInputs({
     const mapApi = getMapApi()
     if (!startEl || !endEl || !mapApi?.places) return
 
-    startAutocomplete = new mapApi.places.Autocomplete(startEl, {
-      fields: ['geometry', 'formatted_address', 'name'],
-      componentRestrictions: { country: 'au' },
+    _startAutocomplete = setupPlaceAutocomplete({
+      input: startEl,
+      mapApi,
+      onPlaceSelected: (p) => {
+        startPlace = p?.geometry?.location ? p : null
+        if (p?.formatted_address) startLocation.value = p.formatted_address
+        originMode.value = 'manual'
+      },
     })
-    endAutocomplete = new mapApi.places.Autocomplete(endEl, {
-      fields: ['geometry', 'formatted_address', 'name'],
-      componentRestrictions: { country: 'au' },
-    })
-
-    startAutocomplete.addListener('place_changed', () => {
-      const p = startAutocomplete.getPlace()
-      startPlace = p?.geometry?.location ? p : null
-      if (p?.formatted_address) startLocation.value = p.formatted_address
-      originMode.value = 'manual'
-    })
-
-    endAutocomplete.addListener('place_changed', () => {
-      const p = endAutocomplete.getPlace()
-      endPlace = p?.geometry?.location ? p : null
-      if (p?.formatted_address) destination.value = p.formatted_address
+    _endAutocomplete = setupPlaceAutocomplete({
+      input: endEl,
+      mapApi,
+      onPlaceSelected: (p) => {
+        endPlace = p?.geometry?.location ? p : null
+        if (p?.formatted_address) destination.value = p.formatted_address
+      },
     })
   }
 
@@ -158,34 +155,23 @@ export function useRouteInputs({
   }
 
   function findPlaceByText(address) {
-    return new Promise((resolve, reject) => {
-      const mapApi = getMapApi()
-      const placesService = getPlacesService()
-      if (!placesService || !mapApi?.places) {
-        reject(new Error('Places service unavailable'))
-        return
+    const mapApi = getMapApi()
+    const placesService = getPlacesService()
+    if (!placesService || !mapApi?.places) {
+      return Promise.reject(new Error('Places service unavailable'))
+    }
+
+    return resolvePlaceFromQuery({
+      address,
+      mapApi,
+      placesService,
+      rejectMessage: (status) => `Place lookup failed (${status || 'UNKNOWN'})`,
+    }).then((place) => {
+      return {
+        location: place.place.geometry.location,
+        formattedAddress: place.formattedAddress || address,
+        name: place.name || address,
       }
-      placesService.findPlaceFromQuery(
-        {
-          query: address,
-          fields: ['geometry', 'formatted_address', 'name'],
-        },
-        (results, status) => {
-          if (
-            status === mapApi.places.PlacesServiceStatus.OK &&
-            Array.isArray(results) &&
-            results[0]?.geometry?.location
-          ) {
-            resolve({
-              location: results[0].geometry.location,
-              formattedAddress: results[0].formatted_address || address,
-              name: results[0].name || address,
-            })
-            return
-          }
-          reject(new Error(`Place lookup failed (${status || 'UNKNOWN'})`))
-        },
-      )
     })
   }
 
