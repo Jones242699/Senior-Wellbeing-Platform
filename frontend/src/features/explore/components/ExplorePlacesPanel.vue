@@ -1,11 +1,12 @@
 <script setup>
 import '../../discover-places/styles.css'
-import { onMounted, ref } from 'vue'
+import AddressSuggestionInput from '../../../shared/map/components/AddressSuggestionInput.vue'
 import DiscoverFilters from '../../discover-places/components/DiscoverFilters.vue'
 import PlacesList from '../../discover-places/components/PlacesList.vue'
 
 defineProps({
   addressQuery: { type: String, required: true },
+  addressSuggestions: { type: Array, default: () => [] },
   applyingAddressFilter: { type: Boolean, required: true },
   addressFilterError: { type: String, default: '' },
   categories: { type: Array, required: true },
@@ -21,6 +22,7 @@ defineProps({
   totalPlaces: { type: Number, required: true },
   locationUnavailable: { type: Boolean, required: true },
   loadError: { type: String, default: '' },
+  loadingAddressSuggestions: { type: Boolean, default: false },
   showNoMatchHint: { type: Boolean, required: true },
   canExpandToExceed2Km: { type: Boolean, required: true },
   pagedPlaces: { type: Array, required: true },
@@ -38,7 +40,8 @@ const emit = defineEmits([
   'toggle-category',
   'select-radius',
   'toggle-crowd-density',
-  'input-ready',
+  'address-input',
+  'select-address-suggestion',
   'apply-address-filter',
   'use-my-location',
   'open-ideas-modal',
@@ -49,11 +52,9 @@ const emit = defineEmits([
   'go-to-page',
 ])
 
-const addressInputRef = ref(null)
-
-onMounted(() => {
-  emit('input-ready', addressInputRef.value)
-})
+function onAddressInput() {
+  emit('address-input')
+}
 </script>
 
 <template>
@@ -66,14 +67,15 @@ onMounted(() => {
 
     <section class="explore-location-toolbar">
       <div class="search-group">
-        <input
-          ref="addressInputRef"
-          :value="addressQuery"
-          class="address-input"
-          type="text"
+        <AddressSuggestionInput
+          :model-value="addressQuery"
+          :suggestions="addressSuggestions"
+          :loading="loadingAddressSuggestions"
           placeholder="E.g. Carlton"
-          @input="$emit('update:address-query', $event.target.value)"
-          @keydown.enter.prevent="$emit('apply-address-filter')"
+          @update:model-value="emit('update:address-query', $event)"
+          @input="onAddressInput"
+          @select-suggestion="emit('select-address-suggestion', $event)"
+          @submit="emit('apply-address-filter')"
         />
         <button
           type="button"
@@ -179,14 +181,31 @@ onMounted(() => {
   width: 100%;
 }
 
-.explore-location-toolbar .address-input {
+.explore-location-toolbar :deep(.address-suggestion-input) {
   flex: 1 1 auto;
   min-width: 0;
   width: auto;
+}
+
+.explore-location-toolbar :deep(.search-input) {
+  box-sizing: border-box;
+  width: 100%;
   height: 44px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px 0 0 8px;
+  background: #ffffff;
+  font-size: 14px;
+  outline: none;
+  padding: 11px 12px;
+}
+
+.explore-location-toolbar :deep(.search-input:focus) {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.16);
 }
 
 .explore-location-toolbar .search-btn {
+  border-radius: 0 8px 8px 0;
   height: 44px;
 }
 

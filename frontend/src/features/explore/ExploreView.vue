@@ -138,6 +138,8 @@ const activeMapPlaceId = ref('')
 const detailPanelState = ref('closed')
 const pendingDetailPlace = ref(null)
 const directionsError = ref('')
+const placesAddressSuggestions = ref([])
+const loadingPlacesAddressSuggestions = ref(false)
 const routeStartSuggestions = ref([])
 const routeDestinationSuggestions = ref([])
 const loadingRouteStartSuggestions = ref(false)
@@ -190,11 +192,14 @@ const {
   locationMode,
   applyAddressFilter,
   clearGeoWatch,
-  setAddressInput,
-  setupAddressAutocomplete,
+  onAddressInput,
+  searchAddressSuggestions: searchPlacesAddressSuggestions,
+  setAddressSuggestion,
   useMyLocation,
 } = useDiscoverLocation({
   currentPage,
+  getGeocoder,
+  getPlacesService,
   loadDiscoverMapApi: loadExploreMapApi,
   locationUnavailable,
   userLocation,
@@ -437,6 +442,8 @@ const {
 
 let supportSuggestionTimeoutId = null
 let supportSuggestionRequestSeq = 0
+let placesSuggestionTimeoutId = null
+let placesSuggestionRequestSeq = 0
 let routeStartSuggestionTimeoutId = null
 let routeDestinationSuggestionTimeoutId = null
 let routeStartSuggestionRequestSeq = 0
@@ -553,6 +560,72 @@ function refreshRestaurantMapSample() {
 
 function toggleCrowdDensityOverlay() {
   isCrowdDensityEnabled.value = !isCrowdDensityEnabled.value
+}
+
+function clearPlacesAddressSuggestions() {
+  placesAddressSuggestions.value = []
+  loadingPlacesAddressSuggestions.value = false
+  if (placesSuggestionTimeoutId !== null) {
+    window.clearTimeout(placesSuggestionTimeoutId)
+    placesSuggestionTimeoutId = null
+  }
+}
+
+function refreshPlacesAddressSuggestions() {
+  if (placesSuggestionTimeoutId !== null) window.clearTimeout(placesSuggestionTimeoutId)
+  const query = addressQuery.value.trim()
+  if (query.length < 2) {
+    clearPlacesAddressSuggestions()
+    return
+  }
+
+  loadingPlacesAddressSuggestions.value = true
+  const requestId = ++placesSuggestionRequestSeq
+  placesSuggestionTimeoutId = window.setTimeout(async () => {
+    try {
+      const suggestions = await searchPlacesAddressSuggestions(query)
+      if (requestId !== placesSuggestionRequestSeq) return
+      placesAddressSuggestions.value = suggestions
+    } catch {
+      if (requestId !== placesSuggestionRequestSeq) return
+      placesAddressSuggestions.value = []
+    } finally {
+      if (requestId === placesSuggestionRequestSeq) {
+        loadingPlacesAddressSuggestions.value = false
+      }
+    }
+  }, 180)
+}
+
+function handlePlacesAddressInput() {
+  onAddressInput()
+  refreshPlacesAddressSuggestions()
+}
+
+function selectPlacesAddressSuggestion(suggestion) {
+  setAddressSuggestion(suggestion)
+  clearPlacesAddressSuggestions()
+}
+
+function applyMatchingPlacesSuggestion() {
+  const query = normalizeSuggestionMatchText(addressQuery.value)
+  if (!query) return false
+
+  const matchingSuggestion = placesAddressSuggestions.value.find((suggestion) => {
+    const name = normalizeSuggestionMatchText(suggestion.name)
+    const address = normalizeSuggestionMatchText(suggestion.formattedAddress)
+    return query === name || query === address
+  })
+  if (!matchingSuggestion) return false
+
+  setAddressSuggestion(matchingSuggestion)
+  clearPlacesAddressSuggestions()
+  return true
+}
+
+async function applyPlacesAddressFilterFromInput() {
+  applyMatchingPlacesSuggestion()
+  await applyAddressFilter()
 }
 
 function openIdeasModal() {
@@ -724,6 +797,10 @@ function clearSupportLayer() {
   clearRoomMarkers()
   clearFilterCenterMarker()
   supportRouteSummary.value = ''
+}
+
+function clearPlacesLayer() {
+  clearPlacesAddressSuggestions()
 }
 
 function clearSupportAddressSuggestions() {
@@ -928,7 +1005,6 @@ onMounted(async () => {
     refreshRestaurantMapSample()
     updateDiscoverMapMarkers()
     await refreshCrowdDensityOverlay()
-    setupAddressAutocomplete()
     if (activeModeId.value === 'routes') applyRouteDestinationFromQuery()
     window.addEventListener('keydown', onGlobalKeydown)
   } catch (error) {
@@ -941,6 +1017,7 @@ onUnmounted(() => {
   clearMapMarkers()
   clearCrowdDensityOverlay()
   clearGeoWatch()
+  clearPlacesAddressSuggestions()
   clearRouteGeoWatch()
   clearRouteStartSuggestions()
   clearRouteDestinationSuggestions()
@@ -964,6 +1041,7 @@ watch(activeModeId, async () => {
     updateDiscoverMapMarkers()
     await refreshCrowdDensityOverlay()
   } else if (activeModeId.value === 'routes') {
+    clearPlacesLayer()
     clearMapMarkers()
     clearCrowdDensityOverlay()
     closeMapPlaceCard()
@@ -972,6 +1050,7 @@ watch(activeModeId, async () => {
     clearSupportLayer()
     applyRouteDestinationFromQuery()
   } else if (activeModeId.value === 'support') {
+    clearPlacesLayer()
     clearMapMarkers()
     clearCrowdDensityOverlay()
     closeMapPlaceCard()
@@ -1097,6 +1176,7 @@ watch(
         v-model:address-query="addressQuery"
         :applying-address-filter="applyingAddressFilter"
         :address-filter-error="addressFilterError"
+        :address-suggestions="placesAddressSuggestions"
         :categories="CATEGORY_OPTIONS"
         :radius-options="RADIUS_OPTIONS"
         :selected-category-set="selectedCategorySet"
@@ -1120,11 +1200,13 @@ watch(
         :total-pages="totalPages"
         :places-per-page="PLACES_PER_PAGE"
         :format-distance="formatDistance"
+        :loading-address-suggestions="loadingPlacesAddressSuggestions"
         @toggle-category="toggleCategory"
         @select-radius="selectRadius"
         @toggle-crowd-density="toggleCrowdDensityOverlay"
-        @input-ready="setAddressInput"
-        @apply-address-filter="applyAddressFilter"
+        @address-input="handlePlacesAddressInput"
+        @select-address-suggestion="selectPlacesAddressSuggestion"
+        @apply-address-filter="applyPlacesAddressFilterFromInput"
         @use-my-location="useMyLocation"
         @open-ideas-modal="openIdeasModal"
         @expand-to-2km="expandTo2Km"

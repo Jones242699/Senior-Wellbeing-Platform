@@ -18,7 +18,7 @@ defineProps({
   },
 })
 
-const emit = defineEmits(['input', 'select-suggestion', 'update:modelValue'])
+const emit = defineEmits(['input', 'select-suggestion', 'submit', 'update:modelValue'])
 
 function onInput(event) {
   emit('update:modelValue', event.target.value)
@@ -35,6 +35,7 @@ function onInput(event) {
       :placeholder="placeholder"
       autocomplete="off"
       @input="onInput"
+      @keydown.enter.prevent="emit('submit')"
     />
     <div
       v-if="suggestions.length || loading"

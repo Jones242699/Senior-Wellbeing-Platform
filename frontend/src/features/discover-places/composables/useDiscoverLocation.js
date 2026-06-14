@@ -4,24 +4,27 @@ import {
   assertWithinSupportedArea,
   buildOutsideSupportedAreaMessage,
   isWithinBounds,
+  toLatLngLiteral,
 } from '../../../shared/map/locationRules'
-import { setupPlaceAutocomplete, toPlacePoint } from '../../../shared/map/placeHelpers'
+import { resolveAddressInput } from '../../../shared/map/addressResolver'
+import { searchPlaceSuggestions } from '../../../shared/map/placeHelpers'
 
-export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationUnavailable, userLocation }) {
+export function useDiscoverLocation({
+  currentPage,
+  getGeocoder,
+  getPlacesService,
+  loadDiscoverMapApi,
+  locationUnavailable,
+  userLocation,
+}) {
   const addressQuery = ref('')
-  const addressInputRef = ref(null)
+  const selectedAddressPlace = ref(null)
   const applyingAddressFilter = ref(false)
   const addressFilterError = ref('')
   const locationMode = ref('none') // none | device | address
   const locationErrorMessage = ref('')
 
-  let geocoder = null
-  let addressAutocomplete = null
   let geoWatchId = null
-
-  function setAddressInput(element) {
-    addressInputRef.value = element
-  }
 
   function clearGeoWatch() {
     if (geoWatchId !== null && navigator.geolocation?.clearWatch) {
@@ -99,32 +102,16 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
     assertWithinSupportedArea({ lat, lng }, label)
   }
 
-  async function ensureGeocoder() {
-    const mapApi = await loadDiscoverMapApi()
-    if (!geocoder && mapApi?.Geocoder) geocoder = new mapApi.Geocoder()
-    return mapApi
-  }
-
-  async function setupAddressAutocomplete() {
-    const input = addressInputRef.value
-    const mapApi = await loadDiscoverMapApi()
-    if (!input || !mapApi?.places) return
-
-    addressAutocomplete = setupPlaceAutocomplete({
-      input,
-      mapApi,
-      fields: ['geometry', 'formatted_address'],
-      onPlaceSelected: () => {},
-    })
+  function onAddressInput() {
+    selectedAddressPlace.value = null
   }
 
   async function resolveAddressCoordinates() {
     const keyword = addressQuery.value.trim()
     if (!keyword) throw new Error('Please enter an address first.')
 
-    const place = addressAutocomplete?.getPlace?.()
-    const placePoint = toPlacePoint(place, keyword)
-    if (placePoint) {
+    const placePoint = selectedAddressPlace.value
+    if (placePoint?.lat && placePoint?.lng) {
       assertWithinMelbourne(placePoint.lat, placePoint.lng, 'Address')
       return {
         lat: placePoint.lat,
@@ -133,23 +120,37 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
       }
     }
 
-    await ensureGeocoder()
-    if (!geocoder) throw new Error('Address lookup is unavailable right now.')
-
-    const result = await geocoder.geocode({ address: keyword, region: 'au' })
-    const first = result?.results?.[0]
-    if (!first?.geometry?.location)
-      throw new Error('Address not found. Please try a clearer address.')
-
-    const geocodedPoint = toPlacePoint(first, keyword)
-    if (!geocodedPoint) throw new Error('Address not found. Please try a clearer address.')
-    assertWithinMelbourne(geocodedPoint.lat, geocodedPoint.lng, 'Address')
+    const mapApi = await loadDiscoverMapApi()
+    const resolved = await resolveAddressInput({
+      address: keyword,
+      getGeocoder,
+      mapApi,
+      placesService: getPlacesService(),
+    })
+    const point = toLatLngLiteral(resolved.location)
+    if (!point) throw new Error('Address not found. Please try a clearer address.')
+    assertWithinMelbourne(point.lat, point.lng, 'Address')
 
     return {
-      lat: geocodedPoint.lat,
-      lng: geocodedPoint.lng,
-      formattedAddress: geocodedPoint.formattedAddress || keyword,
+      lat: point.lat,
+      lng: point.lng,
+      formattedAddress: resolved.formattedAddress || keyword,
     }
+  }
+
+  async function searchAddressSuggestions(query) {
+    const mapApi = await loadDiscoverMapApi()
+    return searchPlaceSuggestions({
+      query,
+      mapApi,
+      placesService: getPlacesService(),
+      limit: 5,
+    })
+  }
+
+  function setAddressSuggestion(suggestion) {
+    selectedAddressPlace.value = suggestion
+    addressQuery.value = suggestion.formattedAddress || suggestion.name || addressQuery.value
   }
 
   async function applyAddressFilter() {
@@ -188,9 +189,10 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
     locationMode,
     applyAddressFilter,
     clearGeoWatch,
+    onAddressInput,
     requestBrowserLocation,
-    setAddressInput,
-    setupAddressAutocomplete,
+    searchAddressSuggestions,
+    setAddressSuggestion,
     useMyLocation,
     watchDeviceLocation,
   }
