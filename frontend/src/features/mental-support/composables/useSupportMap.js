@@ -1,5 +1,10 @@
 import { ref } from 'vue'
 import { clearMarkers, createCircleMarker } from '../../../shared/map/markerHelpers'
+import {
+  resolvePlaceFromQuery,
+  setupPlaceAutocomplete,
+  toPlacePoint,
+} from '../../../shared/map/placeHelpers'
 import { useBaseMap } from '../../../shared/map/useBaseMap'
 import { MELBOURNE_CENTER } from '../constants'
 
@@ -8,7 +13,7 @@ export function useSupportMap({ mapContainerRef }) {
   const userPosition = ref(null)
 
   let filterCenterMarker
-  let queryAutocomplete
+  let _queryAutocomplete
   const roomMarkers = []
 
   const {
@@ -110,33 +115,10 @@ export function useSupportMap({ mapContainerRef }) {
   }
 
   async function resolveAddressFromPlaces(address) {
-    const placesService = getPlacesService()
-    const mapApi = getMapApi()
-    if (!placesService) throw new Error('Map is not ready yet.')
-    return new Promise((resolve, reject) => {
-      placesService.findPlaceFromQuery(
-        {
-          query: address,
-          fields: ['geometry', 'formatted_address', 'name'],
-        },
-        (results, status) => {
-          if (
-            status === mapApi.places.PlacesServiceStatus.OK &&
-            results?.[0]?.geometry?.location
-          ) {
-            const location = results[0].geometry.location
-            const fallbackLabel = results[0].name || address
-            const formattedAddress = results[0].formatted_address || fallbackLabel
-            resolve({
-              lat: location.lat(),
-              lng: location.lng(),
-              formattedAddress,
-            })
-            return
-          }
-          reject(new Error('Address not found. Please pick one from the suggestions.'))
-        },
-      )
+    return resolvePlaceFromQuery({
+      address,
+      mapApi: getMapApi(),
+      placesService: getPlacesService(),
     })
   }
 
@@ -169,22 +151,12 @@ export function useSupportMap({ mapContainerRef }) {
   }
 
   function setupQueryAutocomplete(input, onPlaceSelected) {
-    const mapApi = getMapApi()
-    if (!input || !mapApi?.places) return
-
-    queryAutocomplete = new mapApi.places.Autocomplete(input, {
-      fields: ['geometry', 'formatted_address', 'name'],
-      componentRestrictions: { country: 'au' },
-    })
-
-    queryAutocomplete.addListener('place_changed', () => {
-      const place = queryAutocomplete.getPlace()
-      if (!place?.geometry?.location) return
-      onPlaceSelected({
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng(),
-        formattedAddress: place.formatted_address || place.name || '',
-      })
+    _queryAutocomplete = setupPlaceAutocomplete({
+      input,
+      mapApi: getMapApi(),
+      onPlaceSelected: (place) => {
+        onPlaceSelected(toPlacePoint(place, ''))
+      },
     })
   }
 
