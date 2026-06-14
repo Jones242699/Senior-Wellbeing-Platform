@@ -36,6 +36,31 @@ export function resolvePlaceFromQuery({ address, mapApi, placesService, rejectMe
   })
 }
 
+function normalizeSuggestionText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function buildSuggestionKey(suggestion) {
+  const name = normalizeSuggestionText(suggestion.name)
+  const address = normalizeSuggestionText(suggestion.formattedAddress)
+  const lat = Number.isFinite(suggestion.lat) ? suggestion.lat.toFixed(5) : ''
+  const lng = Number.isFinite(suggestion.lng) ? suggestion.lng.toFixed(5) : ''
+  return `${name}|${address}|${lat},${lng}`
+}
+
+function dedupeSuggestions(suggestions) {
+  const seen = new Set()
+  return suggestions.filter((suggestion) => {
+    const key = buildSuggestionKey(suggestion)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 export function searchPlaceSuggestions({ query, mapApi, placesService, limit = 5 }) {
   const searchText = String(query || '').trim()
   if (!searchText || !placesService) return Promise.resolve([])
@@ -46,7 +71,8 @@ export function searchPlaceSuggestions({ query, mapApi, placesService, limit = 5
         resolve([])
         return
       }
-      resolve(results.map((place) => toPlacePoint(place, searchText)).filter(Boolean).slice(0, limit))
+      const suggestions = results.map((place) => toPlacePoint(place, searchText)).filter(Boolean)
+      resolve(dedupeSuggestions(suggestions).slice(0, limit))
     })
   })
 }
