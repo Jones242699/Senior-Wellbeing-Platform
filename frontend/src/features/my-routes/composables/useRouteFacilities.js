@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { getApiBase } from '../../../config/api'
+import { clearMarkers, createCircleMarker, createMapMarker } from '../../../shared/map/markerHelpers'
 import { MAX_BENCH_MARKERS_ON_ROUTE_MAP, ROUTE_FACILITIES_DISTANCE_METERS } from '../constants'
 
 export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
@@ -18,17 +19,11 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
   }
 
   function clearToiletMarkers() {
-    for (const marker of toiletMarkers) {
-      if (marker) marker.setMap(null)
-    }
-    toiletMarkers = []
+    clearMarkers(toiletMarkers)
   }
 
   function clearBenchMarkers() {
-    for (const marker of benchMarkers) {
-      if (marker) marker.setMap(null)
-    }
-    benchMarkers = []
+    clearMarkers(benchMarkers)
   }
 
   function createToiletMarker(toilet) {
@@ -42,8 +37,7 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
     }
     if (!Number.isFinite(position.lat) || !Number.isFinite(position.lng)) return
 
-    const marker = new mapApi.Marker({
-      map,
+    const marker = createMapMarker(mapApi, map, {
       position,
       title: toilet.name || 'Public Toilet',
       zIndex: 800,
@@ -60,6 +54,7 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
         fontWeight: '800',
       },
     })
+    if (!marker) return
 
     marker.addListener('click', () => {
       const access = [
@@ -119,19 +114,14 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
     const mapApi = getMapApi()
     const map = getMap()
     const infoWindow = getInfoWindow()
-    const marker = new mapApi.Marker({
-      map,
+    const marker = createCircleMarker(mapApi, map, {
       position: { lat: parseFloat(bench.lat), lng: parseFloat(bench.lng) },
       title: bench.desc || 'Rest Bench',
       zIndex: 750,
-      icon: {
-        path: mapApi.SymbolPath.CIRCLE,
-        scale: 14,
-        fillColor: '#d99a2b',
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 2,
-      },
+      scale: 14,
+      fillColor: '#d99a2b',
+      strokeColor: '#ffffff',
+      strokeWeight: 2,
       label: {
         text: 'B',
         color: '#ffffff',
@@ -139,6 +129,7 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
         fontWeight: '800',
       },
     })
+    if (!marker) return
 
     marker.addListener('click', () => {
       infoWindow.setContent(`

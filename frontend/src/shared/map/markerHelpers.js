@@ -1,4 +1,4 @@
-export function createCircleMarker(mapApi, map, options) {
+export function createMapMarker(mapApi, map, options) {
   if (!mapApi || !map || !options?.position) return null
 
   return new mapApi.Marker({
@@ -6,6 +6,15 @@ export function createCircleMarker(mapApi, map, options) {
     position: options.position,
     title: options.title,
     zIndex: options.zIndex,
+    icon: options.icon,
+    label: options.label,
+  })
+}
+
+export function createCircleMarker(mapApi, map, options) {
+  return createMapMarker(mapApi, map, {
+    map,
+    ...options,
     icon: {
       path: mapApi.SymbolPath.CIRCLE,
       scale: options.scale ?? 8,
@@ -14,7 +23,6 @@ export function createCircleMarker(mapApi, map, options) {
       strokeColor: options.strokeColor ?? '#ffffff',
       strokeWeight: options.strokeWeight ?? 2,
     },
-    label: options.label,
   })
 }
 
