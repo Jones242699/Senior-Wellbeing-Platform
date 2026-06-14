@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { setupPlaceAutocomplete, toPlacePoint } from '../../../shared/map/placeHelpers'
 import { MELBOURNE_METRO_BOUNDS } from './useDiscoverPlaces'
 
 export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationUnavailable, userLocation }) {
@@ -95,9 +96,11 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
     const mapApi = await loadDiscoverMapApi()
     if (!input || !mapApi?.places) return
 
-    addressAutocomplete = new mapApi.places.Autocomplete(input, {
+    addressAutocomplete = setupPlaceAutocomplete({
+      input,
+      mapApi,
       fields: ['geometry', 'formatted_address'],
-      componentRestrictions: { country: 'au' },
+      onPlaceSelected: () => {},
     })
   }
 
@@ -106,14 +109,13 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
     if (!keyword) throw new Error('Please enter an address first.')
 
     const place = addressAutocomplete?.getPlace?.()
-    if (place?.geometry?.location) {
-      const lat = place.geometry.location.lat()
-      const lng = place.geometry.location.lng()
-      assertWithinMelbourne(lat, lng, 'Address')
+    const placePoint = toPlacePoint(place, keyword)
+    if (placePoint) {
+      assertWithinMelbourne(placePoint.lat, placePoint.lng, 'Address')
       return {
-        lat,
-        lng,
-        formattedAddress: place.formatted_address || keyword,
+        lat: placePoint.lat,
+        lng: placePoint.lng,
+        formattedAddress: placePoint.formattedAddress || keyword,
       }
     }
 
@@ -125,14 +127,14 @@ export function useDiscoverLocation({ currentPage, loadDiscoverMapApi, locationU
     if (!first?.geometry?.location)
       throw new Error('Address not found. Please try a clearer address.')
 
-    const lat = first.geometry.location.lat()
-    const lng = first.geometry.location.lng()
-    assertWithinMelbourne(lat, lng, 'Address')
+    const geocodedPoint = toPlacePoint(first, keyword)
+    if (!geocodedPoint) throw new Error('Address not found. Please try a clearer address.')
+    assertWithinMelbourne(geocodedPoint.lat, geocodedPoint.lng, 'Address')
 
     return {
-      lat,
-      lng,
-      formattedAddress: first.formatted_address || keyword,
+      lat: geocodedPoint.lat,
+      lng: geocodedPoint.lng,
+      formattedAddress: geocodedPoint.formattedAddress || keyword,
     }
   }
 
