@@ -1,3 +1,5 @@
+@import '../../shared/map/mapStyles.css';
+
 .page {
   --nearby-map-height: calc(100vh - 160px);
   max-width: 1400px;
@@ -115,93 +117,34 @@
 }
 
 .map-panel {
-  position: relative;
   width: 100%;
   height: var(--nearby-map-height);
   min-height: 360px;
   max-height: var(--nearby-map-height);
   background: #dfe8d9;
-  border: 1px solid #d1d5db;
-  border-radius: 12px;
-  overflow: hidden;
 }
 
 .map-canvas {
-  position: relative;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-}
-
-.map-panel .leaflet-container {
-  z-index: 0;
-}
-
-.map-panel .leaflet-tile-pane {
-  z-index: 200;
-}
-
-.map-panel .leaflet-overlay-pane {
-  z-index: 400;
-}
-
-.map-panel .leaflet-marker-pane {
-  z-index: 700;
-}
-
-.map-panel .leaflet-tooltip-pane {
-  z-index: 800;
-}
-
-.map-panel .leaflet-popup-pane {
-  z-index: 900;
-}
-
-.map-panel .leaflet-control-container {
-  position: relative;
-  z-index: 1000;
-}
-
-.map-panel .osm-marker-icon {
-  pointer-events: auto;
+  border-radius: 12px;
 }
 
 .map-mask {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
   background: rgba(255, 255, 255, 0.8);
   color: #374151;
-  z-index: 1300;
 }
 
 .legend {
-  position: absolute;
   left: 20px;
   bottom: 20px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 14px;
-  min-width: 180px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  z-index: 1200;
-  pointer-events: auto;
 }
 
 .legend-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: #1e293b;
-  margin-bottom: 10px;
+  margin: 0 0 10px;
 }
 
 .legend-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   margin-bottom: 8px;
 }
 
@@ -212,32 +155,23 @@
 .legend-item > span:last-child {
   font-size: 13px;
   color: #475569;
-  font-weight: 500;
 }
 
 .dot {
   width: 14px;
   height: 14px;
-  border-radius: 999px;
-  flex-shrink: 0;
 }
 
 .user-dot {
   background: #16a34a;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px #cbd5e1;
 }
 
 .room-dot {
   background: #ef4444;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px #cbd5e1;
 }
 
 .filter-dot {
   background: #7c3aed;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px #cbd5e1;
 }
 
 .legend-group {
@@ -247,17 +181,8 @@
 }
 
 .pin {
-  width: 22px;
-  height: 22px;
   background: #dc2626;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff !important;
   font-size: 11px;
-  font-weight: 800;
-  flex-shrink: 0;
 }
 
 .start-pin,
