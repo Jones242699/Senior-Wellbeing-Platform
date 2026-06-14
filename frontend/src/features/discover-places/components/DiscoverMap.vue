@@ -38,7 +38,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <aside class="map-panel">
+  <aside class="map-panel shared-map-surface">
     <DiscoverFilters
       :categories="categories"
       :radius-options="radiusOptions"
@@ -51,7 +51,7 @@ onMounted(() => {
       @select-radius="$emit('select-radius', $event)"
       @toggle-crowd-density="$emit('toggle-crowd-density')"
     />
-    <div ref="mapContainerRef" class="map-canvas"></div>
+    <div ref="mapContainerRef" class="map-canvas shared-map-canvas"></div>
     <CrowdDensityLegend v-if="shouldShowCrowdDensityOverlay" :items="crowdDensityLegend" />
     <article v-if="activeMapPlace" class="map-place-card">
       <button type="button" class="map-place-close" @click="$emit('close-map-place-card')">
