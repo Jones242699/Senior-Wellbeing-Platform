@@ -409,6 +409,7 @@ const {
   clearFilterCenterMarker,
   clearRoomMarkers,
   clearSelectedRoute: clearSelectedSupportRoute,
+  closeRoomPopup,
   drawRoute: drawSupportRoute,
   panTo: panSupportTo,
   renderRoomMarkers,
@@ -416,12 +417,14 @@ const {
   searchAddressSuggestions: searchSupportAddressSuggestions,
   setFilterCenterMarker,
   setUserMarker: setSupportUserMarker,
+  showRoomPopup,
 } = useExploreSupportMap({
   clearDirectionsDisplay,
   clearEndpointMarkers,
   directionsRoute,
   ensureUserMarker,
   getGeocoder,
+  getInfoWindow,
   getMap,
   getMapApi,
   getPlacesService,
@@ -479,9 +482,11 @@ const {
 })
 
 const {
+  hasSelectedRoute: hasSelectedSupportRoute,
   routing: supportRouting,
   travelMode: supportTravelMode,
   clearSelectedRoom,
+  selectRoomInfo,
   selectRoomAndRoute,
   selectTravelMode,
 } = useSupportRouting({
@@ -502,7 +507,7 @@ const { loadDefaultLocation: loadDefaultSupportLocation, locateUser: locateSuppo
   panTo: panSupportTo,
   renderRoomMarkers,
   rooms,
-  selectRoomAndRoute,
+  selectRoomAndRoute: openSupportRoomInfo,
   setLocationError: setSupportAddressFilterError,
   setUserMarker: setSupportUserMarker,
   updateDistanceDurationForAll,
@@ -763,6 +768,21 @@ function openDirections() {
   closeDetailPanel()
 }
 
+function openSupportRoomInfo(room) {
+  selectRoomInfo(room)
+  showRoomPopup(room, getCurrentLocationLabel(supportUserPosition.value), routeSupportToRoom)
+}
+
+async function routeSupportToRoom(room) {
+  await selectRoomAndRoute(room)
+  showRoomPopup(room, getCurrentLocationLabel(supportUserPosition.value), routeSupportToRoom)
+}
+
+function clearSelectedSupportRoom() {
+  clearSelectedRoom()
+  closeRoomPopup()
+}
+
 function onGlobalKeydown(event) {
   if (event.key !== 'Escape') return
   if (isIdeasModalOpen.value) {
@@ -784,7 +804,7 @@ function clearRouteLayer() {
 }
 
 function clearSupportLayer() {
-  clearSelectedRoom()
+  clearSelectedSupportRoom()
   clearRoomMarkers()
   clearFilterCenterMarker()
   supportRouteSummary.value = ''
@@ -1051,7 +1071,7 @@ watch(activeModeId, async () => {
     if (!rooms.value.length && !loadingRooms.value) {
       void loadDefaultSupportLocation()
     } else {
-      renderRoomMarkers(rooms.value, selectRoomAndRoute)
+      renderRoomMarkers(rooms.value, openSupportRoomInfo)
     }
   } else {
     clearMapMarkers()
@@ -1235,6 +1255,7 @@ watch(
         :current-location-label="getCurrentLocationLabel(supportUserPosition)"
         :displayed-rooms="displayedRooms"
         :format-walk-duration="formatWalkDuration"
+        :has-route="hasSelectedSupportRoute"
         :loading-suggestions="loadingSupportAddressSuggestions"
         :loading-rooms="loadingRooms"
         :location-label="supportLocationLabel"
@@ -1247,10 +1268,11 @@ watch(
         :travel-mode="supportTravelMode"
         :travel-modes="SUPPORT_TRAVEL_MODES"
         @apply-address-filter="applySupportAddressFilterFromInput"
-        @clear-selected-room="clearSelectedRoom"
+        @clear-selected-room="clearSelectedSupportRoom"
+        @directions="routeSupportToRoom"
+        @more-info="openSupportRoomInfo"
         @query-input="handleSupportQueryInput"
         @select-suggestion="selectSupportAddressSuggestion"
-        @select-room="selectRoomAndRoute"
         @select-travel-mode="selectTravelMode"
         @use-my-location="locateSupportUser"
       />

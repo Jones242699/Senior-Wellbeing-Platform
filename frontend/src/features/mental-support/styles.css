@@ -251,7 +251,6 @@ h2 {
   background: #ffffff;
   padding: 12px;
   margin-bottom: 12px;
-  cursor: pointer;
 }
 
 .room-card.active {
@@ -276,15 +275,31 @@ h3 {
   font-size: 13px;
 }
 
-.details-btn {
-  display: inline-block;
-  width: 100%;
-  text-align: center;
-  border: 1px solid #059669;
+.support-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.support-card-btn {
   border-radius: 8px;
-  color: #065f46;
-  font-weight: 600;
-  line-height: 34px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 34px;
+  padding: 8px 11px;
+}
+
+.support-card-btn--secondary {
+  border: 1px solid #9ccaa9;
+  background: #ffffff;
+  color: #166534;
+}
+
+.support-card-btn--primary {
+  border: 1px solid #166534;
+  background: #166534;
+  color: #ffffff;
 }
 
 .route-builder {

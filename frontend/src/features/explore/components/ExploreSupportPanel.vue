@@ -8,6 +8,7 @@ defineProps({
   currentLocationLabel: { type: String, default: '' },
   displayedRooms: { type: Array, required: true },
   formatWalkDuration: { type: Function, required: true },
+  hasRoute: { type: Boolean, default: false },
   loadingSuggestions: { type: Boolean, default: false },
   loadingRooms: { type: Boolean, required: true },
   locationLabel: { type: String, required: true },
@@ -25,8 +26,9 @@ defineProps({
 defineEmits([
   'apply-address-filter',
   'clear-selected-room',
+  'directions',
+  'more-info',
   'query-input',
-  'select-room',
   'select-suggestion',
   'select-travel-mode',
   'update:query',
@@ -59,6 +61,7 @@ defineEmits([
       :current-location-label="currentLocationLabel"
       :displayed-rooms="displayedRooms"
       :format-walk-duration="formatWalkDuration"
+      :has-route="hasRoute"
       :loading-rooms="loadingRooms"
       :rooms-fetch-error="roomsFetchError"
       :route-summary="routeSummary"
@@ -68,7 +71,8 @@ defineEmits([
       :travel-mode="travelMode"
       :travel-modes="travelModes"
       @clear-selected-room="$emit('clear-selected-room')"
-      @select-room="$emit('select-room', $event)"
+      @more-info="$emit('more-info', $event)"
+      @directions="$emit('directions', $event)"
       @select-travel-mode="$emit('select-travel-mode', $event)"
     />
   </aside>
@@ -208,7 +212,6 @@ defineEmits([
   border-radius: 8px;
   background: #ffffff;
   color: #1f2937;
-  cursor: pointer;
   margin-top: 10px;
   padding: 12px;
   text-align: left;
@@ -231,12 +234,31 @@ defineEmits([
   margin: 4px 0;
 }
 
-.explore-support-panel :deep(.details-btn) {
-  color: #0f766e;
-  display: inline-block;
+.explore-support-panel :deep(.support-card-actions) {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.explore-support-panel :deep(.support-card-btn) {
+  border-radius: 8px;
+  cursor: pointer;
   font-size: 13px;
   font-weight: 800;
-  margin-top: 8px;
+  min-height: 34px;
+  padding: 8px 11px;
+}
+
+.explore-support-panel :deep(.support-card-btn--secondary) {
+  border: 1px solid #9ccaa9;
+  background: #ffffff;
+  color: #166534;
+}
+
+.explore-support-panel :deep(.support-card-btn--primary) {
+  border: 1px solid #166534;
+  background: #166534;
+  color: #ffffff;
 }
 
 .explore-support-panel :deep(.route-builder) {

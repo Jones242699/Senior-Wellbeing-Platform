@@ -239,6 +239,73 @@
   background: #14532d;
 }
 
+.support-map-popup {
+  width: 260px;
+  max-width: 72vw;
+  color: #1f2937;
+}
+
+.support-popup-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.support-popup-pin {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #ef4444;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.38);
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.support-popup-header h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.support-popup-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.support-popup-line {
+  margin: 8px 0 0;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.support-popup-line strong {
+  color: #1f2937;
+  font-weight: 800;
+}
+
+.support-popup-direction-btn {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: #166534;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 10px;
+  min-height: 34px;
+  padding: 8px 10px;
+}
+
+.support-popup-direction-btn:hover {
+  background: #14532d;
+}
+
 @media (max-width: 700px) {
   .explore-map .crowd-density-legend {
     left: 12px;

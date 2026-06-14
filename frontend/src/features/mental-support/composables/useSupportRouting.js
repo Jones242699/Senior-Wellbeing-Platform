@@ -11,6 +11,7 @@ export function useSupportRouting({
 }) {
   const travelMode = ref('WALKING')
   const routing = ref(false)
+  const hasSelectedRoute = ref(false)
 
   function getRouteOrigin() {
     return filterCenter.value || userPosition.value || MELBOURNE_CENTER
@@ -22,12 +23,15 @@ export function useSupportRouting({
     routing.value = true
     try {
       await drawRoute(getRouteOrigin(), room.position, travelMode.value)
+      hasSelectedRoute.value = true
     } finally {
       routing.value = false
     }
   }
 
   async function generateSelectedRoute() {
+    if (!hasSelectedRoute.value) return
+
     const selectedRoom = rooms.value.find((room) => room.id === selectedRoomId.value)
     if (!selectedRoom) return
 
@@ -41,6 +45,13 @@ export function useSupportRouting({
 
   function clearSelectedRoom() {
     selectedRoomId.value = null
+    hasSelectedRoute.value = false
+    clearSelectedRoute()
+  }
+
+  function selectRoomInfo(room) {
+    selectedRoomId.value = room.id
+    hasSelectedRoute.value = false
     clearSelectedRoute()
   }
 
@@ -50,9 +61,11 @@ export function useSupportRouting({
   }
 
   return {
+    hasSelectedRoute,
     routing,
     travelMode,
     clearSelectedRoom,
+    selectRoomInfo,
     selectRoomAndRoute,
     selectTravelMode,
   }

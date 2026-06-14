@@ -8,6 +8,10 @@ defineProps({
     type: Array,
     default: () => [],
   },
+  hasRoute: {
+    type: Boolean,
+    default: false,
+  },
   formatWalkDuration: {
     type: Function,
     required: true,
@@ -46,13 +50,12 @@ defineProps({
   },
 })
 
-defineEmits(['clear-selected-room', 'select-room', 'select-travel-mode'])
+defineEmits(['clear-selected-room', 'directions', 'more-info', 'select-travel-mode'])
 </script>
 
 <template>
   <aside class="list-panel">
     <h2>Nearby Counseling Rooms</h2>
-    <p class="sub">Based on your current location</p>
     <button v-if="selectedRoom" type="button" class="back-btn" @click="$emit('clear-selected-room')">
       Back to full list
     </button>
@@ -63,20 +66,25 @@ defineEmits(['clear-selected-room', 'select-room', 'select-travel-mode'])
     </div>
     <div v-else-if="displayedRooms.length === 0" class="state-tip">No counseling rooms found.</div>
 
-    <button
+    <article
       v-for="room in displayedRooms"
       :key="room.id"
-      type="button"
       :class="['room-card', { active: selectedRoomId === room.id }]"
-      @click="$emit('select-room', room)"
     >
       <h3>{{ room.name }}</h3>
       <p class="meta">{{ room.distanceText || '--' }} | {{ formatWalkDuration(room.durationText) }}</p>
       <p class="origin-line">From: {{ currentLocationLabel }}</p>
-      <span class="details-btn">View Routes</span>
-    </button>
+      <div class="support-card-actions">
+        <button type="button" class="support-card-btn support-card-btn--secondary" @click="$emit('more-info', room)">
+          More info
+        </button>
+        <button type="button" class="support-card-btn support-card-btn--primary" @click="$emit('directions', room)">
+          Direction
+        </button>
+      </div>
+    </article>
 
-    <section v-if="selectedRoom" class="route-builder">
+    <section v-if="selectedRoom && hasRoute" class="route-builder">
       <h3 class="route-title">Travel Mode</h3>
       <div class="mode-row">
         <button

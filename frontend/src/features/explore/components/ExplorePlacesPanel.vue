@@ -269,7 +269,7 @@ function onAddressInput() {
 
 .explore-places-panel :deep(.more-info-btn),
 .explore-places-panel :deep(.direction-btn) {
-  min-width: 104px;
+  min-width: 100px;
 }
 
 .explore-places-panel :deep(.place-icon) {

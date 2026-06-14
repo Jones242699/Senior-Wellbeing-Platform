@@ -14,6 +14,7 @@ export function useExploreSupportMap({
   directionsRoute,
   ensureUserMarker,
   getGeocoder,
+  getInfoWindow,
   getMap,
   getMapApi,
   getPlacesService,
@@ -28,9 +29,106 @@ export function useExploreSupportMap({
   let filterCenterMarker
   let queryAutocomplete
   const roomMarkers = []
+  let roomMarkersById = new Map()
+  let roomInfoWindow = null
+  let activeRoomPopupMarker = null
 
   function clearRoomMarkers() {
+    closeRoomPopup()
     clearMarkers(roomMarkers)
+    roomMarkersById = new Map()
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  }
+
+  function buildRoomPopupHtml(room, originLabel) {
+    const distance = room.distanceText
+      ? `<p class="support-popup-line"><strong>Distance:</strong> ${escapeHtml(room.distanceText)}</p>`
+      : ''
+    const duration = room.durationText
+      ? `<p class="support-popup-line"><strong>Travel time:</strong> ${escapeHtml(room.durationText)}</p>`
+      : ''
+    const origin = originLabel
+      ? `<p class="support-popup-line"><strong>From:</strong> ${escapeHtml(originLabel)}</p>`
+      : ''
+    const address = room.address
+      ? `<p class="support-popup-line"><strong>Address:</strong> ${escapeHtml(room.address)}</p>`
+      : ''
+
+    return `
+      <div class="support-map-popup" data-support-popup-id="${escapeHtml(room.id)}">
+        <div class="support-popup-header">
+          <span class="support-popup-pin"></span>
+          <div>
+            <h3>${escapeHtml(room.name)}</h3>
+            <p>Counseling room</p>
+          </div>
+        </div>
+        ${distance}
+        ${duration}
+        ${origin}
+        ${address}
+        <button
+          type="button"
+          class="support-popup-direction-btn"
+          data-support-direction-id="${escapeHtml(room.id)}"
+        >
+          Direction
+        </button>
+      </div>
+    `
+  }
+
+  function attachRoomPopupActions(room, onDirections) {
+    window.setTimeout(() => {
+      const mapContainer = getMap()?.getDiv?.()
+      const button = [...(mapContainer?.querySelectorAll('[data-support-direction-id]') || [])].find(
+        (item) => item.dataset.supportDirectionId === String(room.id),
+      )
+      if (!button) return
+      button.addEventListener(
+        'click',
+        (event) => {
+          event.preventDefault()
+          onDirections?.(room)
+        },
+        { once: true },
+      )
+    }, 0)
+  }
+
+  function closeRoomPopup() {
+    if (roomInfoWindow?.close) roomInfoWindow.close()
+    if (activeRoomPopupMarker?.marker?.closePopup) activeRoomPopupMarker.marker.closePopup()
+    activeRoomPopupMarker = null
+  }
+
+  function showRoomPopup(room, originLabel, onDirections) {
+    const map = getMap()
+    const marker = roomMarkersById.get(room.id)
+    if (!map || !marker) return
+
+    if (getInfoWindow) {
+      if (!roomInfoWindow) roomInfoWindow = getInfoWindow()
+      roomInfoWindow.setContent(buildRoomPopupHtml(room, originLabel))
+      roomInfoWindow.open(map, marker)
+      activeRoomPopupMarker = marker
+      attachRoomPopupActions(room, onDirections)
+      return
+    }
+
+    if (marker.bindPopup) {
+      marker.bindPopup(buildRoomPopupHtml(room, originLabel), { closeButton: true, autoPan: true }).openPopup()
+      activeRoomPopupMarker = marker
+      attachRoomPopupActions(room, onDirections)
+    }
   }
 
   function renderRoomMarkers(rooms, onRoomClick) {
@@ -53,6 +151,7 @@ export function useExploreSupportMap({
 
       marker.addListener('click', () => onRoomClick(room))
       roomMarkers.push(marker)
+      roomMarkersById.set(room.id, marker)
     })
   }
 
@@ -163,6 +262,7 @@ export function useExploreSupportMap({
     clearFilterCenterMarker,
     clearRoomMarkers,
     clearSelectedRoute,
+    closeRoomPopup,
     drawRoute,
     panTo,
     renderRoomMarkers,
@@ -170,6 +270,7 @@ export function useExploreSupportMap({
     searchAddressSuggestions,
     setFilterCenterMarker,
     setUserMarker,
+    showRoomPopup,
     setupQueryAutocomplete,
   }
 }
