@@ -9,6 +9,7 @@ export function useExploreMap({ mapContainerRef }) {
   const {
     cleanupMap,
     getMap,
+    getMapApi,
     initMap: initBaseMap,
     mapReady,
     markMapReady,
@@ -50,6 +51,8 @@ export function useExploreMap({ mapContainerRef }) {
 
   return {
     cleanupMap,
+    getMap,
+    getMapApi,
     initExploreMap,
     mapReady,
     resetMapView,

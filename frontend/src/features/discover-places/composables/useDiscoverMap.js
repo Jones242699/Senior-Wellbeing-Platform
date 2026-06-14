@@ -32,6 +32,12 @@ export function useDiscoverMap({
     return discoverMap
   }
 
+  function adoptDiscoverMap({ api, map }) {
+    if (!api || !map) return
+    mapApi = api
+    discoverMap = map
+  }
+
   function buildMarkerIcon(color, isActive = false, categoryKey = '') {
     if (!mapApi?.SymbolPath) return undefined
     const isRestaurant = categoryKey === 'cafes_restaurants'
@@ -257,6 +263,7 @@ export function useDiscoverMap({
 
   return {
     restaurantMapSampleIds,
+    adoptDiscoverMap,
     clearMapMarkers,
     closeMapPlaceCard,
     ensureRestaurantVisibleOnMap,
