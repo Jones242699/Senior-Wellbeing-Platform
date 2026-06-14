@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { clearMarkers, createCircleMarker, createMapMarker } from '../../../shared/map/markerHelpers'
 import { mapMarkerColorByCategory } from './useDiscoverPlaces'
 
 export function useDiscoverMap({
@@ -57,18 +58,14 @@ export function useDiscoverMap({
     if (!Number.isFinite(place.lat) || !Number.isFinite(place.lng)) return
 
     const ringColor = mapMarkerColorByCategory[place.categoryKey] || '#ec4899'
-    activeHighlightMarker = new mapApi.Marker({
-      map: discoverMap,
+    activeHighlightMarker = createCircleMarker(mapApi, discoverMap, {
       position: { lat: place.lat, lng: place.lng },
       clickable: false,
-      icon: {
-        path: mapApi.SymbolPath.CIRCLE,
-        scale: 24,
-        fillColor: ringColor,
-        fillOpacity: 0.22,
-        strokeColor: '#9d174d',
-        strokeWeight: 3,
-      },
+      scale: 24,
+      fillColor: ringColor,
+      fillOpacity: 0.22,
+      strokeColor: '#9d174d',
+      strokeWeight: 3,
       zIndex: 25,
     })
   }
@@ -82,12 +79,12 @@ export function useDiscoverMap({
 
     const markerColor = mapMarkerColorByCategory[place.categoryKey] || '#f97316'
     const isActive = activeMapPlaceId.value === place.id
-    const marker = new mapApi.Marker({
-      map: discoverMap,
+    const marker = createMapMarker(mapApi, discoverMap, {
       position: { lat: place.lat, lng: place.lng },
       title: place.name,
       icon: buildMarkerIcon(markerColor, isActive, place.categoryKey),
     })
+    if (!marker) return null
     marker.addListener('click', () => {
       void showMapPlaceCard(place, 'map')
     })
@@ -184,8 +181,7 @@ export function useDiscoverMap({
   }
 
   function clearMapMarkers() {
-    mapMarkers.forEach((marker) => marker.setMap(null))
-    mapMarkers = []
+    clearMarkers(mapMarkers)
     placeMarkersById = new Map()
     clearActiveHighlightMarker()
   }
@@ -215,20 +211,16 @@ export function useDiscoverMap({
       Number.isFinite(userLocation.value.lng)
     ) {
       const userPos = { lat: userLocation.value.lat, lng: userLocation.value.lng }
-      const userMarker = new mapApi.Marker({
-        map: discoverMap,
+      const userMarker = createCircleMarker(mapApi, discoverMap, {
         position: userPos,
         title: 'Your location',
-        icon: {
-          path: mapApi.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#ef4444',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2,
-        },
+        scale: 8,
+        fillColor: '#ef4444',
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
         zIndex: 10,
       })
+      if (!userMarker) return
       mapMarkers.push(userMarker)
       mapBounds.extend(userPos)
       hasAnyPoint = true
@@ -236,12 +228,12 @@ export function useDiscoverMap({
 
     mapRenderablePlaces.value.forEach((place) => {
       const markerColor = mapMarkerColorByCategory[place.categoryKey] || '#f97316'
-      const marker = new mapApi.Marker({
-        map: discoverMap,
+      const marker = createMapMarker(mapApi, discoverMap, {
         position: { lat: place.lat, lng: place.lng },
         title: place.name,
         icon: buildMarkerIcon(markerColor, false, place.categoryKey),
       })
+      if (!marker) return
       marker.addListener('click', () => {
         void showMapPlaceCard(place, 'map')
       })

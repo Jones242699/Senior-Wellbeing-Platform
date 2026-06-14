@@ -6,6 +6,7 @@ export function createMapMarker(mapApi, map, options) {
     position: options.position,
     title: options.title,
     zIndex: options.zIndex,
+    clickable: options.clickable,
     icon: options.icon,
     label: options.label,
   })
