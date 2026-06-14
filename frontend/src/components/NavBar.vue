@@ -6,18 +6,21 @@ const route = useRoute()
 
 const navItems = [
   { name: 'Home', path: '/' },
-  { name: 'Route Planning', path: '/my-routes' },
-  { name: 'Discover Places', path: '/discover-nearby-places' },
+  {
+    name: 'Explore',
+    path: '/explore',
+    activePaths: ['/explore', '/my-routes', '/discover-nearby-places', '/nearby-mental-support'],
+  },
   { name: 'Events', path: '/nearby-events' },
-  { name: 'Nearby Mental Support', path: '/nearby-mental-support' },
   { name: 'Dashboard', path: '/dashboard' },
 ]
 
-function isActive(path) {
-  if (path === '/nearby-events') {
+function isActive(item) {
+  if (item.activePaths?.includes(route.path)) return true
+  if (item.path === '/nearby-events') {
     return route.path === '/nearby-events' || route.path.startsWith('/events/')
   }
-  return route.path === path
+  return route.path === item.path
 }
 </script>
 
@@ -32,7 +35,7 @@ function isActive(path) {
           v-for="item in navItems"
           :key="item.path"
           :to="item.path"
-          :class="['nav-link', { active: isActive(item.path) }]"
+          :class="['nav-link', { active: isActive(item) }]"
         >
           {{ item.name }}
         </router-link>
