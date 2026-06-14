@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import ExploreMap from './components/ExploreMap.vue'
 import ExploreModeTabs from './components/ExploreModeTabs.vue'
 import ExplorePlacesPanel from './components/ExplorePlacesPanel.vue'
+import ExploreRoutesPanel from './components/ExploreRoutesPanel.vue'
 import ExploreSidePanel from './components/ExploreSidePanel.vue'
 import { EXPLORE_DEFAULT_MODE, EXPLORE_MODES } from './constants'
 import { useExploreMap } from './composables/useExploreMap'
@@ -21,6 +22,10 @@ import {
 import { useDiscoverLocation } from '../discover-places/composables/useDiscoverLocation'
 import { useDiscoverMap } from '../discover-places/composables/useDiscoverMap'
 import { usePlaceDetails } from '../discover-places/composables/usePlaceDetails'
+import { useRouteFacilities } from '../my-routes/composables/useRouteFacilities'
+import { useRouteInputs } from '../my-routes/composables/useRouteInputs'
+import { useRoutePlanner } from '../my-routes/composables/useRoutePlanner'
+import { TRAVEL_MODES as ROUTE_TRAVEL_MODES } from '../my-routes/constants'
 
 const router = useRouter()
 const activeModeId = ref(EXPLORE_DEFAULT_MODE)
@@ -36,10 +41,30 @@ function setMapContainer(element) {
   mapContainerRef.value = element
 }
 
-const { cleanupMap, getMap, getMapApi, initExploreMap, mapReady, resetMapView, resizeMap } =
-  useExploreMap({
-    mapContainerRef,
-  })
+const {
+  canRoute,
+  cleanupMap,
+  clearDirectionsDisplay,
+  clearEndpointMarkers,
+  createLatLng,
+  directionsRoute,
+  ensureUserMarker,
+  getGeocoder,
+  getInfoWindow,
+  getMap,
+  getMapApi,
+  getPlacesService,
+  getTravelMode,
+  initExploreMap,
+  mapReady,
+  panTo,
+  resetMapView,
+  resizeMap,
+  setDirectionsResult,
+  setEndpointMarker,
+} = useExploreMap({
+  mapContainerRef,
+})
 
 const {
   allPlaces,
@@ -142,6 +167,74 @@ const {
   userLocation,
 })
 
+const {
+  destination: routeDestination,
+  startLocation,
+  userLatLng,
+  clearGeoWatch: clearRouteGeoWatch,
+  hasDestinationInput,
+  onDestInput,
+  onStartInput,
+  requestCurrentPosition,
+  resolveDestination,
+  resolveOrigin,
+  setDestInput,
+  setResolvedDestination,
+  setStartInput,
+  setupAutocomplete: setupRouteAutocomplete,
+  useCurrentLocationStart,
+  watchPositionIfSupported,
+} = useRouteInputs({
+  ensureUserMarker,
+  getGeocoder,
+  getMap,
+  getMapApi,
+  getPlacesService,
+})
+
+const {
+  facilityCounts,
+  loadingFacilities,
+  noBenchesFound,
+  noToiletsFound,
+  clearBenchMarkers,
+  clearToiletMarkers,
+  fetchFacilitiesForRoute,
+  resetFacilityState,
+} = useRouteFacilities({
+  getInfoWindow,
+  getMap,
+  getMapApi,
+})
+
+const {
+  preferencesDirty,
+  routeError,
+  routeSummary,
+  routing,
+  shadeLevel,
+  socialDensity,
+  travelMode,
+  generateRoute,
+  onTravelModeChange,
+  setShadeLevel,
+  setSocialDensity,
+} = useRoutePlanner({
+  canRoute,
+  clearDirectionsDisplay,
+  clearEndpointMarkers,
+  clearToiletMarkers,
+  directionsRoute,
+  fetchFacilitiesForRoute,
+  getTravelMode,
+  hasDestinationInput,
+  resetFacilityState,
+  resolveDestination,
+  resolveOrigin,
+  setDirectionsResult,
+  setEndpointMarker,
+})
+
 function shufflePlaces(places) {
   const arr = [...places]
   for (let i = arr.length - 1; i > 0; i -= 1) {
@@ -178,15 +271,55 @@ function openIdeasModal() {
 }
 
 function goToDirectionsForPlace(place) {
-  router.push({
-    path: '/my-routes',
-    query: {
-      destination: place.name,
-      destinationAddress: place.address || place.name,
-      destinationLat: Number.isFinite(place.lat) ? String(place.lat) : undefined,
-      destinationLng: Number.isFinite(place.lng) ? String(place.lng) : undefined,
-    },
-  })
+  routeDestination.value = place.address || place.name
+  if (Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
+    setResolvedDestination(
+      createLatLng(place.lat, place.lng),
+      place.address || place.name,
+      place.name || 'Selected destination',
+    )
+  }
+  activeModeId.value = 'routes'
+}
+
+function clearRouteLayer() {
+  clearDirectionsDisplay()
+  clearEndpointMarkers()
+  clearToiletMarkers()
+  clearBenchMarkers()
+  routeSummary.value = ''
+  routeError.value = ''
+}
+
+function useRouteMyLocation() {
+  routeError.value = ''
+  useCurrentLocationStart()
+
+  const continueRouting = async () => {
+    if (travelMode.value && hasDestinationInput()) {
+      await generateRoute()
+    }
+  }
+
+  if (userLatLng.value) {
+    panTo(userLatLng.value, 16)
+    watchPositionIfSupported()
+    continueRouting()
+    return
+  }
+
+  requestCurrentPosition()
+    .then(async (pos) => {
+      panTo(pos, 16)
+      watchPositionIfSupported()
+      await continueRouting()
+    })
+    .catch((error) => {
+      onStartInput()
+      routeError.value =
+        error?.message ||
+        'Unable to get your location. Please allow location access in the browser or enter the start manually.'
+    })
 }
 
 onMounted(async () => {
@@ -199,6 +332,7 @@ onMounted(async () => {
     refreshRestaurantMapSample()
     updateDiscoverMapMarkers()
     setupAddressAutocomplete()
+    setupRouteAutocomplete()
     if (locationMode.value === 'device') watchDeviceLocation()
   } catch (error) {
     console.error(error)
@@ -209,16 +343,26 @@ onMounted(async () => {
 onUnmounted(() => {
   clearMapMarkers()
   clearGeoWatch()
+  clearRouteGeoWatch()
+  clearToiletMarkers()
+  clearBenchMarkers()
   cleanupMap()
 })
 
 watch(activeModeId, async () => {
   await nextTick()
   resizeMap()
-  if (activeModeId.value === 'places') updateDiscoverMapMarkers()
-  else {
+  if (activeModeId.value === 'places') {
+    clearRouteLayer()
+    updateDiscoverMapMarkers()
+  } else if (activeModeId.value === 'routes') {
     clearMapMarkers()
     closeMapPlaceCard()
+    setupRouteAutocomplete()
+  } else {
+    clearMapMarkers()
+    closeMapPlaceCard()
+    clearRouteLayer()
     resetMapView()
   }
 })
@@ -312,6 +456,32 @@ watch(activeMapPlaceId, (placeId) => {
         @focus-place="focusMapOnPlace"
         @directions="goToDirectionsForPlace"
         @go-to-page="goToPage"
+      />
+      <ExploreRoutesPanel
+        v-else-if="activeModeId === 'routes'"
+        v-model:start-location="startLocation"
+        v-model:destination="routeDestination"
+        :travel-modes="ROUTE_TRAVEL_MODES"
+        :travel-mode="travelMode"
+        :routing="routing"
+        :route-summary="routeSummary"
+        :loading-facilities="loadingFacilities"
+        :facility-counts="facilityCounts"
+        :route-error="routeError"
+        :no-toilets-found="noToiletsFound"
+        :no-benches-found="noBenchesFound"
+        :social-density="socialDensity"
+        :shade-level="shadeLevel"
+        :preferences-dirty="preferencesDirty"
+        @start-input-ready="setStartInput"
+        @dest-input-ready="setDestInput"
+        @start-input="onStartInput"
+        @dest-input="onDestInput"
+        @use-my-location="useRouteMyLocation"
+        @travel-mode-change="onTravelModeChange"
+        @set-social-density="setSocialDensity"
+        @set-shade-level="setShadeLevel"
+        @generate-route="generateRoute"
       />
       <ExploreSidePanel v-else :mode="activeMode" />
       <p v-if="mapError" class="explore-map-error">{{ mapError }}</p>

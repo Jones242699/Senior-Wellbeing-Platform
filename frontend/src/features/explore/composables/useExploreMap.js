@@ -7,13 +7,26 @@ import {
 
 export function useExploreMap({ mapContainerRef }) {
   const {
+    canRoute,
     cleanupMap,
+    clearDirectionsDisplay,
+    clearEndpointMarkers,
+    createLatLng,
+    directionsRoute,
+    ensureUserMarker,
+    getGeocoder,
+    getInfoWindow,
     getMap,
     getMapApi,
+    getPlacesService,
+    getTravelMode,
     initMap: initBaseMap,
     mapReady,
     markMapReady,
+    panTo,
     resizeMap,
+    setDirectionsResult,
+    setEndpointMarker,
   } = useBaseMap({
     mapContainerRef,
     mapOptions: {
@@ -50,12 +63,25 @@ export function useExploreMap({ mapContainerRef }) {
   }
 
   return {
+    canRoute,
     cleanupMap,
+    clearDirectionsDisplay,
+    clearEndpointMarkers,
+    createLatLng,
+    directionsRoute,
+    ensureUserMarker,
+    getGeocoder,
+    getInfoWindow,
     getMap,
     getMapApi,
+    getPlacesService,
+    getTravelMode,
     initExploreMap,
     mapReady,
+    panTo,
     resetMapView,
     resizeMap,
+    setDirectionsResult,
+    setEndpointMarker,
   }
 }
