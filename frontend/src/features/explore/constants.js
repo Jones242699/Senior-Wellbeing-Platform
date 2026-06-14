@@ -1,29 +1,31 @@
 export const EXPLORE_MODES = [
   {
     id: 'places',
+    label: 'Places',
     title: 'Discover Places',
-    subtitle: 'Find calm public spaces, cafes, libraries, gardens, art, and accessible stops nearby.',
+    eyebrow: 'Nearby places',
     path: '/discover-nearby-places',
-    actionLabel: 'Open Places',
     tone: 'places',
-    stats: ['Live distance filtering', 'Crowd density overlay', 'Detailed place cards'],
+    panelItems: ['Categories', 'Radius', 'Crowd density', 'Places list'],
   },
   {
     id: 'routes',
+    label: 'Routes',
     title: 'Plan a Route',
-    subtitle: 'Create a route with travel mode choices, rest stops, toilets, and route preferences.',
+    eyebrow: 'Route planning',
     path: '/my-routes',
-    actionLabel: 'Plan Route',
     tone: 'routes',
-    stats: ['Walking, cycling, driving', 'Toilets and benches', 'Preference-aware routing'],
+    panelItems: ['Start', 'Destination', 'Travel mode', 'Route preferences'],
   },
   {
     id: 'support',
+    label: 'Support',
     title: 'Mental Support',
-    subtitle: 'Locate nearby counseling rooms and compare travel options from your current or chosen address.',
+    eyebrow: 'Mental support',
     path: '/nearby-mental-support',
-    actionLabel: 'Find Support',
     tone: 'support',
-    stats: ['Address-based search', 'Counseling room list', 'Travel mode routes'],
+    panelItems: ['Address search', 'Counseling rooms', 'Travel mode', 'Selected route'],
   },
 ]
+
+export const EXPLORE_DEFAULT_MODE = 'places'

@@ -1,23 +1,34 @@
 <script setup>
 defineProps({
+  modelValue: {
+    type: String,
+    required: true,
+  },
   modes: {
     type: Array,
     required: true,
   },
 })
+
+defineEmits(['update:modelValue'])
 </script>
 
 <template>
-  <nav class="explore-mode-tabs" aria-label="Explore tools">
-    <router-link
+  <div class="explore-mode-tabs" role="tablist" aria-label="Explore tools">
+    <button
       v-for="mode in modes"
       :key="mode.id"
-      :to="mode.path"
-      :class="['explore-mode-tab', `explore-mode-tab--${mode.tone}`]"
+      type="button"
+      role="tab"
+      :aria-selected="modelValue === mode.id"
+      :class="[
+        'explore-mode-tab',
+        `explore-mode-tab--${mode.tone}`,
+        { 'is-active': modelValue === mode.id },
+      ]"
+      @click="$emit('update:modelValue', mode.id)"
     >
-      <span class="explore-mode-title">{{ mode.title }}</span>
-      <span class="explore-mode-subtitle">{{ mode.subtitle }}</span>
-      <span class="explore-mode-action">{{ mode.actionLabel }}</span>
-    </router-link>
-  </nav>
+      {{ mode.label }}
+    </button>
+  </div>
 </template>
