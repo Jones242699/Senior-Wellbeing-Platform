@@ -104,13 +104,43 @@ defineEmits([
 
 <style scoped>
 .explore-places-panel {
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .explore-places-panel :deep(.map-filters-overlay) {
   position: static;
-  margin-top: 14px;
+  margin-top: 12px;
   pointer-events: auto;
+}
+
+.explore-places-panel :deep(.category-row) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.explore-places-panel :deep(.category-chip) {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.explore-places-panel :deep(.radius-row) {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.explore-places-panel :deep(.radius-chip-group) {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.explore-places-panel :deep(.radius-chip),
+.explore-places-panel :deep(.crowd-density-toggle) {
+  justify-content: center;
+}
+
+.explore-places-panel :deep(.radius-chip) {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .explore-places-panel :deep(.map-chip) {
@@ -118,11 +148,22 @@ defineEmits([
 }
 
 .explore-places-panel :deep(.location-toolbar) {
-  margin-top: 14px;
+  margin-top: 12px;
+}
+
+.explore-places-panel :deep(.search-row) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.explore-places-panel :deep(.location-actions-row) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
 }
 
 .explore-places-panel :deep(.cards-wrap) {
-  max-height: calc(100vh - 430px);
+  max-height: calc(100dvh - 444px);
   overflow-y: auto;
 }
 
@@ -140,7 +181,7 @@ defineEmits([
 
 .explore-places-panel :deep(.more-info-btn),
 .explore-places-panel :deep(.direction-btn) {
-  min-width: 96px;
+  min-width: 104px;
 }
 
 .explore-places-panel :deep(.place-icon) {
@@ -152,5 +193,11 @@ defineEmits([
 
 .explore-places-panel :deep(.place-main h2) {
   font-size: 15px;
+}
+
+@media (max-width: 900px) {
+  .explore-places-panel :deep(.cards-wrap) {
+    max-height: none;
+  }
 }
 </style>

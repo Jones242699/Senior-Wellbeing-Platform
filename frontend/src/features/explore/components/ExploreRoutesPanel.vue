@@ -82,33 +82,50 @@ defineEmits([
 
 <style scoped>
 .explore-routes-panel {
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .explore-routes-panel :deep(.form-group) {
-  margin-top: 14px;
+  margin-top: 13px;
 }
 
 .explore-routes-panel :deep(.input-row) {
   align-items: stretch;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.explore-routes-panel :deep(.form-group:first-of-type .input-row) {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .explore-routes-panel :deep(.btn-sm) {
-  width: 100%;
   justify-content: center;
+  min-width: 138px;
 }
 
 .explore-routes-panel :deep(.mode-row) {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .explore-routes-panel :deep(.prefs) {
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .explore-routes-panel :deep(.pref-card) {
   border-radius: 8px;
+}
+
+@media (max-width: 900px) {
+  .explore-routes-panel :deep(.form-group:first-of-type .input-row),
+  .explore-routes-panel :deep(.mode-row) {
+    grid-template-columns: 1fr;
+  }
+
+  .explore-routes-panel :deep(.btn-sm) {
+    width: 100%;
+  }
 }
 </style>

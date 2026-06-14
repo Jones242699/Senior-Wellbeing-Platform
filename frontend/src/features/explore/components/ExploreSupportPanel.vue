@@ -70,7 +70,7 @@ defineEmits([
 
 <style scoped>
 .explore-support-panel {
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .explore-support-panel :deep(.top-bar) {
@@ -79,8 +79,8 @@ defineEmits([
   box-shadow: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 9px;
+  margin-top: 12px;
   padding: 0;
 }
 
@@ -95,14 +95,15 @@ defineEmits([
 
 .explore-support-panel :deep(.search-row) {
   align-items: stretch;
-  flex-direction: column;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
 }
 
 .explore-support-panel :deep(.search-action-btn),
 .explore-support-panel :deep(.location-btn) {
-  width: 100%;
+  width: auto;
+  white-space: nowrap;
 }
 
 .explore-support-panel :deep(.search-input) {
@@ -153,7 +154,7 @@ defineEmits([
   border-radius: 8px;
   background: #f8fafc;
   margin-top: 16px;
-  max-height: calc(100vh - 420px);
+  max-height: calc(100dvh - 410px);
   overflow-y: auto;
   padding: 12px;
 }
@@ -234,7 +235,7 @@ defineEmits([
 
 .explore-support-panel :deep(.mode-row) {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -255,5 +256,21 @@ defineEmits([
   font-size: 13px;
   font-weight: 800;
   margin: 10px 0 0;
+}
+
+@media (max-width: 900px) {
+  .explore-support-panel :deep(.search-row),
+  .explore-support-panel :deep(.mode-row) {
+    grid-template-columns: 1fr;
+  }
+
+  .explore-support-panel :deep(.search-action-btn),
+  .explore-support-panel :deep(.location-btn) {
+    width: 100%;
+  }
+
+  .explore-support-panel :deep(.list-panel) {
+    max-height: none;
+  }
 }
 </style>
