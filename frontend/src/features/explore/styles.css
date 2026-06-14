@@ -1,9 +1,11 @@
 .explore-page {
-  min-height: calc(100vh - 60px);
+  height: calc(100dvh - 60px);
+  min-height: 0;
   background: #f1f5f3;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
   gap: 0;
+  overflow: hidden;
   font-family:
     'Inter',
     system-ui,
@@ -13,7 +15,8 @@
 
 .explore-map {
   position: relative;
-  min-height: calc(100vh - 60px);
+  min-height: 0;
+  height: 100%;
   border-radius: 0;
   overflow: hidden;
 }
@@ -21,7 +24,7 @@
 .explore-map-canvas {
   width: 100%;
   height: 100%;
-  min-height: calc(100vh - 60px);
+  min-height: 0;
 }
 
 .explore-map-mode {
@@ -57,8 +60,63 @@
   z-index: 30;
 }
 
+.explore-map .crowd-density-legend {
+  position: absolute;
+  left: 24px;
+  right: auto;
+  bottom: 24px;
+  z-index: 1200;
+  min-width: 190px;
+  width: max-content;
+  max-width: min(260px, calc(100% - 48px));
+  border: 1px solid #d4dbe5;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.16);
+  padding: 10px 12px;
+}
+
+.explore-map .crowd-legend-title {
+  margin: 0 0 8px;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.explore-map .crowd-legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.explore-map .crowd-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.explore-map .crowd-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+@media (max-width: 700px) {
+  .explore-map .crowd-density-legend {
+    left: 12px;
+    right: auto;
+    bottom: 12px;
+    min-width: 168px;
+    max-width: calc(100% - 24px);
+  }
+}
+
 .explore-workspace-panel {
-  min-height: calc(100vh - 60px);
+  min-height: 0;
+  height: 100%;
   border-left: 1px solid #dbe4df;
   background: #ffffff;
   padding: 18px;
@@ -197,6 +255,9 @@
 @media (max-width: 900px) {
   .explore-page {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: calc(100dvh - 60px);
+    overflow: visible;
   }
 
   .explore-map,

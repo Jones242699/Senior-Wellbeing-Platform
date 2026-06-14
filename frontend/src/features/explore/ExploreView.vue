@@ -19,12 +19,27 @@ import {
   PLACES_PER_PAGE,
   RADIUS_OPTIONS,
   RESTAURANT_MAP_RANDOM_PICK_LIMIT,
+  buildDiscoverApiUrl,
   formatDistance,
   mapMarkerColorByCategory,
+  normalizeApiPayload,
   useDiscoverPlaces,
 } from '../discover-places/composables/useDiscoverPlaces'
 import { useDiscoverLocation } from '../discover-places/composables/useDiscoverLocation'
 import { useDiscoverMap } from '../discover-places/composables/useDiscoverMap'
+import {
+  CROWD_DENSITY_COLORS,
+  CROWD_DENSITY_DEFAULT_LIMIT,
+  CROWD_DENSITY_LEGEND,
+  CROWD_DENSITY_MAX_ROUTE_GROUPS_PER_RENDER,
+  CROWD_DENSITY_MIN_RADIUS,
+  buildAddressDerivedRoadGroups,
+  buildFallbackRoadOverlays,
+  buildGroupedRoadOverlays,
+  buildLocalFallbackPathForGroup,
+  normalizeCrowdDensityRecord,
+  parseCrowdDensityPayload,
+} from '../discover-places/composables/useCrowdDensity'
 import { usePlaceDetails } from '../discover-places/composables/usePlaceDetails'
 import { useRouteFacilities } from '../my-routes/composables/useRouteFacilities'
 import { useRouteInputs } from '../my-routes/composables/useRouteInputs'
@@ -124,6 +139,12 @@ const isDetailCategoryRich = computed(
     !!activeDetailPlace.value &&
     ['artworks_fountains', 'memorials_sculptures'].includes(activeDetailPlace.value.categoryKey),
 )
+const shouldShowCrowdDensityOverlay = computed(
+  () =>
+    activeModeId.value === 'places' &&
+    isCrowdDensityEnabled.value &&
+    selectedCategories.value.length > 0,
+)
 
 const { clearPlaceDetails, loadPlaceDetail } = usePlaceDetails({
   allPlaces,
@@ -138,14 +159,11 @@ const {
   addressQuery,
   applyingAddressFilter,
   addressFilterError,
-  locationMode,
   applyAddressFilter,
   clearGeoWatch,
-  requestBrowserLocation,
   setAddressInput,
   setupAddressAutocomplete,
   useMyLocation,
-  watchDeviceLocation,
 } = useDiscoverLocation({
   currentPage,
   loadDiscoverMapApi: loadExploreMapApi,
@@ -171,7 +189,111 @@ const mapRenderablePlaces = computed(() => {
   return [...visibleNonRestaurants, ...sampledRestaurants.slice(0, remainingSlots)]
 })
 
-async function refreshCrowdDensityOverlay() {}
+function buildCrowdDensityApiUrl() {
+  const endpoint = buildDiscoverApiUrl('/crowd-density')
+  const queryRadius = selectedRadius.value || CROWD_DENSITY_MIN_RADIUS
+  endpoint.searchParams.set('radius', String(Math.max(queryRadius, CROWD_DENSITY_MIN_RADIUS)))
+  endpoint.searchParams.set('limit', String(CROWD_DENSITY_DEFAULT_LIMIT))
+  if (userLocation.value) {
+    endpoint.searchParams.set('lat', String(userLocation.value.lat))
+    endpoint.searchParams.set('lng', String(userLocation.value.lng))
+  }
+  return endpoint.toString()
+}
+
+let crowdDensityPolylines = []
+let crowdDensityRequestSeq = 0
+let crowdDensityRenderSeq = 0
+const crowdDensityRecords = ref([])
+
+function clearCrowdDensityOverlay() {
+  crowdDensityPolylines.forEach((polyline) => polyline.setMap(null))
+  crowdDensityPolylines = []
+}
+
+async function renderCrowdDensityOverlay() {
+  const map = getMap()
+  const mapApi = getMapApi()
+  if (!map || !mapApi?.Polyline) return
+
+  clearCrowdDensityOverlay()
+  const renderId = ++crowdDensityRenderSeq
+
+  const roadLabelByRecordId = new Map()
+  const roadGroups = buildGroupedRoadOverlays(crowdDensityRecords.value, roadLabelByRecordId)
+  const groupedRecordIds = new Set(
+    roadGroups.flatMap((group) => group.records.map((record) => record.id)),
+  )
+  const renderedRoadLabelSet = new Set(roadGroups.map((group) => group.roadLabel))
+  const unmatchedRecords = crowdDensityRecords.value.filter(
+    (record) => !groupedRecordIds.has(record.id),
+  )
+  const fallbackGroups = buildFallbackRoadOverlays(unmatchedRecords)
+  const addressDerivedGroups =
+    crowdDensityRecords.value.length > 0
+      ? []
+      : buildAddressDerivedRoadGroups(
+          mapRenderablePlaces.value,
+          renderedRoadLabelSet,
+          crowdDensityRecords.value,
+        )
+  const resolvedGroups = [...roadGroups, ...fallbackGroups, ...addressDerivedGroups].slice(
+    0,
+    CROWD_DENSITY_MAX_ROUTE_GROUPS_PER_RENDER,
+  )
+  if (!resolvedGroups.length) {
+    const globalFallback = buildFallbackRoadOverlays(crowdDensityRecords.value)
+    if (!globalFallback.length) return
+    resolvedGroups.push(...globalFallback)
+  }
+
+  if (renderId !== crowdDensityRenderSeq) return
+
+  resolvedGroups.forEach((group) => {
+    const path = buildLocalFallbackPathForGroup(group)
+    if (path.length < 2) return
+    const levelColor = CROWD_DENSITY_COLORS[group.level] || CROWD_DENSITY_COLORS.moderate
+    const polyline = new mapApi.Polyline({
+      map,
+      path,
+      geodesic: true,
+      clickable: false,
+      strokeColor: levelColor,
+      strokeOpacity: 0.68,
+      strokeWeight: 12,
+      zIndex: 5,
+    })
+    crowdDensityPolylines.push(polyline)
+  })
+}
+
+async function refreshCrowdDensityOverlay() {
+  const requestId = ++crowdDensityRequestSeq
+  const mapApi = getMapApi()
+  if (!getMap() || !mapApi?.Polyline) return
+  if (!shouldShowCrowdDensityOverlay.value) {
+    crowdDensityRecords.value = []
+    clearCrowdDensityOverlay()
+    return
+  }
+
+  try {
+    const response = await fetch(buildCrowdDensityApiUrl())
+    if (!response.ok) throw new Error(`Failed to load crowd density (${response.status})`)
+    const payload = normalizeApiPayload(await response.json())
+    if (requestId !== crowdDensityRequestSeq) return
+    const normalizedRecords = parseCrowdDensityPayload(payload)
+      .map((item, index) => normalizeCrowdDensityRecord(item, index))
+      .filter(Boolean)
+    crowdDensityRecords.value = normalizedRecords
+    await renderCrowdDensityOverlay()
+  } catch (error) {
+    if (requestId !== crowdDensityRequestSeq) return
+    crowdDensityRecords.value = []
+    clearCrowdDensityOverlay()
+    console.error('[Explore Places] Failed to load crowd density:', error)
+  }
+}
 
 const {
   restaurantMapSampleIds,
@@ -551,15 +673,15 @@ function useRouteMyLocation() {
 onMounted(async () => {
   try {
     readSessionState()
-    await Promise.allSettled([loadPlaces(), requestBrowserLocation()])
+    await loadPlaces()
     await nextTick()
     await initExploreMap()
     adoptDiscoverMap({ api: getMapApi(), map: getMap() })
     refreshRestaurantMapSample()
     updateDiscoverMapMarkers()
+    await refreshCrowdDensityOverlay()
     setupAddressAutocomplete()
     setupRouteAutocomplete()
-    if (locationMode.value === 'device') watchDeviceLocation()
     window.addEventListener('keydown', onGlobalKeydown)
   } catch (error) {
     console.error(error)
@@ -569,6 +691,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearMapMarkers()
+  clearCrowdDensityOverlay()
   clearGeoWatch()
   clearRouteGeoWatch()
   clearDetailTransitionTimeout()
@@ -587,8 +710,10 @@ watch(activeModeId, async () => {
     clearRouteLayer()
     clearSupportLayer()
     updateDiscoverMapMarkers()
+    await refreshCrowdDensityOverlay()
   } else if (activeModeId.value === 'routes') {
     clearMapMarkers()
+    clearCrowdDensityOverlay()
     closeMapPlaceCard()
     closeIdeasModal()
     closeDetailPanel()
@@ -596,6 +721,7 @@ watch(activeModeId, async () => {
     setupRouteAutocomplete()
   } else if (activeModeId.value === 'support') {
     clearMapMarkers()
+    clearCrowdDensityOverlay()
     closeMapPlaceCard()
     closeIdeasModal()
     closeDetailPanel()
@@ -607,6 +733,7 @@ watch(activeModeId, async () => {
     }
   } else {
     clearMapMarkers()
+    clearCrowdDensityOverlay()
     closeMapPlaceCard()
     closeIdeasModal()
     closeDetailPanel()
@@ -655,11 +782,26 @@ watch(activeMapPlaceId, (placeId) => {
   if (place?.categoryKey === 'cafes_restaurants') ensureRestaurantVisibleOnMap(place)
   syncActiveMarkerVisual()
 })
+
+watch(
+  shouldShowCrowdDensityOverlay,
+  async (show, previousShow) => {
+    if (show === previousShow) return
+    await nextTick()
+    await refreshCrowdDensityOverlay()
+  },
+)
 </script>
 
 <template>
   <main class="explore-page">
-    <ExploreMap :active-mode="activeMode" :map-ready="mapReady" @map-ready="setMapContainer" />
+    <ExploreMap
+      :active-mode="activeMode"
+      :crowd-density-legend="CROWD_DENSITY_LEGEND"
+      :map-ready="mapReady"
+      :show-crowd-density-legend="shouldShowCrowdDensityOverlay"
+      @map-ready="setMapContainer"
+    />
 
     <section class="explore-workspace-panel">
       <header class="explore-panel-topbar">

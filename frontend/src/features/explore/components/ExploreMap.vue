@@ -1,12 +1,22 @@
 <script setup>
+import CrowdDensityLegend from '../../discover-places/components/CrowdDensityLegend.vue'
+
 defineProps({
   activeMode: {
     type: Object,
     required: true,
   },
+  crowdDensityLegend: {
+    type: Array,
+    default: () => [],
+  },
   mapReady: {
     type: Boolean,
     required: true,
+  },
+  showCrowdDensityLegend: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -23,5 +33,7 @@ defineEmits(['map-ready'])
     </div>
 
     <div v-if="!mapReady" class="explore-map-mask shared-map-loading-mask">Loading map...</div>
+
+    <CrowdDensityLegend v-if="showCrowdDensityLegend" :items="crowdDensityLegend" />
   </section>
 </template>
