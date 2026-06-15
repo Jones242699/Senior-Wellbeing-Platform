@@ -17,6 +17,7 @@ class ApiStack(Stack):
                     "https://iterationone.5120-loneliness-web.pages.dev",
                     "https://iterationtwo.5120-loneliness-web.pages.dev",
                     "https://iterationthree.5120-loneliness-web.pages.dev",
+                    "https://senior-wellbeing-platform.pages.dev"
                 ],
                 allow_methods=[
                     apigwv2.CorsHttpMethod.GET,
