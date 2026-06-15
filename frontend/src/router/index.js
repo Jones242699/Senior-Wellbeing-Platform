@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import DashboardView from '../views/DashboardView.vue'
+import InsightsView from '../views/InsightsView.vue'
 import NearbyEventsView from '../views/NearbyEventsView.vue'
 import EventDetailView from '../views/EventDetailView.vue'
 import ExploreView from '../features/explore/ExploreView.vue'
@@ -20,7 +20,8 @@ const router = createRouter({
       name: 'event-detail',
       component: EventDetailView
     },
-    { path: '/dashboard', name: 'dashboard', component: DashboardView }
+    { path: '/insights', name: 'insights', component: InsightsView },
+    { path: '/dashboard', redirect: '/insights' }
   ],
 })
 

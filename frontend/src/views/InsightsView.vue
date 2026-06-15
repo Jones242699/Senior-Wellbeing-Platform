@@ -1,6 +1,6 @@
 <template>
-  <div class="dashboard">
-    <div class="dashboard-inner">
+  <div class="insights">
+    <div class="insights-inner">
       <header class="hero">
         <h1 class="hero-title">Community Health Insights</h1>
         <p class="hero-subtitle">
@@ -283,7 +283,7 @@ const goToEventPage = () => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-.dashboard {
+.insights {
   --bg: #ffffff;
   --surface: #ffffff;
   --surface-soft: #eef6f0;
@@ -307,7 +307,7 @@ const goToEventPage = () => {
   color: var(--text-main);
 }
 
-.dashboard-inner {
+.insights-inner {
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -1076,7 +1076,46 @@ const goToEventPage = () => {
   }
 }
 
+@media (max-width: 1024px) {
+  .insights {
+    padding: 28px 18px 48px;
+  }
+
+  .hero-subtitle {
+    white-space: normal;
+  }
+
+  .card-title {
+    font-size: 1.45rem;
+  }
+
+  .community-cta-highlight {
+    font-size: 1.85rem;
+    line-height: 1.7;
+  }
+
+  .isolation-fact-item h4 {
+    font-size: 1.45rem;
+  }
+}
+
 @media (max-width: 720px) {
+  .insights {
+    padding: 24px 14px 42px;
+  }
+
+  .section {
+    margin-top: 28px;
+  }
+
+  .issue-card,
+  .age-card,
+  .local-wellbeing-card,
+  .impact-card,
+  .isolation-layout {
+    border-radius: 10px;
+  }
+
   .v-chart-wrap {
     margin: 14px 0 0;
     max-width: none;
@@ -1165,6 +1204,37 @@ const goToEventPage = () => {
 
   .isolation-fact-item p {
     font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 1.9rem;
+  }
+
+  .section-title {
+    font-size: 1.35rem;
+  }
+
+  .ls-legend {
+    gap: 8px 12px;
+  }
+
+  .ls-seg-pct {
+    font-size: 0.74rem;
+  }
+
+  .v-chart-wrap {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .v-chart,
+  .v-y-axis {
+    height: 190px;
+  }
+
+  .v-inline-tooltip {
+    display: none;
   }
 }
 </style>

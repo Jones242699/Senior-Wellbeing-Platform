@@ -1,6 +1,6 @@
 <script setup>
 import { useRoute } from 'vue-router'
-import echoLogo from '../assets/echo-logo.png'
+import connectWellLogo from '../assets/ConnectWell.png'
 
 const route = useRoute()
 
@@ -12,7 +12,7 @@ const navItems = [
     activePaths: ['/explore'],
   },
   { name: 'Events', path: '/nearby-events' },
-  { name: 'Dashboard', path: '/dashboard' },
+  { name: 'Insights', path: '/insights' },
 ]
 
 function isActive(item) {
@@ -28,7 +28,7 @@ function isActive(item) {
   <header class="navbar">
     <div class="navbar-container">
       <div class="logo">
-        <img :src="echoLogo" alt="Echo logo" class="logo-image" />
+        <img :src="connectWellLogo" alt="ConnectWell logo" class="logo-image" />
       </div>
       <nav class="nav-links">
         <router-link
@@ -72,8 +72,10 @@ function isActive(item) {
 
 .logo-image {
   height: 42px;
+  max-width: 180px;
   width: auto;
   display: block;
+  object-fit: contain;
 }
 
 .nav-links {

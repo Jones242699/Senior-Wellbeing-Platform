@@ -82,7 +82,7 @@
           </p>
 
           <router-link
-            to="/dashboard"
+            to="/insights"
             class="btn-solid"
           >
             Explore Full Insights
@@ -286,7 +286,7 @@
             Routes
           </router-link>
 
-          <router-link to="/dashboard">
+          <router-link to="/insights">
             Insights
           </router-link>
 
