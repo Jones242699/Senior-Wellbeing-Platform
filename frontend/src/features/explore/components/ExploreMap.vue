@@ -106,6 +106,5 @@ defineEmits(['map-ready'])
     </div>
 
     <CrowdDensityLegend v-if="showCrowdDensityLegend" :items="crowdDensityLegend" />
-
   </section>
 </template>

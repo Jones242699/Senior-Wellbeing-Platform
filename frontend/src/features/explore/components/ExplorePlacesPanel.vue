@@ -434,4 +434,55 @@ function onAddressInput() {
     max-height: none;
   }
 }
+
+@media (max-width: 640px) {
+  .explore-places-panel {
+    margin-top: 12px;
+  }
+
+  .explore-location-status {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .explore-places-panel :deep(.category-row),
+  .explore-places-panel :deep(.radius-chip-group) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .explore-places-panel :deep(.map-chip) {
+    min-height: 36px;
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+
+  .explore-places-panel :deep(.crowd-density-toggle) {
+    width: 100%;
+  }
+
+  .explore-places-panel :deep(.place-card) {
+    gap: 10px;
+  }
+
+  .explore-places-panel :deep(.card-left) {
+    width: 100%;
+  }
+
+  .explore-places-panel :deep(.card-actions) {
+    align-items: stretch;
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .explore-places-panel :deep(.more-info-btn),
+  .explore-places-panel :deep(.direction-btn) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .explore-places-panel :deep(.place-icon) {
+    height: 48px;
+    width: 48px;
+  }
+}
 </style>

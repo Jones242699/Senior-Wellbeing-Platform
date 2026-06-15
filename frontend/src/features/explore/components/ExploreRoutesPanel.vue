@@ -233,4 +233,36 @@ defineEmits([
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .explore-routes-panel {
+    margin-top: 12px;
+  }
+
+  .explore-location-status {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .explore-routes-panel :deep(.form-group) {
+    margin-top: 12px;
+  }
+
+  .explore-routes-panel :deep(.pref-card) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .explore-routes-panel :deep(.pref-actions) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .explore-routes-panel :deep(.pref-icon),
+  .explore-routes-panel :deep(.pref-mid) {
+    min-width: 0;
+    width: 100%;
+  }
+}
 </style>

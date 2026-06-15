@@ -1,52 +1,5 @@
 @import '../../shared/map/mapStyles.css';
 
-.discover-page {
-  min-height: calc(100vh - 60px);
-  background: #f4f6f5;
-  padding: 18px;
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
-  position: relative;
-}
-
-.discover-shell {
-  max-width: min(98vw, 1680px);
-  margin: 0 auto;
-  background: #ffffff;
-  border: 1px solid #dbe2de;
-  border-radius: 16px;
-  padding: 20px;
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  border-bottom: 1px solid #e7ece8;
-  padding-bottom: 14px;
-  margin-bottom: 14px;
-}
-
-.back-link {
-  border: none;
-  background: transparent;
-  color: #384046;
-  font-size: 18px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.page-header h1 {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 600;
-  line-height: 1.25;
-  color: #0f172a;
-}
-
 .location-toolbar {
   display: flex;
   flex-direction: column;
@@ -235,27 +188,6 @@
   font-size: 14px;
   color: #475569;
   text-align: right;
-}
-
-.discover-content {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: minmax(0, 2.65fr) minmax(360px, 1.35fr);
-  gap: 14px;
-  align-items: start;
-}
-
-.map-panel {
-  position: sticky;
-  top: 18px;
-  border: 1px solid #e4eae7;
-  border-radius: 14px;
-  background: #f7faf8;
-  min-height: 620px;
-}
-
-.map-canvas {
-  min-height: 620px;
 }
 
 .map-filters-overlay {
@@ -1050,10 +982,6 @@
 }
 
 @media (max-width: 900px) {
-  .page-header h1 {
-    font-size: 22px;
-  }
-
   .place-main h2 {
     font-size: 18px;
   }
@@ -1069,20 +997,6 @@
 
   .filters-content {
     flex-direction: column;
-  }
-
-  .discover-content {
-    grid-template-columns: 1fr;
-  }
-
-  .map-panel {
-    position: relative;
-    top: 0;
-    min-height: 420px;
-  }
-
-  .map-canvas {
-    min-height: 420px;
   }
 
   .map-place-card {

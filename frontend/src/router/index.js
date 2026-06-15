@@ -11,27 +11,6 @@ const router = createRouter({
     { path: '/', name: 'home', component: HomeView },
     { path: '/explore', name: 'explore', component: ExploreView },
     {
-      path: '/my-routes',
-      redirect: (to) => ({
-        path: '/explore',
-        query: { ...to.query, mode: 'routes' },
-      }),
-    },
-    {
-      path: '/discover-nearby-places',
-      redirect: (to) => ({
-        path: '/explore',
-        query: { ...to.query, mode: 'places' },
-      }),
-    },
-    {
-      path: '/nearby-mental-support',
-      redirect: (to) => ({
-        path: '/explore',
-        query: { ...to.query, mode: 'support' },
-      }),
-    },
-    {
       path: '/nearby-events',
       name: 'nearby-events',
       component: NearbyEventsView

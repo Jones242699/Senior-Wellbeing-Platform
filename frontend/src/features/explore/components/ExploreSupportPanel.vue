@@ -604,4 +604,45 @@ function formatHours(openHours, dayKey) {
     width: 100vw;
   }
 }
+
+@media (max-width: 640px) {
+  .explore-support-panel {
+    margin-top: 12px;
+  }
+
+  .explore-location-status {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .explore-support-panel :deep(.room-card) {
+    gap: 10px;
+    padding: 11px;
+  }
+
+  .explore-support-panel :deep(.support-card-left) {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .explore-support-panel :deep(.support-icon) {
+    height: 48px;
+    width: 48px;
+  }
+
+  .explore-support-panel :deep(.support-card-actions) {
+    gap: 8px;
+  }
+
+  .support-detail-header,
+  .support-detail-body,
+  .support-detail-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .support-hours-list div {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+}
 </style>

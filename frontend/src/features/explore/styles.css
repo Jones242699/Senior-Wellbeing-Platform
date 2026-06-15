@@ -334,20 +334,6 @@
   background: #14532d;
 }
 
-@media (max-width: 700px) {
-  .explore-map .crowd-density-legend {
-    left: 12px;
-    right: auto;
-    bottom: 12px;
-    min-width: 168px;
-    max-width: calc(100% - 24px);
-  }
-
-  .place-map-popup {
-    width: 240px;
-  }
-}
-
 .explore-workspace-panel {
   min-height: 0;
   height: 100%;
@@ -468,23 +454,144 @@
   font-weight: 700;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .explore-page {
-    grid-template-columns: 1fr;
-    height: auto;
-    min-height: calc(100dvh - 60px);
-    overflow: visible;
-  }
-
-  .explore-map,
-  .explore-map-canvas {
-    min-height: 54vh;
+    grid-template-columns: minmax(0, 1fr) clamp(360px, 34vw, 420px);
   }
 
   .explore-workspace-panel {
-    min-height: auto;
+    padding: 16px;
+  }
+
+  .explore-map-mode {
+    left: 16px;
+    top: 16px;
+  }
+
+  .explore-route-legend,
+  .explore-support-legend,
+  .explore-map .crowd-density-legend {
+    left: 16px;
+    bottom: 16px;
+  }
+}
+
+@media (max-width: 900px) {
+  .explore-page {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: 1fr;
+    height: calc(100dvh - 60px);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .explore-map {
+    flex: 0 0 46dvh;
+    min-height: 320px;
+  }
+
+  .explore-map-canvas {
+    min-height: 320px;
+  }
+
+  .explore-workspace-panel {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
     border-left: 0;
     border-top: 1px solid #dbe4df;
     padding: 16px;
+    overflow-y: auto;
+  }
+
+  .explore-mode-tabs {
+    position: sticky;
+    top: -16px;
+    z-index: 40;
+    margin: -16px -16px 14px;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    padding: 8px 16px;
+  }
+
+  .explore-map-mode {
+    left: 12px;
+    top: 12px;
+    max-width: calc(100% - 24px);
+    padding: 9px 11px;
+  }
+
+  .explore-map-mode span {
+    font-size: 11px;
+  }
+
+  .explore-map-mode strong {
+    font-size: 16px;
+  }
+
+  .explore-route-legend,
+  .explore-support-legend,
+  .explore-map .crowd-density-legend {
+    left: 12px;
+    right: auto;
+    bottom: 12px;
+    max-width: calc(100% - 24px);
+  }
+
+  .explore-route-legend,
+  .explore-support-legend {
+    max-height: min(210px, calc(100% - 24px));
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .explore-page {
+    height: calc(100dvh - 56px);
+  }
+
+  .explore-map {
+    flex-basis: 38dvh;
+    min-height: 260px;
+  }
+
+  .explore-map-canvas {
+    min-height: 260px;
+  }
+
+  .explore-workspace-panel {
+    padding: 14px;
+  }
+
+  .explore-mode-tabs {
+    margin: -14px -14px 12px;
+    overflow-x: auto;
+    padding: 8px 14px;
+  }
+
+  .explore-mode-tab {
+    flex: 0 0 auto;
+    min-width: 104px;
+  }
+
+  .explore-panel-heading {
+    padding-bottom: 10px;
+  }
+
+  .explore-panel-heading h1 {
+    font-size: 21px;
+  }
+
+  .place-map-popup,
+  .support-map-popup {
+    width: min(240px, 72vw);
+  }
+
+  .explore-route-legend,
+  .explore-support-legend,
+  .explore-map .crowd-density-legend {
+    font-size: 12px;
   }
 }
