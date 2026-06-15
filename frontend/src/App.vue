@@ -18,6 +18,18 @@ import NavBar from './components/NavBar.vue'
 </style>
 
 <style>
+:root {
+  font-size: 16px;
+}
+
+:root[data-font-scale='small'] {
+  font-size: 15px;
+}
+
+:root[data-font-scale='large'] {
+  font-size: 18px;
+}
+
 body {
   margin: 0;
 }
