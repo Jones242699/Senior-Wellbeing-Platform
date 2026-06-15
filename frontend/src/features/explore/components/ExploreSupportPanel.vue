@@ -180,16 +180,31 @@ defineEmits([
   padding: 12px;
 }
 
+.explore-support-panel :deep(.support-list-header) {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
 .explore-support-panel :deep(.list-panel h2) {
   color: #1f2937;
   font-size: 17px;
   margin: 0;
 }
 
-.explore-support-panel :deep(.sub) {
-  color: #64748b;
-  font-size: 13px;
-  margin: 4px 0 12px;
+.explore-support-panel :deep(.back-btn) {
+  border: 1px solid #9ccaa9;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #166534;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 32px;
+  padding: 7px 10px;
+  white-space: nowrap;
 }
 
 .explore-support-panel :deep(.state-tip) {
@@ -207,6 +222,10 @@ defineEmits([
 }
 
 .explore-support-panel :deep(.room-card) {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
   width: 100%;
   border: 1px solid #dbe4df;
   border-radius: 8px;
@@ -218,26 +237,69 @@ defineEmits([
 }
 
 .explore-support-panel :deep(.room-card.active) {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16);
+  border-color: #ec4899;
+  background: #fdf2f8;
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+}
+
+.explore-support-panel :deep(.support-card-left) {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+}
+
+.explore-support-panel :deep(.support-icon) {
+  align-items: center;
+  background: #edf7ef;
+  border: 1px solid #d1e3d5;
+  border-radius: 8px;
+  color: #166534;
+  display: grid;
+  flex: 0 0 auto;
+  font-size: 22px;
+  font-weight: 900;
+  height: 56px;
+  place-items: center;
+  width: 56px;
+}
+
+.explore-support-panel :deep(.support-main) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.explore-support-panel :deep(.support-category-tag) {
+  background: #e8f5ea;
+  border-radius: 8px;
+  color: #166534;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 9px;
+  width: fit-content;
 }
 
 .explore-support-panel :deep(.room-card h3) {
   font-size: 15px;
-  margin: 0 0 6px;
+  line-height: 1.25;
+  margin: 0;
 }
 
-.explore-support-panel :deep(.meta),
-.explore-support-panel :deep(.origin-line) {
-  color: #64748b;
-  font-size: 12px;
-  margin: 4px 0;
+.explore-support-panel :deep(.support-distance-text),
+.explore-support-panel :deep(.support-origin-line) {
+  color: #374151;
+  font-size: 13px;
+  margin: 0;
 }
 
 .explore-support-panel :deep(.support-card-actions) {
   display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
   gap: 8px;
-  margin-top: 10px;
 }
 
 .explore-support-panel :deep(.support-card-btn) {
@@ -310,6 +372,19 @@ defineEmits([
 
   .explore-support-panel :deep(.list-panel) {
     max-height: none;
+  }
+
+  .explore-support-panel :deep(.room-card) {
+    flex-direction: column;
+  }
+
+  .explore-support-panel :deep(.support-card-actions) {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .explore-support-panel :deep(.support-card-btn) {
+    flex: 1;
   }
 }
 </style>

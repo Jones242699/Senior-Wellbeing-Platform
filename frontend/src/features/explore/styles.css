@@ -288,6 +288,19 @@
   font-weight: 800;
 }
 
+.support-popup-link {
+  color: #166534;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 8px;
+  text-decoration: none;
+}
+
+.support-popup-link:hover {
+  text-decoration: underline;
+}
+
 .support-popup-direction-btn {
   width: 100%;
   border: 0;

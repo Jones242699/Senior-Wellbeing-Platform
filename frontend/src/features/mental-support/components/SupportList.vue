@@ -51,14 +51,25 @@ defineProps({
 })
 
 defineEmits(['clear-selected-room', 'directions', 'more-info', 'select-travel-mode'])
+
+function formatRoomDistance(room) {
+  return room.distanceText ? `${room.distanceText} away` : 'Distance unavailable'
+}
 </script>
 
 <template>
   <aside class="list-panel">
-    <h2>Nearby Counseling Rooms</h2>
-    <button v-if="selectedRoom" type="button" class="back-btn" @click="$emit('clear-selected-room')">
-      Back to full list
-    </button>
+    <div class="support-list-header">
+      <h2>Nearby Counseling Rooms</h2>
+      <button
+        v-if="selectedRoom"
+        type="button"
+        class="back-btn"
+        @click="$emit('clear-selected-room')"
+      >
+        Back to full list
+      </button>
+    </div>
 
     <div v-if="loadingRooms" class="state-tip">Loading nearby rooms...</div>
     <div v-else-if="roomsFetchError" class="state-tip state-tip--error">
@@ -71,9 +82,17 @@ defineEmits(['clear-selected-room', 'directions', 'more-info', 'select-travel-mo
       :key="room.id"
       :class="['room-card', { active: selectedRoomId === room.id }]"
     >
-      <h3>{{ room.name }}</h3>
-      <p class="meta">{{ room.distanceText || '--' }} | {{ formatWalkDuration(room.durationText) }}</p>
-      <p class="origin-line">From: {{ currentLocationLabel }}</p>
+      <div class="support-card-left">
+        <div class="support-icon">S</div>
+        <div class="support-main">
+          <span class="support-category-tag">Counseling room</span>
+          <h3>{{ room.name }}</h3>
+          <p class="support-distance-text">{{ formatRoomDistance(room) }}</p>
+          <p v-if="room.durationText" class="support-origin-line">
+            {{ formatWalkDuration(room.durationText) }} from {{ currentLocationLabel }}
+          </p>
+        </div>
+      </div>
       <div class="support-card-actions">
         <button type="button" class="support-card-btn support-card-btn--secondary" @click="$emit('more-info', room)">
           More info

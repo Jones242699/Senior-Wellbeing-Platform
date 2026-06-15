@@ -48,6 +48,20 @@ export function useExploreSupportMap({
       .replace(/'/g, '&#39;')
   }
 
+  function normalizeExternalUrl(url) {
+    const text = String(url || '').trim()
+    if (!text) return ''
+    return /^https?:\/\//i.test(text) ? text : `https://${text}`
+  }
+
+  function getTodayOpenHours(openHours) {
+    if (!openHours) return ''
+    const dayKey = new Intl.DateTimeFormat('en-AU', { weekday: 'long' })
+      .format(new Date())
+      .toLowerCase()
+    return openHours[dayKey] || ''
+  }
+
   function buildRoomPopupHtml(room, originLabel) {
     const distance = room.distanceText
       ? `<p class="support-popup-line"><strong>Distance:</strong> ${escapeHtml(room.distanceText)}</p>`
@@ -60,6 +74,21 @@ export function useExploreSupportMap({
       : ''
     const address = room.address
       ? `<p class="support-popup-line"><strong>Address:</strong> ${escapeHtml(room.address)}</p>`
+      : ''
+    const phone = room.phone
+      ? `<p class="support-popup-line"><strong>Phone:</strong> ${escapeHtml(room.phone)}</p>`
+      : ''
+    const rating =
+      room.rating !== null && room.rating !== undefined && room.rating !== ''
+        ? `<p class="support-popup-line"><strong>Rating:</strong> ${escapeHtml(room.rating)} / 5</p>`
+        : ''
+    const todayHours = getTodayOpenHours(room.openHours)
+    const hours = todayHours
+      ? `<p class="support-popup-line"><strong>Today:</strong> ${escapeHtml(todayHours)}</p>`
+      : ''
+    const websiteUrl = normalizeExternalUrl(room.website)
+    const website = websiteUrl
+      ? `<a class="support-popup-link" href="${escapeHtml(websiteUrl)}" target="_blank" rel="noopener noreferrer">Website</a>`
       : ''
 
     return `
@@ -75,6 +104,10 @@ export function useExploreSupportMap({
         ${duration}
         ${origin}
         ${address}
+        ${phone}
+        ${rating}
+        ${hours}
+        ${website}
         <button
           type="button"
           class="support-popup-direction-btn"

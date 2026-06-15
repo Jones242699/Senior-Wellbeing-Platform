@@ -105,7 +105,11 @@ export function useSupportFacilities({ filterCenter, selectedRoomId }) {
           id: item.id,
           name: item.name,
           address: item.address,
+          openHours: item.open_hours || null,
+          phone: item.phone || '',
           position,
+          rating: item.rating,
+          website: item.website || '',
           distanceText: formatDistanceMeters(meters),
           durationText: '',
         }
