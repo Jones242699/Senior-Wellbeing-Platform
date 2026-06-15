@@ -80,7 +80,7 @@ const insightCards = [
           <span class="title-line"><strong>One Journey</strong> at a Time</span>
         </h1>
         <p class="hero-description">
-          Explore nearby places, navigate comfortable routes, and access community support all in
+          Explore nearby places, navigate comfortable routes, and access community support —— all in
           one place.
         </p>
         <div class="hero-actions">
@@ -172,18 +172,22 @@ const insightCards = [
           <img :src="cardRoutes" alt="Comfortable route illustration" />
           <h3>Plan a Comfortable Journey</h3>
           <p>Find routes with shade, activity and nearby facilities to support confident walking.</p>
-          <router-link to="/explore?mode=routes" class="card-btn card-btn--blue">
-            Start Route Planning
-          </router-link>
+          <div class="single-action">
+            <router-link to="/explore?mode=routes" class="card-btn card-btn--blue">
+              Start Route Planning
+            </router-link>
+          </div>
         </article>
 
         <article class="journey-card journey-card--support">
           <img :src="cardSupport" alt="Community support illustration" />
           <h3>Find Community Support</h3>
           <p>Access nearby wellbeing, counselling and support services.</p>
-          <router-link to="/explore?mode=support" class="card-btn card-btn--purple">
-            View Support Services
-          </router-link>
+          <div class="single-action">
+            <router-link to="/explore?mode=support" class="card-btn card-btn--purple">
+              View Support Services
+            </router-link>
+          </div>
         </article>
       </div>
     </section>
@@ -197,7 +201,22 @@ const insightCards = [
           ageing.
         </p>
         <router-link to="/insights" class="btn btn-insight">
-          <span aria-hidden="true">▥</span>
+          <svg
+            aria-hidden="true"
+            class="btn-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M4 19V5" />
+            <path d="M20 19H4" />
+            <rect x="7" y="11" width="3" height="5" rx="1" />
+            <rect x="12" y="8" width="3" height="8" rx="1" />
+            <rect x="17" y="4" width="3" height="12" rx="1" />
+          </svg>
           Explore Insights
         </router-link>
       </div>
@@ -289,6 +308,8 @@ const insightCards = [
   --blue: #1788cf;
   --purple: #6a4bc4;
   --line: #dfe7e4;
+  --home-content-max: 1580px;
+  --home-content-pad: 72px;
 
   min-height: calc(100vh - 94px);
   background:
@@ -309,9 +330,9 @@ const insightCards = [
   grid-template-columns: minmax(650px, 0.98fr) minmax(500px, 1.02fr);
   gap: 36px;
   align-items: center;
-  max-width: 1580px;
+  max-width: var(--home-content-max);
   margin: 0 auto;
-  padding: 72px 72px 0;
+  padding: 72px var(--home-content-pad) 0;
 }
 
 .welcome-pill {
@@ -471,7 +492,7 @@ const insightCards = [
 .feature-strip {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  padding: 40px 24px 46px;
+  padding: 64px var(--home-content-pad) 68px;
 }
 
 .feature-strip h2,
@@ -479,7 +500,7 @@ const insightCards = [
   margin: 0;
   text-align: center;
   color: var(--ink);
-  font-size: clamp(24px, 2.2vw, 30px);
+  font-size: clamp(28px, 2.5vw, 40px);
 }
 
 .feature-strip h2::after,
@@ -496,12 +517,17 @@ const insightCards = [
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  max-width: 1220px;
-  margin: 32px auto 0;
+  max-width: var(--home-content-max);
+  margin: 48px auto 0;
 }
 
 .feature-item {
-  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  padding: 0 36px;
   text-align: center;
 }
 
@@ -511,16 +537,17 @@ const insightCards = [
 
 .feature-item img {
   display: block;
-  width: 74px;
-  height: 74px;
+  width: 116px;
+  height: 116px;
   object-fit: contain;
-  margin: 0 auto 12px;
+  margin: 0 auto 22px;
 }
 
 .feature-item h3 {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   color: var(--green-dark);
-  font-size: 16px;
+  font-size: 22px;
+  line-height: 1.2;
 }
 
 .feature-item p,
@@ -535,11 +562,13 @@ const insightCards = [
 
 .feature-item p {
   margin: 0;
-  font-size: 14px;
+  max-width: 260px;
+  font-size: 17px;
+  line-height: 1.5;
 }
 
 .journey-section {
-  padding: 56px 24px 68px;
+  padding: 72px var(--home-content-pad) 82px;
 }
 
 .section-heading {
@@ -547,15 +576,16 @@ const insightCards = [
 }
 
 .section-heading p {
-  margin: 14px auto 0;
+  margin: 18px auto 0;
+  font-size: 18px;
 }
 
 .journey-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-  max-width: 1160px;
-  margin: 36px auto 0;
+  gap: 34px;
+  max-width: var(--home-content-max);
+  margin: 48px auto 0;
 }
 
 .journey-card {
@@ -564,8 +594,8 @@ const insightCards = [
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 500px;
-  padding: 32px 28px 28px;
+  min-height: 640px;
+  padding: 52px 36px 36px;
   text-align: center;
 }
 
@@ -582,23 +612,27 @@ const insightCards = [
 }
 
 .journey-card img {
-  width: 190px;
-  height: 190px;
-  object-fit: contain;
-  margin-bottom: 24px;
+  width: 230px;
+  height: 230px;
+  border-radius: 999px;
+  object-fit: cover;
+  object-position: center;
+  margin-bottom: 40px;
+  box-shadow: 0 12px 28px rgba(16, 35, 63, 0.08);
 }
 
 .journey-card h3 {
   margin: 0;
   color: var(--ink);
-  font-size: 25px;
+  font-size: 30px;
   line-height: 1.18;
 }
 
 .journey-card p {
-  margin: 16px 0 0;
-  max-width: 290px;
-  min-height: 80px;
+  margin: 20px 0 0;
+  max-width: 380px;
+  min-height: 96px;
+  font-size: 19px;
 }
 
 .stacked-actions {
@@ -608,10 +642,19 @@ const insightCards = [
   margin-top: auto;
 }
 
-.card-btn {
+.single-action {
+  box-sizing: border-box;
   width: 100%;
   margin-top: auto;
-  padding: 11px 16px;
+  padding-bottom: 42px;
+}
+
+.card-btn {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 72px;
+  padding: 18px 24px;
+  font-size: 18px;
 }
 
 .card-btn--green {
@@ -639,7 +682,9 @@ const insightCards = [
   display: grid;
   grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.5fr);
   gap: 36px;
-  max-width: 1280px;
+  box-sizing: border-box;
+  width: calc(100% - var(--home-content-pad) - var(--home-content-pad));
+  max-width: var(--home-content-max);
   margin: 0 auto 18px;
   border-radius: 22px;
   background:
@@ -801,7 +846,9 @@ const insightCards = [
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 22px;
   align-items: center;
-  max-width: 1280px;
+  box-sizing: border-box;
+  width: calc(100% - var(--home-content-pad) - var(--home-content-pad));
+  max-width: var(--home-content-max);
   margin: 0 auto 0;
   border-radius: 22px;
   background: linear-gradient(135deg, #eef8f2, #f8fcfa);
@@ -835,7 +882,9 @@ const insightCards = [
   display: grid;
   grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.8fr);
   gap: 34px;
-  max-width: 1280px;
+  box-sizing: border-box;
+  width: calc(100% - var(--home-content-pad) - var(--home-content-pad));
+  max-width: var(--home-content-max);
   margin: 10px auto 0;
   border-radius: 22px 22px 0 0;
   background: #ffffff;
@@ -920,6 +969,10 @@ const insightCards = [
 }
 
 @media (max-width: 1024px) {
+  .home-page {
+    --home-content-pad: 24px;
+  }
+
   .hero-section,
   .insights-preview,
   .community-cta,
@@ -946,7 +999,26 @@ const insightCards = [
 
   .feature-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 22px 0;
+    gap: 26px 0;
+    max-width: 980px;
+  }
+
+  .feature-item {
+    min-height: 220px;
+    padding: 0 24px;
+  }
+
+  .feature-item img {
+    width: 96px;
+    height: 96px;
+  }
+
+  .feature-item h3 {
+    font-size: 19px;
+  }
+
+  .feature-item p {
+    font-size: 15px;
   }
 
   .feature-item:nth-child(4) {
@@ -958,12 +1030,26 @@ const insightCards = [
     grid-template-columns: 1fr;
   }
 
+  .journey-card {
+    min-height: auto;
+  }
+
+  .journey-card img {
+    width: 210px;
+    height: 210px;
+    margin-bottom: 32px;
+  }
+
   .insight-card-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
+  .home-page {
+    --home-content-pad: 16px;
+  }
+
   .hero-section,
   .feature-strip,
   .journey-section,
@@ -1011,7 +1097,8 @@ const insightCards = [
   .feature-item + .feature-item {
     border-left: 0;
     border-top: 1px solid var(--line);
-    padding: 20px 0 0;
+    min-height: auto;
+    padding: 28px 0 0;
   }
 
   .feature-item:first-child {
@@ -1021,6 +1108,25 @@ const insightCards = [
 
   .journey-card {
     min-height: auto;
+    padding: 34px 24px 24px;
+  }
+
+  .journey-card img {
+    width: 180px;
+    height: 180px;
+  }
+
+  .journey-card h3 {
+    font-size: 25px;
+  }
+
+  .journey-card p {
+    min-height: auto;
+    font-size: 16px;
+  }
+
+  .single-action {
+    padding-bottom: 0;
   }
 
   .insights-preview {
