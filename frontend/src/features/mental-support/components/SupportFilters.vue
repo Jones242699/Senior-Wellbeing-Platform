@@ -44,16 +44,21 @@ function onInput() {
     </router-link>
     <div class="search-wrapper">
       <div class="search-row">
-        <AddressSuggestionInput
-          :model-value="query"
-          :suggestions="suggestions"
-          :loading="loadingSuggestions"
-          placeholder="Enter an address to find nearby counseling rooms"
-          @update:model-value="emit('update:query', $event)"
-          @input="onInput"
-          @select-suggestion="emit('select-suggestion', $event)"
-          @submit="emit('apply-address-filter')"
-        />
+        <div class="search-input-shell">
+          <AddressSuggestionInput
+            :model-value="query"
+            :suggestions="suggestions"
+            :loading="loadingSuggestions"
+            placeholder="Enter an address within City of Melbourne"
+            @update:model-value="emit('update:query', $event)"
+            @input="onInput"
+            @select-suggestion="emit('select-suggestion', $event)"
+            @submit="emit('apply-address-filter')"
+          />
+        </div>
+        <button class="location-btn location-inline-btn" type="button" @click="$emit('use-my-location')">
+          Use Current
+        </button>
         <button
           class="search-action-btn"
           type="button"
@@ -65,8 +70,5 @@ function onInput() {
       </div>
       <p v-if="addressFilterError" class="search-error">{{ addressFilterError }}</p>
     </div>
-    <button class="location-btn" type="button" @click="$emit('use-my-location')">
-      Use My Location
-    </button>
   </section>
 </template>

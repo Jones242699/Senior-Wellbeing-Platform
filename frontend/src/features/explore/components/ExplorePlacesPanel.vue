@@ -67,16 +67,25 @@ function onAddressInput() {
 
     <section class="explore-location-toolbar">
       <div class="search-group">
-        <AddressSuggestionInput
-          :model-value="addressQuery"
-          :suggestions="addressSuggestions"
-          :loading="loadingAddressSuggestions"
-          placeholder="E.g. Carlton"
-          @update:model-value="emit('update:address-query', $event)"
-          @input="onAddressInput"
-          @select-suggestion="emit('select-address-suggestion', $event)"
-          @submit="emit('apply-address-filter')"
-        />
+        <div class="search-input-shell">
+          <AddressSuggestionInput
+            :model-value="addressQuery"
+            :suggestions="addressSuggestions"
+            :loading="loadingAddressSuggestions"
+            placeholder="Enter an address within City of Melbourne"
+            @update:model-value="emit('update:address-query', $event)"
+            @input="onAddressInput"
+            @select-suggestion="emit('select-address-suggestion', $event)"
+            @submit="emit('apply-address-filter')"
+          />
+        </div>
+        <button
+          type="button"
+          class="toolbar-btn location-btn location-inline-btn"
+          @click="$emit('use-my-location')"
+        >
+          Use Current
+        </button>
         <button
           type="button"
           class="toolbar-btn filter-btn search-btn"
@@ -87,13 +96,6 @@ function onAddressInput() {
         </button>
       </div>
       <div class="location-actions-row">
-        <button
-          type="button"
-          class="toolbar-btn location-btn location-inline-btn"
-          @click="$emit('use-my-location')"
-        >
-          Use My Location
-        </button>
         <button type="button" class="ideas-cta-btn inline-ideas-btn" @click="$emit('open-ideas-modal')">
           No ideas?
         </button>
@@ -181,16 +183,24 @@ function onAddressInput() {
   width: 100%;
 }
 
-.explore-location-toolbar :deep(.address-suggestion-input) {
+.explore-location-toolbar .search-input-shell {
   flex: 1 1 auto;
   min-width: 0;
+  position: relative;
+}
+
+.explore-location-toolbar :deep(.address-suggestion-input) {
   width: auto;
+}
+
+.explore-location-toolbar .search-input-shell :deep(.address-suggestion-input) {
+  width: 100%;
 }
 
 .explore-location-toolbar :deep(.search-input) {
   box-sizing: border-box;
   width: 100%;
-  height: 44px;
+  height: 46px;
   border: 1px solid #d1d5db;
   border-radius: 8px 0 0 8px;
   background: #ffffff;
@@ -200,13 +210,36 @@ function onAddressInput() {
 }
 
 .explore-location-toolbar :deep(.search-input:focus) {
-  border-color: #0f766e;
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.16);
+  border-color: #4f7c65;
+  box-shadow: 0 0 0 3px rgba(79, 124, 101, 0.16);
+}
+
+.explore-location-toolbar .location-inline-btn {
+  border: 1px solid #d1d5db;
+  border-right: 0;
+  border-radius: 0;
+  background: #edf4ef;
+  color: #4f7c65;
+  font-size: 12px;
+  height: 46px;
+  min-width: 88px;
+  padding: 0 10px;
+}
+
+.explore-location-toolbar .location-inline-btn:hover {
+  background: #e2eee7;
+  color: #3f6652;
 }
 
 .explore-location-toolbar .search-btn {
   border-radius: 0 8px 8px 0;
-  height: 44px;
+  background: #4f7c65;
+  height: 46px;
+  min-width: 86px;
+}
+
+.explore-location-toolbar .search-btn:hover:not(:disabled) {
+  background: #3f6652;
 }
 
 .explore-places-panel :deep(.category-row) {
@@ -240,7 +273,99 @@ function onAddressInput() {
 }
 
 .explore-places-panel :deep(.map-chip) {
+  border-color: #dbe4df;
+  background: #ffffff;
+  color: #334155;
   box-shadow: none;
+}
+
+.explore-places-panel :deep(.map-chip:hover) {
+  border-color: #9fb9aa;
+  background: #f6faf7;
+}
+
+.explore-places-panel :deep(.map-chip.selected) {
+  border-color: #9fb9aa;
+  background: #edf4ef;
+  color: #2f5a45;
+}
+
+.explore-places-panel :deep(.map-chip.selected:hover) {
+  background: #e2eee7;
+}
+
+.explore-places-panel :deep(.chip-count) {
+  background: #edf4ef;
+  color: #3f6652;
+}
+
+.explore-places-panel :deep(.map-chip.selected .chip-count) {
+  background: #d5e6db;
+  color: #2f5a45;
+}
+
+.explore-places-panel :deep(.radius-chip) {
+  border-color: #bde8c8;
+  background: #f3fbf5;
+  color: #237142;
+}
+
+.explore-places-panel :deep(.radius-chip:hover) {
+  border-color: #7ed895;
+  background: #e9f9ed;
+}
+
+.explore-places-panel :deep(.radius-chip.selected) {
+  border-color: #22c55e;
+  background: #22c55e;
+  color: #ffffff;
+}
+
+.explore-places-panel :deep(.radius-chip.selected:hover) {
+  background: #16a34a;
+}
+
+.explore-places-panel :deep(.crowd-density-toggle) {
+  justify-content: space-between;
+  min-height: 38px;
+  padding-right: 8px;
+  width: fit-content;
+}
+
+.explore-places-panel :deep(.crowd-density-toggle .switch-track) {
+  align-items: center;
+  background: #cbd5e1;
+  border-radius: 999px;
+  display: inline-flex;
+  height: 22px;
+  margin-left: 8px;
+  padding: 2px;
+  width: 40px;
+}
+
+.explore-places-panel :deep(.crowd-density-toggle .switch-thumb) {
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.24);
+  display: block;
+  height: 18px;
+  transform: translateX(0);
+  transition: transform 0.18s ease;
+  width: 18px;
+}
+
+.explore-places-panel :deep(.crowd-density-toggle.selected) {
+  border-color: #9fb9aa;
+  background: #edf4ef;
+  color: #2f5a45;
+}
+
+.explore-places-panel :deep(.crowd-density-toggle.selected .switch-track) {
+  background: #4f7c65;
+}
+
+.explore-places-panel :deep(.crowd-density-toggle.selected .switch-thumb) {
+  transform: translateX(18px);
 }
 
 .explore-location-toolbar .location-actions-row {
@@ -284,6 +409,27 @@ function onAddressInput() {
 }
 
 @media (max-width: 900px) {
+  .explore-location-toolbar .search-group {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .explore-location-toolbar .search-input-shell {
+    flex-basis: 100%;
+  }
+
+  .explore-location-toolbar :deep(.search-input),
+  .explore-location-toolbar .location-inline-btn,
+  .explore-location-toolbar .search-btn {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+  }
+
+  .explore-location-toolbar .location-inline-btn,
+  .explore-location-toolbar .search-btn {
+    flex: 1;
+  }
+
   .explore-places-panel :deep(.cards-wrap) {
     max-height: none;
   }

@@ -29,9 +29,18 @@
   gap: 0;
 }
 
-.address-suggestion-input {
+.address-suggestion-input,
+.search-input-shell {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.search-input-shell {
+  position: relative;
+}
+
+.search-input-shell .address-suggestion-input {
+  width: 100%;
 }
 
 .back-link-top {
@@ -75,14 +84,14 @@
 }
 
 .search-input:focus {
-  border-color: #059669;
-  box-shadow: 0 0 0 3px #d1fae5;
+  border-color: #4f7c65;
+  box-shadow: 0 0 0 3px rgba(79, 124, 101, 0.16);
 }
 
 .search-action-btn {
   border: none;
   border-radius: 0 8px 8px 0;
-  background: #0f766e;
+  background: #4f7c65;
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
@@ -105,10 +114,11 @@
 }
 
 .location-btn {
-  border: none;
-  border-radius: 10px;
-  background: #16a34a;
-  color: #ffffff;
+  border: 1px solid #d1d5db;
+  border-right: 0;
+  border-radius: 0;
+  background: #edf4ef;
+  color: #4f7c65;
   font-weight: 600;
   cursor: pointer;
   padding: 0 16px;

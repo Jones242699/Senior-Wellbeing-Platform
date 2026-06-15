@@ -153,9 +153,9 @@
 .mode-chip {
   padding: 8px 10px;
   border-radius: 999px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #dbe4df;
   background: #ffffff;
-  color: #475569;
+  color: #3f6652;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -163,16 +163,16 @@
 }
 
 .mode-chip.active {
-  background: #16a34a;
-  border-color: #16a34a;
-  color: #fff;
+  background: #edf4ef;
+  border-color: #9fb9aa;
+  color: #2f5a45;
 }
 
 .mode-spinner {
   width: 18px;
   height: 18px;
   border: 2px solid #e5e7eb;
-  border-top-color: #16a34a;
+  border-top-color: #4f7c65;
   border-radius: 50%;
   animation: mode-spin 0.65s linear infinite;
   flex-shrink: 0;
@@ -188,7 +188,7 @@
   width: 100%;
   max-width: 220px;
   padding: 14px;
-  background: #16a34a;
+  background: #4f7c65;
   color: white;
   font-weight: 700;
   font-size: 16px;
@@ -216,7 +216,7 @@
   cursor: not-allowed;
 }
 .btn-generate:hover:not(:disabled) {
-  background: #15803d;
+  background: #3f6652;
 }
 
 .route-summary {

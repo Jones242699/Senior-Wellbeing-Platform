@@ -196,9 +196,14 @@ function formatHours(openHours, dayKey) {
   gap: 0;
 }
 
-.explore-support-panel :deep(.address-suggestion-input) {
+.explore-support-panel :deep(.search-input-shell) {
   flex: 1 1 auto;
   min-width: 0;
+  position: relative;
+}
+
+.explore-support-panel :deep(.address-suggestion-input) {
+  width: 100%;
 }
 
 .explore-support-panel :deep(.search-action-btn),
@@ -214,15 +219,15 @@ function formatHours(openHours, dayKey) {
   border-right: 0;
   border-radius: 8px 0 0 8px;
   background: #ffffff;
-  height: 44px;
+  height: 46px;
   padding: 11px 12px;
   font-size: 14px;
   outline: none;
 }
 
 .explore-support-panel :deep(.search-input:focus) {
-  border-color: #059669;
-  box-shadow: 0 0 0 3px #d1fae5;
+  border-color: #4f7c65;
+  box-shadow: 0 0 0 3px rgba(79, 124, 101, 0.16);
 }
 
 .explore-support-panel :deep(.search-action-btn),
@@ -230,22 +235,36 @@ function formatHours(openHours, dayKey) {
   border: 0;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 700;
-  height: 44px;
-  min-height: 44px;
-  padding: 10px 12px;
+  font-weight: 800;
+  height: 46px;
+  min-height: 46px;
+  padding: 10px;
 }
 
 .explore-support-panel :deep(.search-action-btn) {
   border-radius: 0 8px 8px 0;
-  background: #0f766e;
+  background: #4f7c65;
   color: #ffffff;
-  min-width: 92px;
+  min-width: 86px;
 }
 
 .explore-support-panel :deep(.location-btn) {
-  background: #16a34a;
-  color: #ffffff;
+  border: 1px solid #d1d5db;
+  border-right: 0;
+  border-radius: 0;
+  background: #edf4ef;
+  color: #4f7c65;
+  font-size: 12px;
+  min-width: 88px;
+}
+
+.explore-support-panel :deep(.search-action-btn:hover:not(:disabled)) {
+  background: #3f6652;
+}
+
+.explore-support-panel :deep(.location-btn:hover) {
+  background: #e2eee7;
+  color: #3f6652;
 }
 
 .explore-support-panel :deep(.search-error) {
@@ -541,11 +560,24 @@ function formatHours(openHours, dayKey) {
 
 @media (max-width: 900px) {
   .explore-support-panel :deep(.search-row) {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .explore-support-panel :deep(.search-input-shell) {
+    flex-basis: 100%;
+  }
+
+  .explore-support-panel :deep(.search-input),
+  .explore-support-panel :deep(.search-action-btn),
+  .explore-support-panel :deep(.location-btn) {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
   }
 
   .explore-support-panel :deep(.search-action-btn),
   .explore-support-panel :deep(.location-btn) {
+    flex: 1;
     width: 100%;
   }
 

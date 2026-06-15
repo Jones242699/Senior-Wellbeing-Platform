@@ -50,29 +50,27 @@ function onDestinationSubmit() {
 
 <template>
   <div class="form-group">
-    <div class="form-label-row">
-      <label class="form-label label-green">A Start</label>
-      <button
-        type="button"
-        class="btn-sm btn-location-inline"
-        @click="$emit('use-my-location')"
-      >
-        Use My Location
-      </button>
-    </div>
+    <label class="form-label label-green">A Start</label>
     <div class="input-row">
-      <div class="input-icon-wrapper">
+      <div class="input-icon-wrapper input-shell-with-status">
         <AddressSuggestionInput
           :model-value="startLocation"
           :suggestions="startSuggestions"
           :loading="loadingStartSuggestions"
-          placeholder="Where do you start from?"
+          placeholder="Start address in City of Melbourne"
           @update:model-value="emit('update:start-location', $event)"
           @input="onStartInput"
           @select-suggestion="emit('select-start-suggestion', $event)"
           @submit="onStartSubmit"
         />
       </div>
+      <button
+        type="button"
+        class="btn-sm btn-location-inline"
+        @click="$emit('use-my-location')"
+      >
+        Use Current
+      </button>
     </div>
   </div>
 
@@ -85,7 +83,7 @@ function onDestinationSubmit() {
           :model-value="destination"
           :suggestions="destinationSuggestions"
           :loading="loadingDestinationSuggestions"
-          placeholder="Where do you want to go?"
+          placeholder="Destination in City of Melbourne"
           @update:model-value="emit('update:destination', $event)"
           @input="onDestInput"
           @select-suggestion="emit('select-destination-suggestion', $event)"

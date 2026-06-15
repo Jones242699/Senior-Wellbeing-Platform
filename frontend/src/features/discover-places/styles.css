@@ -105,7 +105,7 @@
 }
 
 .filter-btn {
-  background: #0f766e;
+  background: #4f7c65;
 }
 
 .search-btn {
@@ -114,14 +114,15 @@
 }
 
 .location-btn {
-  background: #16a34a;
+  background: #edf4ef;
+  color: #4f7c65;
 }
 
 .location-inline-btn {
-  align-self: flex-start;
-  border-radius: 999px;
-  height: 40px;
-  padding: 0 18px;
+  align-self: stretch;
+  border-radius: 0;
+  height: 44px;
+  padding: 0 14px;
 }
 
 .address-error {

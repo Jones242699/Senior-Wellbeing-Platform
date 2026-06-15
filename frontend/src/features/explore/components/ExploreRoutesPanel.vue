@@ -121,11 +121,21 @@ defineEmits([
 
 .explore-routes-panel :deep(.input-row) {
   align-items: stretch;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  gap: 0;
+}
+
+.explore-routes-panel :deep(.input-shell-with-status) {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
 }
 
 .explore-routes-panel :deep(.address-suggestion-input) {
+  width: 100%;
+}
+
+.explore-routes-panel :deep(.input-shell-with-status .address-suggestion-input) {
   width: 100%;
 }
 
@@ -134,33 +144,44 @@ defineEmits([
   width: 100%;
   height: 44px;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 8px 0 0 8px;
   background: #ffffff;
   font-size: 14px;
   outline: none;
   padding: 11px 12px;
 }
 
+.explore-routes-panel :deep(.input-shell-with-status .search-input) {
+  height: 46px;
+  padding: 11px 12px;
+}
+
+.explore-routes-panel :deep(.input-row:not(:has(.btn-location-inline)) .search-input) {
+  border-radius: 8px;
+}
+
 .explore-routes-panel :deep(.search-input:focus) {
-  border-color: #16a34a;
-  box-shadow: 0 0 0 3px #dcfce7;
+  border-color: #4f7c65;
+  box-shadow: 0 0 0 3px rgba(79, 124, 101, 0.16);
 }
 
 .explore-routes-panel :deep(.btn-location-inline) {
-  border: 1px solid #86c99b;
-  border-radius: 999px;
-  background: #f0fdf4;
-  color: #15803d;
+  border: 1px solid #d1d5db;
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+  background: #edf4ef;
+  color: #4f7c65;
   font-size: 12px;
   font-weight: 800;
-  min-height: 32px;
-  padding: 7px 12px;
+  min-height: 46px;
+  min-width: 88px;
+  padding: 10px;
   white-space: nowrap;
 }
 
 .explore-routes-panel :deep(.btn-location-inline:hover) {
-  background: #dcfce7;
-  color: #166534;
+  background: #e2eee7;
+  color: #3f6652;
 }
 
 .explore-routes-panel :deep(.mode-row) {
@@ -171,6 +192,7 @@ defineEmits([
 
 .explore-routes-panel :deep(.route-plan-button) {
   align-items: center;
+  background: #4f7c65;
   border-radius: 8px;
   display: flex;
   font-size: 14px;
@@ -182,6 +204,10 @@ defineEmits([
   width: 100%;
 }
 
+.explore-routes-panel :deep(.route-plan-button:hover:not(:disabled)) {
+  background: #3f6652;
+}
+
 .explore-routes-panel :deep(.prefs) {
   margin-top: 16px;
 }
@@ -191,6 +217,18 @@ defineEmits([
 }
 
 @media (max-width: 900px) {
+  .explore-routes-panel :deep(.input-row) {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .explore-routes-panel :deep(.search-input),
+  .explore-routes-panel :deep(.btn-location-inline) {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    width: 100%;
+  }
+
   .explore-routes-panel :deep(.mode-row) {
     grid-template-columns: 1fr;
   }

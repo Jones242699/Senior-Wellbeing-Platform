@@ -72,7 +72,7 @@ onMounted(() => {
           class="toolbar-btn location-btn location-inline-btn"
           @click="$emit('use-my-location')"
         >
-          Use My Location
+          Use Current
         </button>
         <button type="button" class="ideas-cta-btn inline-ideas-btn" @click="$emit('open-ideas-modal')">
           No ideas?

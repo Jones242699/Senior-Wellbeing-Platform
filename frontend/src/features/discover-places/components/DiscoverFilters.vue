@@ -77,7 +77,11 @@ defineEmits(['toggle-category', 'select-radius', 'toggle-crowd-density'])
           :aria-pressed="isCrowdDensityEnabled"
           @click="$emit('toggle-crowd-density')"
         >
-          {{ isCrowdDensityEnabled ? 'Crowd density: On' : 'Crowd density: Off' }}
+          <span>Crowd density</span>
+          <span class="switch-track" aria-hidden="true">
+            <span class="switch-thumb"></span>
+          </span>
+          <span class="switch-state">{{ isCrowdDensityEnabled ? 'On' : 'Off' }}</span>
         </button>
       </div>
     </div>
