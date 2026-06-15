@@ -52,6 +52,7 @@ function onInput() {
           @update:model-value="emit('update:query', $event)"
           @input="onInput"
           @select-suggestion="emit('select-suggestion', $event)"
+          @submit="emit('apply-address-filter')"
         />
         <button
           class="search-action-btn"
@@ -59,7 +60,7 @@ function onInput() {
           :disabled="applyingAddressFilter"
           @click="$emit('apply-address-filter')"
         >
-          {{ applyingAddressFilter ? 'Filtering...' : 'Find a Place' }}
+          {{ applyingAddressFilter ? 'Searching...' : 'Search' }}
         </button>
       </div>
       <p v-if="addressFilterError" class="search-error">{{ addressFilterError }}</p>

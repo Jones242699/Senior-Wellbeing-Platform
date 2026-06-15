@@ -1,4 +1,6 @@
 <script setup>
+import { ref } from 'vue'
+
 defineProps({
   loading: {
     type: Boolean,
@@ -19,16 +21,24 @@ defineProps({
 })
 
 const emit = defineEmits(['input', 'select-suggestion', 'submit', 'update:modelValue'])
+const inputRef = ref(null)
 
 function onInput(event) {
   emit('update:modelValue', event.target.value)
   emit('input', event.target.value)
 }
+
+function focus() {
+  inputRef.value?.focus()
+}
+
+defineExpose({ focus })
 </script>
 
 <template>
   <div class="address-suggestion-input">
     <input
+      ref="inputRef"
       :value="modelValue"
       class="search-input"
       type="text"

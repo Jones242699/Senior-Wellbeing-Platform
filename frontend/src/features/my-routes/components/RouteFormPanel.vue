@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import AddressSuggestionInput from '../../../shared/map/components/AddressSuggestionInput.vue'
 
 defineProps({
@@ -15,15 +16,19 @@ defineProps({
 
 const emit = defineEmits([
   'dest-input',
+  'destination-submit',
   'generate-route',
   'select-destination-suggestion',
   'select-start-suggestion',
   'start-input',
+  'start-submit',
   'travel-mode-change',
   'update:destination',
   'update:start-location',
   'use-my-location',
 ])
+
+const destinationInputRef = ref(null)
 
 function onStartInput() {
   emit('start-input')
@@ -31,6 +36,15 @@ function onStartInput() {
 
 function onDestInput() {
   emit('dest-input')
+}
+
+function onStartSubmit() {
+  emit('start-submit')
+  destinationInputRef.value?.focus()
+}
+
+function onDestinationSubmit() {
+  emit('destination-submit')
 }
 </script>
 
@@ -56,6 +70,7 @@ function onDestInput() {
           @update:model-value="emit('update:start-location', $event)"
           @input="onStartInput"
           @select-suggestion="emit('select-start-suggestion', $event)"
+          @submit="onStartSubmit"
         />
       </div>
     </div>
@@ -66,6 +81,7 @@ function onDestInput() {
     <div class="input-row">
       <div class="input-icon-wrapper">
         <AddressSuggestionInput
+          ref="destinationInputRef"
           :model-value="destination"
           :suggestions="destinationSuggestions"
           :loading="loadingDestinationSuggestions"
@@ -73,6 +89,7 @@ function onDestInput() {
           @update:model-value="emit('update:destination', $event)"
           @input="onDestInput"
           @select-suggestion="emit('select-destination-suggestion', $event)"
+          @submit="onDestinationSubmit"
         />
       </div>
     </div>

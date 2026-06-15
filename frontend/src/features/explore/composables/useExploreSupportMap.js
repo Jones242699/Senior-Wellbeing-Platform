@@ -9,21 +9,14 @@ import {
 } from '../../../shared/map/placeHelpers'
 
 export function useExploreSupportMap({
-  clearDirectionsDisplay,
-  clearEndpointMarkers,
-  directionsRoute,
   ensureUserMarker,
   getGeocoder,
   getInfoWindow,
   getMap,
   getMapApi,
   getPlacesService,
-  getTravelMode,
   panTo: panBaseMapTo,
-  setDirectionsResult,
-  setEndpointMarker,
 }) {
-  const routeSummary = ref('')
   const userPosition = ref(null)
 
   let filterCenterMarker
@@ -32,11 +25,34 @@ export function useExploreSupportMap({
   let roomMarkersById = new Map()
   let roomInfoWindow = null
   let activeRoomPopupMarker = null
+  let activeRoomMarkerId = null
+
+  function buildRoomMarkerIcon(isActive = false) {
+    const mapApi = getMapApi()
+    if (!mapApi?.SymbolPath) return undefined
+    return {
+      path: mapApi.SymbolPath.CIRCLE,
+      scale: isActive ? 8 : 5,
+      fillColor: '#ef4444',
+      fillOpacity: 1,
+      strokeColor: isActive ? '#111827' : '#ffffff',
+      strokeWeight: isActive ? 3 : 2,
+    }
+  }
+
+  function syncRoomMarkerVisuals(roomId = activeRoomMarkerId) {
+    activeRoomMarkerId = roomId ?? null
+    roomMarkersById.forEach((marker, id) => {
+      if (marker?.setIcon) marker.setIcon(buildRoomMarkerIcon(String(id) === String(activeRoomMarkerId)))
+      if (marker?.setZIndex) marker.setZIndex(String(id) === String(activeRoomMarkerId) ? 920 : 10)
+    })
+  }
 
   function clearRoomMarkers() {
     closeRoomPopup()
     clearMarkers(roomMarkers)
     roomMarkersById = new Map()
+    activeRoomMarkerId = null
   }
 
   function escapeHtml(value) {
@@ -108,29 +124,49 @@ export function useExploreSupportMap({
         ${rating}
         ${hours}
         ${website}
-        <button
-          type="button"
-          class="support-popup-direction-btn"
-          data-support-direction-id="${escapeHtml(room.id)}"
-        >
-          Direction
-        </button>
+        <div class="support-popup-actions">
+          <button
+            type="button"
+            class="support-popup-more-btn"
+            data-support-more-id="${escapeHtml(room.id)}"
+          >
+            More info
+          </button>
+          <button
+            type="button"
+            class="support-popup-direction-btn"
+            data-support-direction-id="${escapeHtml(room.id)}"
+          >
+            Direction
+          </button>
+        </div>
       </div>
     `
   }
 
-  function attachRoomPopupActions(room, onDirections) {
+  function attachRoomPopupActions(room, onDirections, onMoreInfo) {
     window.setTimeout(() => {
-      const mapContainer = getMap()?.getDiv?.()
-      const button = [...(mapContainer?.querySelectorAll('[data-support-direction-id]') || [])].find(
+      const directionButton = [...document.querySelectorAll('[data-support-direction-id]')].find(
         (item) => item.dataset.supportDirectionId === String(room.id),
       )
-      if (!button) return
-      button.addEventListener(
+      const moreInfoButton = [...document.querySelectorAll('[data-support-more-id]')].find(
+        (item) => item.dataset.supportMoreId === String(room.id),
+      )
+      directionButton?.addEventListener(
         'click',
         (event) => {
           event.preventDefault()
+          event.stopPropagation()
           onDirections?.(room)
+        },
+        { once: true },
+      )
+      moreInfoButton?.addEventListener(
+        'click',
+        (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          onMoreInfo?.(room)
         },
         { once: true },
       )
@@ -143,24 +179,27 @@ export function useExploreSupportMap({
     activeRoomPopupMarker = null
   }
 
-  function showRoomPopup(room, originLabel, onDirections) {
+  function showRoomPopup(room, originLabel, onDirections, onMoreInfo) {
     const map = getMap()
     const marker = roomMarkersById.get(room.id)
     if (!map || !marker) return
+
+    syncRoomMarkerVisuals(room.id)
+    panBaseMapTo(room.position, 15, { minZoom: true })
 
     if (getInfoWindow) {
       if (!roomInfoWindow) roomInfoWindow = getInfoWindow()
       roomInfoWindow.setContent(buildRoomPopupHtml(room, originLabel))
       roomInfoWindow.open(map, marker)
       activeRoomPopupMarker = marker
-      attachRoomPopupActions(room, onDirections)
+      attachRoomPopupActions(room, onDirections, onMoreInfo)
       return
     }
 
     if (marker.bindPopup) {
       marker.bindPopup(buildRoomPopupHtml(room, originLabel), { closeButton: true, autoPan: true }).openPopup()
       activeRoomPopupMarker = marker
-      attachRoomPopupActions(room, onDirections)
+      attachRoomPopupActions(room, onDirections, onMoreInfo)
     }
   }
 
@@ -175,7 +214,7 @@ export function useExploreSupportMap({
         map,
         position: room.position,
         title: room.name,
-        scale: 7,
+        scale: 5,
         fillColor: '#ef4444',
         strokeWeight: 2,
         strokeColor: '#ffffff',
@@ -186,6 +225,7 @@ export function useExploreSupportMap({
       roomMarkers.push(marker)
       roomMarkersById.set(room.id, marker)
     })
+    syncRoomMarkerVisuals()
   }
 
   function setUserMarker(position) {
@@ -250,34 +290,6 @@ export function useExploreSupportMap({
     })
   }
 
-  async function drawRoute(origin, destination, mode) {
-    const travelMode = getTravelMode(mode)
-    if (travelMode === undefined) return
-
-    const request = {
-      origin,
-      destination,
-      travelMode,
-    }
-    if (mode === 'TRANSIT') request.transitOptions = { departureTime: new Date() }
-
-    const result = await directionsRoute(request)
-    setDirectionsResult(result, 0)
-
-    const leg = result?.routes?.[0]?.legs?.[0]
-    if (leg) {
-      routeSummary.value = `${leg.distance?.text || ''} | ${leg.duration?.text || ''}`
-      setEndpointMarker('start', leg.start_location)
-      setEndpointMarker('dest', leg.end_location)
-    }
-  }
-
-  function clearSelectedRoute() {
-    clearEndpointMarkers()
-    clearDirectionsDisplay()
-    routeSummary.value = ''
-  }
-
   function setupQueryAutocomplete(input, onPlaceSelected) {
     queryAutocomplete = setupPlaceAutocomplete({
       input,
@@ -290,13 +302,10 @@ export function useExploreSupportMap({
   }
 
   return {
-    routeSummary,
     userPosition,
     clearFilterCenterMarker,
     clearRoomMarkers,
-    clearSelectedRoute,
     closeRoomPopup,
-    drawRoute,
     panTo,
     renderRoomMarkers,
     resolveAddressFromPlaces,
@@ -304,6 +313,7 @@ export function useExploreSupportMap({
     setFilterCenterMarker,
     setUserMarker,
     showRoomPopup,
+    syncRoomMarkerVisuals,
     setupQueryAutocomplete,
   }
 }

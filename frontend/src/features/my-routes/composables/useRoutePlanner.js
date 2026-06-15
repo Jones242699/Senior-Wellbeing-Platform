@@ -14,7 +14,7 @@ export function useRoutePlanner({
   setDirectionsResult,
   setEndpointMarker,
 }) {
-  const travelMode = ref(null)
+  const travelMode = ref('WALKING')
   const routeError = ref('')
   const routeSummary = ref('')
   const routing = ref(false)

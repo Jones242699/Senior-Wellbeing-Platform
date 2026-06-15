@@ -206,6 +206,12 @@ export function useRouteInputs({
     destination.value = endPlace.formatted_address || endPlace.name || ''
   }
 
+  function setResolvedOrigin(location, formattedAddress, rawText) {
+    startPlace = normalizePlaceFromResolvedLocation(location, formattedAddress, rawText)
+    startLocation.value = startPlace.formatted_address || startPlace.name || ''
+    originMode.value = 'manual'
+  }
+
   function setResolvedDestination(location, formattedAddress, rawText) {
     endPlace = normalizePlaceFromResolvedLocation(location, formattedAddress, rawText)
   }
@@ -227,6 +233,7 @@ export function useRouteInputs({
     setDestinationFromQuery,
     setResolvedDestination,
     setResolvedDestinationFromSuggestion,
+    setResolvedOrigin,
     setResolvedOriginFromSuggestion,
     useCurrentLocationStart,
     watchPositionIfSupported,

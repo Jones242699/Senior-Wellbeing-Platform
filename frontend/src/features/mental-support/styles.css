@@ -26,7 +26,12 @@
 .search-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
+}
+
+.address-suggestion-input {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .back-link-top {
@@ -60,8 +65,10 @@
   width: 100%;
   flex: 1;
   border: 1px solid #d1d5db;
-  border-radius: 10px;
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
   background: #ffffff;
+  height: 44px;
   padding: 11px 12px;
   font-size: 14px;
   outline: none;
@@ -74,13 +81,14 @@
 
 .search-action-btn {
   border: none;
-  border-radius: 10px;
+  border-radius: 0 8px 8px 0;
   background: #0f766e;
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
   padding: 0 14px;
   height: 44px;
+  min-width: 92px;
   flex-shrink: 0;
   white-space: nowrap;
 }
@@ -211,27 +219,6 @@ h2 {
   font-size: 13px;
 }
 
-.support-list-header {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.back-btn {
-  border: 1px solid #9ccaa9;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #166534;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 800;
-  min-height: 32px;
-  padding: 7px 10px;
-  white-space: nowrap;
-}
-
 .route-summary {
   margin: 0 0 12px;
   color: #065f46;
@@ -254,9 +241,11 @@ h2 {
 
 .room-card {
   align-items: flex-start;
+  box-sizing: border-box;
   display: flex;
   gap: 12px;
   justify-content: space-between;
+  max-width: 100%;
   width: 100%;
   text-align: left;
   border: 1px solid #dbe4df;
@@ -264,6 +253,13 @@ h2 {
   background: #ffffff;
   padding: 12px;
   margin-bottom: 12px;
+}
+
+.room-card:hover,
+.room-card:focus-visible {
+  border-color: #9ccaa9;
+  box-shadow: 0 8px 20px rgba(22, 101, 52, 0.08);
+  outline: none;
 }
 
 .room-card.active {
@@ -275,6 +271,7 @@ h2 {
 .support-card-left {
   align-items: center;
   display: flex;
+  flex: 1 1 auto;
   gap: 14px;
   min-width: 0;
 }
@@ -329,17 +326,20 @@ h3 {
 .support-card-actions {
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+  flex: 0 0 96px;
   gap: 8px;
+  min-width: 0;
 }
 
 .support-card-btn {
   border-radius: 8px;
+  box-sizing: border-box;
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
   min-height: 34px;
   padding: 8px 11px;
+  width: 100%;
 }
 
 .support-card-btn--secondary {
@@ -352,49 +352,6 @@ h3 {
   border: 1px solid #166534;
   background: #166534;
   color: #ffffff;
-}
-
-.route-builder {
-  margin-top: 8px;
-  border-top: 1px solid #e5e7eb;
-  padding-top: 14px;
-}
-
-.route-title {
-  margin: 0 0 10px;
-  font-size: 16px;
-  color: #1f2937;
-}
-
-.mode-row {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 8px;
-}
-
-.mode-chip {
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
-  background: #ffffff;
-  padding: 8px 10px;
-  color: #334155;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.mode-chip.active {
-  background: #16a34a;
-  border-color: #16a34a;
-  color: #ffffff;
-}
-
-.estimate-text {
-  margin: 10px 0 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #166534;
 }
 
 @media (max-width: 1200px) {

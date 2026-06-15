@@ -5,35 +5,53 @@ import SupportList from '../../mental-support/components/SupportList.vue'
 defineProps({
   addressFilterError: { type: String, default: '' },
   applyingAddressFilter: { type: Boolean, required: true },
-  currentLocationLabel: { type: String, default: '' },
   displayedRooms: { type: Array, required: true },
-  formatWalkDuration: { type: Function, required: true },
-  hasRoute: { type: Boolean, default: false },
   loadingSuggestions: { type: Boolean, default: false },
   loadingRooms: { type: Boolean, required: true },
   locationLabel: { type: String, required: true },
   query: { type: String, required: true },
   roomsFetchError: { type: String, default: '' },
-  routeSummary: { type: String, default: '' },
-  routing: { type: Boolean, required: true },
-  selectedRoom: { type: Object, default: null },
+  supportDetailRoom: { type: Object, default: null },
   selectedRoomId: { type: [String, Number], default: null },
   suggestions: { type: Array, default: () => [] },
-  travelMode: { type: String, required: true },
-  travelModes: { type: Array, required: true },
 })
 
 defineEmits([
   'apply-address-filter',
-  'clear-selected-room',
+  'close-detail',
   'directions',
   'more-info',
   'query-input',
+  'select-room',
   'select-suggestion',
-  'select-travel-mode',
   'update:query',
   'use-my-location',
 ])
+
+const WEEKDAY_LABELS = [
+  ['monday', 'Monday'],
+  ['tuesday', 'Tuesday'],
+  ['wednesday', 'Wednesday'],
+  ['thursday', 'Thursday'],
+  ['friday', 'Friday'],
+  ['saturday', 'Saturday'],
+  ['sunday', 'Sunday'],
+]
+
+function normalizeExternalUrl(url) {
+  const text = String(url || '').trim()
+  if (!text) return ''
+  return /^https?:\/\//i.test(text) ? text : `https://${text}`
+}
+
+function formatRating(rating) {
+  if (rating === null || rating === undefined || rating === '') return 'Not rated'
+  return `${rating} / 5`
+}
+
+function formatHours(openHours, dayKey) {
+  return openHours?.[dayKey] || 'Not available'
+}
 </script>
 
 <template>
@@ -58,29 +76,87 @@ defineEmits([
     />
 
     <SupportList
-      :current-location-label="currentLocationLabel"
       :displayed-rooms="displayedRooms"
-      :format-walk-duration="formatWalkDuration"
-      :has-route="hasRoute"
       :loading-rooms="loadingRooms"
       :rooms-fetch-error="roomsFetchError"
-      :route-summary="routeSummary"
-      :routing="routing"
-      :selected-room="selectedRoom"
       :selected-room-id="selectedRoomId"
-      :travel-mode="travelMode"
-      :travel-modes="travelModes"
-      @clear-selected-room="$emit('clear-selected-room')"
       @more-info="$emit('more-info', $event)"
       @directions="$emit('directions', $event)"
-      @select-travel-mode="$emit('select-travel-mode', $event)"
+      @select-room="$emit('select-room', $event)"
     />
+
+    <Transition name="support-detail">
+      <section v-if="supportDetailRoom" class="support-detail-drawer" aria-label="Support room details">
+        <header class="support-detail-header">
+          <button type="button" class="support-detail-close" @click="$emit('close-detail')">
+            Close
+          </button>
+          <span>Counseling room</span>
+          <h2>{{ supportDetailRoom.name }}</h2>
+        </header>
+
+        <div class="support-detail-body">
+          <section class="support-detail-section">
+            <h3>Contact</h3>
+            <dl class="support-detail-list">
+              <div>
+                <dt>Address</dt>
+                <dd>{{ supportDetailRoom.address || 'Not available' }}</dd>
+              </div>
+              <div>
+                <dt>Phone</dt>
+                <dd>{{ supportDetailRoom.phone || 'Not available' }}</dd>
+              </div>
+              <div>
+                <dt>Website</dt>
+                <dd>
+                  <a
+                    v-if="supportDetailRoom.website"
+                    :href="normalizeExternalUrl(supportDetailRoom.website)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open website
+                  </a>
+                  <span v-else>Not available</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Rating</dt>
+                <dd>{{ formatRating(supportDetailRoom.rating) }}</dd>
+              </div>
+              <div>
+                <dt>Distance</dt>
+                <dd>{{ supportDetailRoom.distanceText || 'Not available' }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="support-detail-section">
+            <h3>Opening Hours</h3>
+            <dl class="support-hours-list">
+              <div v-for="[dayKey, label] in WEEKDAY_LABELS" :key="dayKey">
+                <dt>{{ label }}</dt>
+                <dd>{{ formatHours(supportDetailRoom.openHours, dayKey) }}</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        <footer class="support-detail-actions">
+          <button type="button" class="support-detail-direction" @click="$emit('directions', supportDetailRoom)">
+            Direction
+          </button>
+        </footer>
+      </section>
+    </Transition>
   </aside>
 </template>
 
 <style scoped>
 .explore-support-panel {
   margin-top: 16px;
+  position: relative;
 }
 
 .explore-support-panel :deep(.top-bar) {
@@ -116,9 +192,13 @@ defineEmits([
 
 .explore-support-panel :deep(.search-row) {
   align-items: stretch;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  display: flex;
+  gap: 0;
+}
+
+.explore-support-panel :deep(.address-suggestion-input) {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .explore-support-panel :deep(.search-action-btn),
@@ -131,8 +211,10 @@ defineEmits([
   box-sizing: border-box;
   width: 100%;
   border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
   background: #ffffff;
+  height: 44px;
   padding: 11px 12px;
   font-size: 14px;
   outline: none;
@@ -144,19 +226,21 @@ defineEmits([
 }
 
 .explore-support-panel :deep(.search-action-btn),
-.explore-support-panel :deep(.location-btn),
-.explore-support-panel :deep(.mode-chip) {
+.explore-support-panel :deep(.location-btn) {
   border: 0;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 700;
-  min-height: 42px;
+  height: 44px;
+  min-height: 44px;
   padding: 10px 12px;
 }
 
 .explore-support-panel :deep(.search-action-btn) {
+  border-radius: 0 8px 8px 0;
   background: #0f766e;
   color: #ffffff;
+  min-width: 92px;
 }
 
 .explore-support-panel :deep(.location-btn) {
@@ -171,40 +255,12 @@ defineEmits([
 }
 
 .explore-support-panel :deep(.list-panel) {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #f8fafc;
-  margin-top: 16px;
+  background: transparent;
+  margin-top: 14px;
   max-height: calc(100dvh - 410px);
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: 12px;
-}
-
-.explore-support-panel :deep(.support-list-header) {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.explore-support-panel :deep(.list-panel h2) {
-  color: #1f2937;
-  font-size: 17px;
-  margin: 0;
-}
-
-.explore-support-panel :deep(.back-btn) {
-  border: 1px solid #9ccaa9;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #166534;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 800;
-  min-height: 32px;
-  padding: 7px 10px;
-  white-space: nowrap;
+  padding: 0;
 }
 
 .explore-support-panel :deep(.state-tip) {
@@ -223,17 +279,27 @@ defineEmits([
 
 .explore-support-panel :deep(.room-card) {
   align-items: flex-start;
+  box-sizing: border-box;
   display: flex;
   gap: 12px;
   justify-content: space-between;
+  max-width: 100%;
   width: 100%;
   border: 1px solid #dbe4df;
   border-radius: 8px;
   background: #ffffff;
   color: #1f2937;
-  margin-top: 10px;
+  cursor: pointer;
+  margin-top: 14px;
   padding: 12px;
   text-align: left;
+}
+
+.explore-support-panel :deep(.room-card:hover),
+.explore-support-panel :deep(.room-card:focus-visible) {
+  border-color: #9ccaa9;
+  box-shadow: 0 8px 20px rgba(22, 101, 52, 0.08);
+  outline: none;
 }
 
 .explore-support-panel :deep(.room-card.active) {
@@ -245,6 +311,7 @@ defineEmits([
 .explore-support-panel :deep(.support-card-left) {
   align-items: center;
   display: flex;
+  flex: 1 1 auto;
   gap: 14px;
   min-width: 0;
 }
@@ -298,17 +365,20 @@ defineEmits([
 .explore-support-panel :deep(.support-card-actions) {
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+  flex: 0 0 96px;
   gap: 8px;
+  min-width: 0;
 }
 
 .explore-support-panel :deep(.support-card-btn) {
   border-radius: 8px;
+  box-sizing: border-box;
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
   min-height: 34px;
   padding: 8px 11px;
+  width: 100%;
 }
 
 .explore-support-panel :deep(.support-card-btn--secondary) {
@@ -323,45 +393,154 @@ defineEmits([
   color: #ffffff;
 }
 
-.explore-support-panel :deep(.route-builder) {
-  border-top: 1px solid #e2e8f0;
-  margin-top: 14px;
-  padding-top: 14px;
-}
-
-.explore-support-panel :deep(.route-title) {
-  font-size: 15px;
-  margin: 0 0 10px;
-}
-
-.explore-support-panel :deep(.mode-row) {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.explore-support-panel :deep(.mode-chip) {
+.support-detail-drawer {
+  position: fixed;
+  top: 60px;
+  right: 0;
+  bottom: 0;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  width: min(460px, 100vw);
+  border-left: 1px solid #dbe4df;
   background: #ffffff;
-  border: 1px solid #d1d5db;
-  color: #334155;
+  box-shadow: -16px 0 40px rgba(15, 23, 42, 0.16);
 }
 
-.explore-support-panel :deep(.mode-chip.active) {
-  background: #0f766e;
-  border-color: #0f766e;
-  color: #ffffff;
+.support-detail-header {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 18px 20px 16px;
 }
 
-.explore-support-panel :deep(.estimate-text) {
+.support-detail-close {
+  border: 1px solid #9ccaa9;
+  border-radius: 8px;
+  background: #ffffff;
   color: #166534;
-  font-size: 13px;
+  cursor: pointer;
+  font-size: 12px;
   font-weight: 800;
-  margin: 10px 0 0;
+  min-height: 32px;
+  padding: 7px 10px;
+}
+
+.support-detail-header span {
+  display: block;
+  margin-top: 14px;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.support-detail-header h2 {
+  margin: 5px 0 0;
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.18;
+}
+
+.support-detail-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px;
+}
+
+.support-detail-section + .support-detail-section {
+  margin-top: 22px;
+}
+
+.support-detail-section h3 {
+  margin: 0 0 10px;
+  color: #111827;
+  font-size: 16px;
+}
+
+.support-detail-list,
+.support-hours-list {
+  margin: 0;
+}
+
+.support-detail-list div,
+.support-hours-list div {
+  border-top: 1px solid #e5e7eb;
+  padding: 10px 0;
+}
+
+.support-detail-list div:first-child,
+.support-hours-list div:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.support-detail-list dt,
+.support-hours-list dt {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.support-detail-list dd,
+.support-hours-list dd {
+  margin: 0;
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.support-detail-list a {
+  color: #166534;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.support-detail-list a:hover {
+  text-decoration: underline;
+}
+
+.support-hours-list div {
+  align-items: baseline;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.support-detail-actions {
+  border-top: 1px solid #e5e7eb;
+  padding: 14px 20px 18px;
+}
+
+.support-detail-direction {
+  width: 100%;
+  border: 1px solid #166534;
+  border-radius: 8px;
+  background: #166534;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 900;
+  min-height: 42px;
+  padding: 10px 12px;
+}
+
+.support-detail-enter-active,
+.support-detail-leave-active {
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+.support-detail-enter-from,
+.support-detail-leave-to {
+  opacity: 0;
+  transform: translateX(24px);
 }
 
 @media (max-width: 900px) {
-  .explore-support-panel :deep(.search-row),
-  .explore-support-panel :deep(.mode-row) {
+  .explore-support-panel :deep(.search-row) {
     grid-template-columns: 1fr;
   }
 
@@ -379,12 +558,18 @@ defineEmits([
   }
 
   .explore-support-panel :deep(.support-card-actions) {
+    flex: none;
     flex-direction: row;
     width: 100%;
   }
 
   .explore-support-panel :deep(.support-card-btn) {
     flex: 1;
+  }
+
+  .support-detail-drawer {
+    top: 0;
+    width: 100vw;
   }
 }
 </style>

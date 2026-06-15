@@ -25,12 +25,14 @@ defineProps({
 
 defineEmits([
   'dest-input',
+  'destination-submit',
   'generate-route',
   'select-destination-suggestion',
   'select-start-suggestion',
   'set-shade-level',
   'set-social-density',
   'start-input',
+  'start-submit',
   'travel-mode-change',
   'update:destination',
   'update:start-location',
@@ -60,6 +62,8 @@ defineEmits([
       @update:destination="$emit('update:destination', $event)"
       @start-input="$emit('start-input')"
       @dest-input="$emit('dest-input')"
+      @start-submit="$emit('start-submit')"
+      @destination-submit="$emit('destination-submit')"
       @select-start-suggestion="$emit('select-start-suggestion', $event)"
       @select-destination-suggestion="$emit('select-destination-suggestion', $event)"
       @use-my-location="$emit('use-my-location')"
@@ -128,6 +132,7 @@ defineEmits([
 .explore-routes-panel :deep(.search-input) {
   box-sizing: border-box;
   width: 100%;
+  height: 44px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background: #ffffff;

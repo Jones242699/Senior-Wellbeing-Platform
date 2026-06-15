@@ -8,11 +8,6 @@ import {
   NEARBY_DISTANCE_METERS,
 } from '../constants'
 
-export function formatWalkDuration(durationText) {
-  if (!durationText) return '--'
-  return /walk/i.test(durationText) ? durationText : `${durationText} walk`
-}
-
 function parseDistanceToMeters(distanceText) {
   if (!distanceText) return Number.POSITIVE_INFINITY
   const text = distanceText.toLowerCase().replace(/,/g, '').trim()
@@ -66,7 +61,7 @@ async function fetchCounselingCentersRows(lat, lng, radiusMeters) {
   return payload.data
 }
 
-export function useSupportFacilities({ filterCenter, selectedRoomId }) {
+export function useSupportFacilities({ filterCenter }) {
   const loadingRooms = ref(false)
   const roomsFetchError = ref('')
   const rooms = ref([])
@@ -176,12 +171,7 @@ export function useSupportFacilities({ filterCenter, selectedRoomId }) {
     return nearRooms.sort((a, b) => a.meters - b.meters).map((item) => item.room)
   })
 
-  const selectedRoom = computed(
-    () => rooms.value.find((room) => room.id === selectedRoomId.value) || null,
-  )
-
   const displayedRooms = computed(() => {
-    if (selectedRoom.value) return [selectedRoom.value]
     return filteredRooms.value
   })
 
@@ -191,7 +181,6 @@ export function useSupportFacilities({ filterCenter, selectedRoomId }) {
     loadingRooms,
     rooms,
     roomsFetchError,
-    selectedRoom,
     fetchRoomsNearby,
     updateDistanceDurationForAll,
   }

@@ -46,14 +46,10 @@ import { useRouteFacilities } from '../my-routes/composables/useRouteFacilities'
 import { useRouteInputs } from '../my-routes/composables/useRouteInputs'
 import { useRoutePlanner } from '../my-routes/composables/useRoutePlanner'
 import { TRAVEL_MODES as ROUTE_TRAVEL_MODES } from '../my-routes/constants'
-import {
-  formatWalkDuration,
-  useSupportFacilities,
-} from '../mental-support/composables/useSupportFacilities'
+import { MELBOURNE_CBD } from '../../shared/map/locationRules'
+import { useSupportFacilities } from '../mental-support/composables/useSupportFacilities'
 import { useSupportFilters } from '../mental-support/composables/useSupportFilters'
 import { useSupportLocation } from '../mental-support/composables/useSupportLocation'
-import { useSupportRouting } from '../mental-support/composables/useSupportRouting'
-import { TRAVEL_MODES as SUPPORT_TRAVEL_MODES } from '../mental-support/constants'
 
 const route = useRoute()
 const router = useRouter()
@@ -146,6 +142,7 @@ const loadingRouteStartSuggestions = ref(false)
 const loadingRouteDestinationSuggestions = ref(false)
 const supportAddressSuggestions = ref([])
 const loadingSupportAddressSuggestions = ref(false)
+const activeSupportDetailRoom = ref(null)
 const isIdeasModalOpen = ref(false)
 const ideasStep = ref(1)
 const ideasTransportMode = ref('')
@@ -353,6 +350,7 @@ const {
   searchAddressSuggestions: searchRouteAddressSuggestions,
   setResolvedDestination,
   setResolvedDestinationFromSuggestion,
+  setResolvedOrigin,
   setResolvedOriginFromSuggestion,
   useCurrentLocationStart,
   watchPositionIfSupported,
@@ -404,13 +402,10 @@ const {
 })
 
 const {
-  routeSummary: supportRouteSummary,
   userPosition: supportUserPosition,
   clearFilterCenterMarker,
   clearRoomMarkers,
-  clearSelectedRoute: clearSelectedSupportRoute,
   closeRoomPopup,
-  drawRoute: drawSupportRoute,
   panTo: panSupportTo,
   renderRoomMarkers,
   resolveAddressFromPlaces: resolveSupportAddressFromPlaces,
@@ -418,20 +413,15 @@ const {
   setFilterCenterMarker,
   setUserMarker: setSupportUserMarker,
   showRoomPopup,
+  syncRoomMarkerVisuals,
 } = useExploreSupportMap({
-  clearDirectionsDisplay,
-  clearEndpointMarkers,
-  directionsRoute,
   ensureUserMarker,
   getGeocoder,
   getInfoWindow,
   getMap,
   getMapApi,
   getPlacesService,
-  getTravelMode,
   panTo,
-  setDirectionsResult,
-  setEndpointMarker,
 })
 
 let supportSuggestionTimeoutId = null
@@ -473,35 +463,16 @@ const {
   loadingRooms,
   rooms,
   roomsFetchError,
-  selectedRoom,
   fetchRoomsNearby,
   updateDistanceDurationForAll,
 } = useSupportFacilities({
   filterCenter,
-  selectedRoomId,
-})
-
-const {
-  hasSelectedRoute: hasSelectedSupportRoute,
-  routing: supportRouting,
-  travelMode: supportTravelMode,
-  clearSelectedRoom,
-  selectRoomInfo,
-  selectRoomAndRoute,
-  selectTravelMode,
-} = useSupportRouting({
-  clearSelectedRoute: clearSelectedSupportRoute,
-  drawRoute: drawSupportRoute,
-  filterCenter,
-  rooms,
-  selectedRoomId,
-  userPosition: supportUserPosition,
 })
 
 const { loadDefaultLocation: loadDefaultSupportLocation, locateUser: locateSupportUser } =
   useSupportLocation({
   clearAddressFilterState,
-  clearSelectedRoom,
+  clearSelectedRoom: clearSelectedSupportRoom,
   fetchRoomsNearby,
   getMapApi,
   panTo: panSupportTo,
@@ -667,7 +638,21 @@ async function applyIdeasAnswers() {
   closeIdeasModal()
 }
 
-function goToDirectionsForPlace(place) {
+function setPlacesRouteOrigin() {
+  if (userLocation.value && Number.isFinite(userLocation.value.lat) && Number.isFinite(userLocation.value.lng)) {
+    const label = placesLocationLabel.value
+    setResolvedOrigin(createLatLng(userLocation.value.lat, userLocation.value.lng), label, label)
+    return
+  }
+
+  startLocation.value = 'Melbourne CBD'
+  setResolvedOrigin(createLatLng(MELBOURNE_CBD.lat, MELBOURNE_CBD.lng), 'Melbourne CBD', 'Melbourne CBD')
+}
+
+async function goToDirectionsForPlace(place) {
+  if (!place) return
+  setPlacesRouteOrigin()
+
   routeDestination.value = place.address || place.name
   if (Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
     setResolvedDestination(
@@ -675,8 +660,13 @@ function goToDirectionsForPlace(place) {
       place.address || place.name,
       place.name || 'Selected destination',
     )
+  } else {
+    onDestInput()
   }
+  onTravelModeChange('WALKING')
   activeModeId.value = 'routes'
+  await nextTick()
+  await generateRoute()
 }
 
 function applyRouteDestinationFromQuery() {
@@ -761,32 +751,77 @@ async function openPlaceDetails(place) {
   openDetailPanel(place)
 }
 
-function openDirections() {
+async function openDirections() {
   if (!activeDetailPlace.value) return
   directionsError.value = ''
-  goToDirectionsForPlace(activeDetailPlace.value)
+  await goToDirectionsForPlace(activeDetailPlace.value)
   closeDetailPanel()
 }
 
 function openSupportRoomInfo(room) {
-  selectRoomInfo(room)
-  showRoomPopup(room, getCurrentLocationLabel(supportUserPosition.value), routeSupportToRoom)
+  selectedRoomId.value = room.id
+  showRoomPopup(
+    room,
+    getCurrentLocationLabel(supportUserPosition.value),
+    goToDirectionsForSupportRoom,
+    openSupportMoreInfo,
+  )
 }
 
-async function routeSupportToRoom(room) {
-  await selectRoomAndRoute(room)
-  showRoomPopup(room, getCurrentLocationLabel(supportUserPosition.value), routeSupportToRoom)
+function openSupportMoreInfo(room) {
+  openSupportRoomInfo(room)
+  activeSupportDetailRoom.value = room
+}
+
+function setSupportRouteOrigin() {
+  const origin = filterCenter.value || supportUserPosition.value
+  if (origin && Number.isFinite(origin.lat) && Number.isFinite(origin.lng)) {
+    const label = getCurrentLocationLabel(supportUserPosition.value)
+    setResolvedOrigin(createLatLng(origin.lat, origin.lng), label, label)
+    return
+  }
+
+  startLocation.value = 'Melbourne CBD'
+  onStartInput()
+}
+
+async function goToDirectionsForSupportRoom(room) {
+  if (!room) return
+  setSupportRouteOrigin()
+
+  const destinationLabel = room.address || room.name
+  routeDestination.value = destinationLabel
+  if (Number.isFinite(room.position?.lat) && Number.isFinite(room.position?.lng)) {
+    setResolvedDestination(
+      createLatLng(room.position.lat, room.position.lng),
+      destinationLabel,
+      room.name || destinationLabel,
+    )
+  } else {
+    onDestInput()
+  }
+  onTravelModeChange('WALKING')
+  activeModeId.value = 'routes'
+  closeSupportDetail()
+  await nextTick()
+  await generateRoute()
 }
 
 function clearSelectedSupportRoom() {
-  clearSelectedRoom()
+  selectedRoomId.value = null
   closeRoomPopup()
+  syncRoomMarkerVisuals(null)
+  activeSupportDetailRoom.value = null
 }
 
 function onGlobalKeydown(event) {
   if (event.key !== 'Escape') return
   if (isIdeasModalOpen.value) {
     closeIdeasModal()
+    return
+  }
+  if (activeSupportDetailRoom.value) {
+    closeSupportDetail()
     return
   }
   closeDetailPanel()
@@ -807,7 +842,10 @@ function clearSupportLayer() {
   clearSelectedSupportRoom()
   clearRoomMarkers()
   clearFilterCenterMarker()
-  supportRouteSummary.value = ''
+}
+
+function closeSupportDetail() {
+  activeSupportDetailRoom.value = null
 }
 
 function clearPlacesLayer() {
@@ -886,6 +924,9 @@ function applyMatchingSupportSuggestion() {
 async function applySupportAddressFilterFromInput() {
   applyMatchingSupportSuggestion()
   await applySupportAddressFilter()
+  closeRoomPopup()
+  syncRoomMarkerVisuals(null)
+  activeSupportDetailRoom.value = null
 }
 
 function clearRouteStartSuggestions() {
@@ -980,6 +1021,54 @@ function selectRouteDestinationSuggestion(suggestion) {
   setResolvedDestinationFromSuggestion(suggestion)
   clearRouteDestinationSuggestions()
   routeError.value = ''
+}
+
+function findMatchingAddressSuggestion(query, suggestions) {
+  const normalizedQuery = normalizeSuggestionMatchText(query)
+  if (!normalizedQuery) return null
+  return suggestions.find((suggestion) => {
+    const name = normalizeSuggestionMatchText(suggestion.name)
+    const address = normalizeSuggestionMatchText(suggestion.formattedAddress)
+    return normalizedQuery === name || normalizedQuery === address
+  })
+}
+
+function applyMatchingRouteStartSuggestion() {
+  const matchingSuggestion = findMatchingAddressSuggestion(startLocation.value, routeStartSuggestions.value)
+  if (!matchingSuggestion) return
+  setResolvedOriginFromSuggestion(matchingSuggestion)
+}
+
+function applyMatchingRouteDestinationSuggestion() {
+  const matchingSuggestion = findMatchingAddressSuggestion(
+    routeDestination.value,
+    routeDestinationSuggestions.value,
+  )
+  if (!matchingSuggestion) return
+  setResolvedDestinationFromSuggestion(matchingSuggestion)
+}
+
+function canSubmitRouteFromKeyboard() {
+  return Boolean(startLocation.value.trim() && routeDestination.value.trim() && travelMode.value)
+}
+
+async function generateRouteFromKeyboard() {
+  if (!canSubmitRouteFromKeyboard()) return
+  await generateRoute()
+}
+
+async function handleRouteStartSubmit() {
+  applyMatchingRouteStartSuggestion()
+  clearRouteStartSuggestions()
+  routeError.value = ''
+  await generateRouteFromKeyboard()
+}
+
+async function handleRouteDestinationSubmit() {
+  applyMatchingRouteDestinationSuggestion()
+  clearRouteDestinationSuggestions()
+  routeError.value = ''
+  await generateRouteFromKeyboard()
 }
 
 function useRouteMyLocation() {
@@ -1170,10 +1259,6 @@ watch(
     />
 
     <section class="explore-workspace-panel">
-      <header class="explore-panel-topbar">
-        <router-link class="explore-home-link" to="/">Back Home</router-link>
-      </header>
-
       <ExploreModeTabs v-model="activeModeId" :modes="EXPLORE_MODES" />
       <ExplorePlacesPanel
         v-if="activeModeId === 'places'"
@@ -1239,6 +1324,8 @@ watch(
         :shade-level="shadeLevel"
         @start-input="handleRouteStartInput"
         @dest-input="handleRouteDestinationInput"
+        @start-submit="handleRouteStartSubmit"
+        @destination-submit="handleRouteDestinationSubmit"
         @select-start-suggestion="selectRouteStartSuggestion"
         @select-destination-suggestion="selectRouteDestinationSuggestion"
         @use-my-location="useRouteMyLocation"
@@ -1252,28 +1339,21 @@ watch(
         v-model:query="supportQuery"
         :address-filter-error="supportAddressFilterError"
         :applying-address-filter="applyingSupportAddressFilter"
-        :current-location-label="getCurrentLocationLabel(supportUserPosition)"
         :displayed-rooms="displayedRooms"
-        :format-walk-duration="formatWalkDuration"
-        :has-route="hasSelectedSupportRoute"
         :loading-suggestions="loadingSupportAddressSuggestions"
         :loading-rooms="loadingRooms"
         :location-label="supportLocationLabel"
         :rooms-fetch-error="roomsFetchError"
-        :route-summary="supportRouteSummary"
-        :routing="supportRouting"
-        :selected-room="selectedRoom"
+        :support-detail-room="activeSupportDetailRoom"
         :selected-room-id="selectedRoomId"
         :suggestions="supportAddressSuggestions"
-        :travel-mode="supportTravelMode"
-        :travel-modes="SUPPORT_TRAVEL_MODES"
         @apply-address-filter="applySupportAddressFilterFromInput"
-        @clear-selected-room="clearSelectedSupportRoom"
-        @directions="routeSupportToRoom"
-        @more-info="openSupportRoomInfo"
+        @close-detail="closeSupportDetail"
+        @directions="goToDirectionsForSupportRoom"
+        @more-info="openSupportMoreInfo"
         @query-input="handleSupportQueryInput"
+        @select-room="openSupportRoomInfo"
         @select-suggestion="selectSupportAddressSuggestion"
-        @select-travel-mode="selectTravelMode"
         @use-my-location="locateSupportUser"
       />
       <ExploreSidePanel v-else :mode="activeMode" />
