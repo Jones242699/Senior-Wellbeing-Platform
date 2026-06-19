@@ -50,14 +50,14 @@
 
 .explore-map-mode span {
   color: #475569;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0;
 }
 
 .explore-map-mode strong {
-  font-size: 18px;
+  font-size: calc(18px * var(--font-scale, 1));
   line-height: 1.25;
 }
 
@@ -87,7 +87,7 @@
 .explore-map .crowd-legend-title {
   margin: 0 0 8px;
   color: #1f2937;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   font-weight: 800;
 }
 
@@ -102,7 +102,7 @@
   align-items: center;
   gap: 8px;
   color: #334155;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 700;
 }
 
@@ -139,7 +139,7 @@
 
 .explore-route-legend .shared-map-legend-item > span:last-child,
 .explore-support-legend .shared-map-legend-item > span:last-child {
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 700;
 }
 
@@ -153,7 +153,7 @@
   border-radius: 6px;
   background: #ffffff;
   color: #1f2937;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   font-weight: 800;
 }
 
@@ -214,7 +214,7 @@
   color: #166534;
   display: grid;
   flex-shrink: 0;
-  font-size: 26px;
+  font-size: calc(26px * var(--font-scale, 1));
   place-items: center;
 }
 
@@ -225,7 +225,7 @@
 .place-popup-title h3 {
   margin: 0;
   color: #111827;
-  font-size: 16px;
+  font-size: calc(16px * var(--font-scale, 1));
   line-height: 1.25;
 }
 
@@ -233,14 +233,14 @@
 .place-popup-loading {
   margin: 4px 0 0;
   color: #64748b;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 700;
 }
 
 .place-popup-line {
   margin: 8px 0 0;
   color: #334155;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   line-height: 1.4;
 }
 
@@ -261,7 +261,7 @@
   background: #166534;
   color: #ffffff;
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 800;
   margin-top: 10px;
   min-height: 34px;
@@ -298,21 +298,21 @@
 .support-popup-header h3 {
   margin: 0;
   color: #111827;
-  font-size: 16px;
+  font-size: calc(16px * var(--font-scale, 1));
   line-height: 1.25;
 }
 
 .support-popup-header p {
   margin: 4px 0 0;
   color: #64748b;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 700;
 }
 
 .support-popup-line {
   margin: 8px 0 0;
   color: #334155;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   line-height: 1.4;
 }
 
@@ -324,7 +324,7 @@
 .support-popup-link {
   color: #166534;
   display: inline-block;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 800;
   margin-top: 8px;
   text-decoration: none;
@@ -345,7 +345,7 @@
   flex: 1;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 800;
   min-height: 34px;
   padding: 8px 10px;
@@ -395,7 +395,7 @@
   cursor: pointer;
   padding: 9px 8px;
   font: inherit;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   font-weight: 800;
   transition:
     background 0.2s,
@@ -433,7 +433,7 @@
 .explore-panel-heading p {
   margin: 0 0 6px;
   color: #166534;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0;
@@ -442,7 +442,7 @@
 .explore-panel-heading h1 {
   margin: 0;
   color: #0f172a;
-  font-size: 23px;
+  font-size: calc(23px * var(--font-scale, 1));
   line-height: 1.2;
 }
 
@@ -457,7 +457,7 @@
   border-bottom: 1px solid #eef2f7;
   color: #334155;
   padding: 13px 14px;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   font-weight: 800;
 }
 
@@ -473,7 +473,7 @@
   color: #ffffff;
   padding: 10px 13px;
   text-decoration: none;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   font-weight: 800;
 }
 
@@ -483,7 +483,7 @@
   background: #fef2f2;
   color: #991b1b;
   padding: 10px 12px;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 700;
 }
 
@@ -558,11 +558,11 @@
   }
 
   .explore-map-mode span {
-    font-size: 11px;
+    font-size: calc(11px * var(--font-scale, 1));
   }
 
   .explore-map-mode strong {
-    font-size: 16px;
+    font-size: calc(16px * var(--font-scale, 1));
   }
 
   .explore-route-legend,
@@ -629,7 +629,7 @@
   }
 
   .explore-panel-heading h1 {
-    font-size: 21px;
+    font-size: calc(21px * var(--font-scale, 1));
   }
 
   .place-map-popup,
@@ -640,6 +640,6 @@
   .explore-route-legend,
   .explore-support-legend,
   .explore-map .crowd-density-legend {
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale, 1));
   }
 }
