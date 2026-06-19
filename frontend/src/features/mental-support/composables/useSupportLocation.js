@@ -17,12 +17,24 @@ export function useSupportLocation({
   setLocationError,
   setUserMarker,
 }) {
+  let locationRequestSeq = 0
+
+  function cancelPendingLocation() {
+    locationRequestSeq += 1
+  }
+
+  function isCurrentLocationRequest(requestSeq) {
+    return requestSeq === locationRequestSeq
+  }
+
   async function loadRoomsForOrigin(origin) {
     await fetchRoomsNearby(origin)
     renderRoomMarkers(rooms.value, selectRoomAndRoute)
   }
 
   async function locateUser() {
+    const requestSeq = locationRequestSeq + 1
+    locationRequestSeq = requestSeq
     // Explicitly switch back to realtime location as the route/list origin.
     clearAddressFilterState()
     clearSelectedRoom()
@@ -33,18 +45,22 @@ export function useSupportLocation({
         getMapApi,
         label: 'Current location',
       })
+      if (!isCurrentLocationRequest(requestSeq)) return
       setLocationError?.('')
       setCurrentLocationPlace?.(place)
       setUserMarker(position)
       panTo(position)
       await loadRoomsForOrigin(position)
+      if (!isCurrentLocationRequest(requestSeq)) return
     } catch (error) {
+      if (!isCurrentLocationRequest(requestSeq)) return
       setLocationError?.(error?.message || LOCATION_ACCESS_ERROR)
       setUserMarker(null)
     }
   }
 
   async function loadDefaultLocation() {
+    cancelPendingLocation()
     clearAddressFilterState()
     clearSelectedRoom()
     setLocationError?.('')
@@ -52,6 +68,7 @@ export function useSupportLocation({
   }
 
   return {
+    cancelPendingLocation,
     loadDefaultLocation,
     locateUser,
   }

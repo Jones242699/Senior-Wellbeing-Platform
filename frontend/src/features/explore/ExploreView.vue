@@ -466,7 +466,11 @@ const {
   setFilterCenterMarker,
 })
 
-const { loadDefaultLocation: loadDefaultSupportLocation, locateUser: locateSupportUser } =
+const {
+  cancelPendingLocation: cancelPendingSupportLocation,
+  loadDefaultLocation: loadDefaultSupportLocation,
+  locateUser: locateSupportUser,
+} =
   useSupportLocation({
   clearAddressFilterState,
   clearSelectedRoom: clearSelectedSupportRoom,
@@ -900,6 +904,7 @@ function handleSupportQueryInput() {
 }
 
 async function selectSupportAddressSuggestion(suggestion) {
+  cancelPendingSupportLocation()
   const resolvedSuggestion = await resolveExploreSuggestionLocation(suggestion)
   setQueryPlaceFromAutocomplete(resolvedSuggestion)
   clearSupportAddressSuggestions()
@@ -930,6 +935,7 @@ function applyMatchingSupportSuggestion() {
 }
 
 async function applySupportAddressFilterFromInput() {
+  cancelPendingSupportLocation()
   applyMatchingSupportSuggestion()
   await applySupportAddressFilter()
   closeRoomPopup()
