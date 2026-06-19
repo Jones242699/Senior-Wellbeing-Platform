@@ -3,12 +3,11 @@ import { assertWithinSupportedArea } from '../../../shared/map/locationRules'
 
 export function useSupportFilters({
   clearFilterCenterMarker,
-  getMapApi,
+  fetchRoomsNearby,
   panTo,
   resolveAddressFromPlaces,
   selectedRoomId,
   setFilterCenterMarker,
-  updateDistanceDurationForAll,
 }) {
   const query = ref('')
   const queryPlace = ref(null)
@@ -65,7 +64,7 @@ export function useSupportFilters({
       filterCenter.value = target
       setFilterCenterMarker({ lat: target.lat, lng: target.lng })
       panTo({ lat: target.lat, lng: target.lng }, 13)
-      await updateDistanceDurationForAll(target, getMapApi())
+      await fetchRoomsNearby(target)
       selectedRoomId.value = null
     } catch (err) {
       addressFilterError.value = err?.message || 'Failed to apply address filter.'

@@ -438,9 +438,13 @@ let routeStartSuggestionRequestSeq = 0
 let routeDestinationSuggestionRequestSeq = 0
 let routeStartValidationRequestSeq = 0
 
-function updateSupportDistanceDurationFromMap(origin) {
-  return updateDistanceDurationForAll(origin, getMapApi())
-}
+const {
+  displayedRooms,
+  loadingRooms,
+  rooms,
+  roomsFetchError,
+  fetchRoomsNearby,
+} = useSupportFacilities()
 
 const {
   addressFilterError: supportAddressFilterError,
@@ -456,23 +460,11 @@ const {
   setQueryPlaceFromAutocomplete,
 } = useSupportFilters({
   clearFilterCenterMarker,
-  getMapApi,
+  fetchRoomsNearby,
   panTo: panSupportTo,
   resolveAddressFromPlaces: resolveSupportAddressFromPlaces,
   selectedRoomId,
   setFilterCenterMarker,
-  updateDistanceDurationForAll: updateSupportDistanceDurationFromMap,
-})
-
-const {
-  displayedRooms,
-  loadingRooms,
-  rooms,
-  roomsFetchError,
-  fetchRoomsNearby,
-  updateDistanceDurationForAll,
-} = useSupportFacilities({
-  filterCenter,
 })
 
 const { loadDefaultLocation: loadDefaultSupportLocation, locateUser: locateSupportUser } =
@@ -488,7 +480,6 @@ const { loadDefaultLocation: loadDefaultSupportLocation, locateUser: locateSuppo
   setLocationError: setSupportAddressFilterError,
   setCurrentLocationPlace: setSupportCurrentLocationPlace,
   setUserMarker: setSupportUserMarker,
-  updateDistanceDurationForAll,
 })
 
 const placesLocationLabel = computed(() => {

@@ -21,11 +21,9 @@ export function useSupportLocation({
   setCurrentLocationPlace,
   setLocationError,
   setUserMarker,
-  updateDistanceDurationForAll,
 }) {
   async function loadRoomsForOrigin(origin) {
     await fetchRoomsNearby(origin)
-    await updateDistanceDurationForAll(origin, getMapApi())
     renderRoomMarkers(rooms.value, selectRoomAndRoute)
   }
 
