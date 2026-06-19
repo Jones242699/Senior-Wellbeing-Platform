@@ -345,7 +345,6 @@ const {
   clearGeoWatch: clearRouteGeoWatch,
   onDestInput,
   onStartInput,
-  requestCurrentPosition,
   resolveDestination,
   resolveOrigin,
   resolveSuggestionLocation: resolveRouteSuggestionLocation,
@@ -1133,23 +1132,16 @@ async function useRouteMyLocation() {
   clearRouteStartSuggestions()
   clearRouteStartValidation()
 
-  if (userLatLng.value) {
-    await useCurrentLocationStart(userLatLng.value)
-    panTo(userLatLng.value, 16)
-    watchPositionIfSupported()
-    return
-  }
-
-  requestCurrentPosition()
-    .then(async (pos) => {
-      await useCurrentLocationStart(pos)
+  try {
+    const pos = await useCurrentLocationStart(userLatLng.value)
+    if (pos) {
       panTo(pos, 16)
       watchPositionIfSupported()
-    })
-    .catch((error) => {
-      onStartInput()
-      routeError.value = error?.message || LOCATION_ACCESS_ERROR
-    })
+    }
+  } catch (error) {
+    onStartInput()
+    routeError.value = error?.message || LOCATION_ACCESS_ERROR
+  }
 }
 
 onMounted(async () => {

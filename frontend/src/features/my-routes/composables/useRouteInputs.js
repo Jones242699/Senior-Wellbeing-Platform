@@ -1,16 +1,13 @@
 import { ref } from 'vue'
 import {
-  GEOLOCATION_PERMISSION_ERROR,
-  LOCATION_ACCESS_ERROR,
   MELBOURNE_CBD,
   assertWithinSupportedArea,
-  getGeolocationErrorMessage,
-  getGeolocationPermissionState,
 } from '../../../shared/map/locationRules'
+import { resolveAddressInput } from '../../../shared/map/addressResolver'
 import {
-  resolveAddressInput,
-  reverseGeocodeLocation,
-} from '../../../shared/map/addressResolver'
+  resolveCurrentLocation,
+  resolveCurrentLocationAddress,
+} from '../../../shared/map/currentLocation'
 import {
   resolvePlaceSuggestionLocation,
   searchPlaceSuggestions,
@@ -64,30 +61,14 @@ export function useRouteInputs({
   }
 
   async function requestCurrentPosition() {
-    if (!navigator.geolocation) {
-      throw new Error('Geolocation is not supported by this browser.')
-    }
-
-    const permissionState = await getGeolocationPermissionState()
-    if (permissionState === 'denied') {
-      throw new Error(GEOLOCATION_PERMISSION_ERROR)
-    }
-
-    return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        ({ coords }) => {
-          const pos = { lat: coords.latitude, lng: coords.longitude }
-          userLatLng.value = pos
-          ensureUserMarker(pos)
-          resolve(pos)
-        },
-        (err) => {
-          console.warn('Geolocation error:', err)
-          reject(new Error(getGeolocationErrorMessage(err)))
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
-      )
+    const { position } = await resolveCurrentLocation({
+      getGeocoder,
+      getMapApi,
+      label: 'Current location',
     })
+    userLatLng.value = position
+    ensureUserMarker(position)
+    return position
   }
 
   async function geocodeToLatLng(address) {
@@ -222,32 +203,38 @@ export function useRouteInputs({
 
   async function useCurrentLocationStart(position = userLatLng.value) {
     if (!position) {
+      const current = await resolveCurrentLocation({
+        getGeocoder,
+        getMapApi,
+        label: 'Current location',
+      })
+      userLatLng.value = current.position
+      ensureUserMarker(current.position)
       originMode.value = 'current'
-      startPlace = null
-      startLocation.value = 'Current location'
-      return
+      startPlace = normalizePlaceFromResolvedLocation(
+        current.position,
+        current.place.formattedAddress,
+        current.place.name || 'Current location',
+      )
+      startLocation.value = current.place.formattedAddress
+      return current.position
     }
 
-    assertWithinMelbourne(position, 'Current location')
-    const resolvedAddress = await reverseGeocodeLocation({
+    const current = await resolveCurrentLocationAddress({
       getGeocoder,
-      mapApi: getMapApi(),
+      getMapApi,
+      label: 'Current location',
       position,
     })
-    const formattedAddress = resolvedAddress?.formattedAddress || ''
-    if (!formattedAddress) {
-      throw new Error(
-        'Unable to convert your current location into an address. Please enter a City of Melbourne address manually.',
-      )
-    }
 
     originMode.value = 'current'
     startPlace = normalizePlaceFromResolvedLocation(
-      position,
-      formattedAddress,
-      'Current location',
+      current.position,
+      current.place.formattedAddress,
+      current.place.name || 'Current location',
     )
-    startLocation.value = formattedAddress
+    startLocation.value = current.place.formattedAddress
+    return current.position
   }
 
   function setDestinationFromQuery(value) {

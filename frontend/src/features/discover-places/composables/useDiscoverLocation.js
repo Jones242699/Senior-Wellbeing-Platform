@@ -1,18 +1,13 @@
 import { ref } from 'vue'
 import {
-  GEOLOCATION_PERMISSION_ERROR,
   LOCATION_ACCESS_ERROR,
   assertWithinSupportedArea,
   buildOutsideSupportedAreaMessage,
-  getGeolocationErrorMessage,
-  getGeolocationPermissionState,
   isWithinBounds,
   toLatLngLiteral,
 } from '../../../shared/map/locationRules'
-import {
-  resolveAddressInput,
-  reverseGeocodeLocation,
-} from '../../../shared/map/addressResolver'
+import { resolveAddressInput } from '../../../shared/map/addressResolver'
+import { resolveCurrentLocation } from '../../../shared/map/currentLocation'
 import { searchPlaceSuggestions } from '../../../shared/map/placeHelpers'
 
 export function useDiscoverLocation({
@@ -62,85 +57,26 @@ export function useDiscoverLocation({
     )
   }
 
-  async function reverseCurrentLocationAddress(position) {
-    const mapApi = await loadDiscoverMapApi()
-    return reverseGeocodeLocation({
-      getGeocoder,
-      mapApi,
-      position,
-    })
-  }
-
   async function requestBrowserLocation() {
-    if (!navigator.geolocation) {
-      locationErrorMessage.value = LOCATION_ACCESS_ERROR
+    try {
+      const { place, position } = await resolveCurrentLocation({
+        getGeocoder,
+        getMapApi: loadDiscoverMapApi,
+      })
+      userLocation.value = position
+      selectedAddressPlace.value = place
+      addressQuery.value = place.formattedAddress
+      locationErrorMessage.value = ''
+      locationUnavailable.value = false
+      locationMode.value = 'device'
+      return userLocation.value
+    } catch (error) {
+      locationErrorMessage.value = error?.message || LOCATION_ACCESS_ERROR
       locationUnavailable.value = true
       locationMode.value = 'none'
+      userLocation.value = null
       return null
     }
-
-    const permissionState = await getGeolocationPermissionState()
-    if (permissionState === 'denied') {
-      locationErrorMessage.value = GEOLOCATION_PERMISSION_ERROR
-      locationUnavailable.value = true
-      locationMode.value = 'none'
-      return null
-    }
-
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        async ({ coords }) => {
-          const position = { lat: coords.latitude, lng: coords.longitude }
-          if (!isWithinBounds(position)) {
-            locationErrorMessage.value = buildOutsideSupportedAreaMessage('Current location')
-            locationUnavailable.value = true
-            locationMode.value = 'none'
-            userLocation.value = null
-            resolve(null)
-            return
-          }
-
-          let resolvedAddress = null
-          try {
-            resolvedAddress = await reverseCurrentLocationAddress(position)
-          } catch {
-            resolvedAddress = null
-          }
-          if (!resolvedAddress?.formattedAddress) {
-            locationErrorMessage.value =
-              'Unable to convert your current location into an address. Please enter a City of Melbourne address manually.'
-            locationUnavailable.value = true
-            locationMode.value = 'none'
-            userLocation.value = null
-            resolve(null)
-            return
-          }
-
-          userLocation.value = position
-          selectedAddressPlace.value = {
-            lat: position.lat,
-            lng: position.lng,
-            formattedAddress: resolvedAddress.formattedAddress,
-            name: resolvedAddress.name || resolvedAddress.formattedAddress,
-          }
-          addressQuery.value = resolvedAddress.formattedAddress
-          locationErrorMessage.value = ''
-          locationUnavailable.value = false
-          locationMode.value = 'device'
-          resolve(userLocation.value)
-        },
-        (error) => {
-          locationErrorMessage.value = getGeolocationErrorMessage(error)
-          locationUnavailable.value = true
-          if (locationMode.value === 'device' || locationMode.value === 'none') {
-            userLocation.value = null
-            locationMode.value = 'none'
-          }
-          resolve(null)
-        },
-        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
-      )
-    })
   }
 
   function assertWithinMelbourne(lat, lng, label = 'Address') {
