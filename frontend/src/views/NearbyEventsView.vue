@@ -358,7 +358,7 @@ onMounted(async () => {
     await nextTick()
     setupQueryAutocomplete()
   } catch (error) {
-    console.warn('events-google-places', error)
+    console.warn('events-place-lookup', error)
   }
   searchByCurrentLocation()
 })

@@ -41,6 +41,36 @@ function geocodeAddress(address, getGeocoder) {
   })
 }
 
+export function reverseGeocodeLocation({ getGeocoder, mapApi, position }) {
+  return new Promise((resolve) => {
+    const geocoder = getGeocoder?.() || (mapApi?.Geocoder ? new mapApi.Geocoder() : null)
+    if (!geocoder?.geocode) {
+      resolve(null)
+      return
+    }
+
+    geocoder.geocode({ location: position }, (results, status) => {
+      if (status === 'OK' && results?.length) {
+        const streetAddress =
+          results.find((result) =>
+            result.types?.some((type) =>
+              ['street_address', 'premise', 'subpremise', 'route'].includes(type),
+            ),
+          ) || results[0]
+        if (streetAddress?.formatted_address) {
+          resolve({
+            location: streetAddress.geometry?.location || position,
+            formattedAddress: streetAddress.formatted_address,
+            name: streetAddress.name || streetAddress.formatted_address,
+          })
+          return
+        }
+      }
+      resolve(null)
+    })
+  })
+}
+
 function findPlaceByText(address, mapApi, placesService) {
   if (!placesService || !mapApi?.places) {
     return Promise.reject(new Error('Places service unavailable'))

@@ -13,6 +13,27 @@ function buildGeocodeSearchUrl(query, limit) {
   return endpoint.toString()
 }
 
+function buildGeocodeReverseUrl(position) {
+  const endpoint = import.meta.env.DEV
+    ? new URL('/__geocode/geocode/search', window.location.origin)
+    : buildApiUrl('/geocode/search', getApiBase(import.meta.env.VITE_GEOCODE_API_BASE))
+  endpoint.searchParams.set('lat', String(position.lat))
+  endpoint.searchParams.set('lng', String(position.lng))
+  endpoint.searchParams.set('limit', '1')
+  return endpoint.toString()
+}
+
+function buildNominatimReverseUrl(position) {
+  const endpoint = new URL('https://nominatim.openstreetmap.org/reverse')
+  endpoint.searchParams.set('lat', String(position.lat))
+  endpoint.searchParams.set('lon', String(position.lng))
+  endpoint.searchParams.set('format', 'jsonv2')
+  endpoint.searchParams.set('addressdetails', '1')
+  endpoint.searchParams.set('zoom', '18')
+  endpoint.searchParams.set('accept-language', 'en')
+  return endpoint.toString()
+}
+
 function toNumber(value) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : null
@@ -339,6 +360,49 @@ async function geocodeSearch(query, limit = 5) {
   return results
 }
 
+async function geocodeReverse(position) {
+  const point = toLatLngLiteral(position)
+  if (!point) return []
+  const cacheKey = `reverse:${point.lat.toFixed(6)},${point.lng.toFixed(6)}`
+  if (geocodeCache.has(cacheKey)) return geocodeCache.get(cacheKey)
+
+  let results = []
+  try {
+    const response = await fetch(buildGeocodeReverseUrl(point))
+    if (!response.ok) throw new Error(`Reverse geocode failed (${response.status})`)
+    const payload = await response.json()
+    results = Array.isArray(payload?.results) ? payload.results : []
+  } catch {
+    const response = await fetch(buildNominatimReverseUrl(point), {
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) throw new Error(`Reverse geocode failed (${response.status})`)
+    const item = await response.json()
+    results = item?.display_name
+      ? [
+          {
+            id: String(item.place_id || item.osm_id || ''),
+            name:
+              item.name ||
+              item.address?.amenity ||
+              item.address?.building ||
+              item.address?.road ||
+              item.display_name.split(',')[0] ||
+              'Current location',
+            address: item.display_name,
+            lat: Number(item.lat) || point.lat,
+            lng: Number(item.lon) || point.lng,
+            source: 'nominatim',
+            type: item.type,
+            category: item.category,
+          },
+        ]
+      : []
+  }
+  geocodeCache.set(cacheKey, results)
+  return results
+}
+
 function toPlaceResult(item) {
   const lat = Number(item.lat)
   const lng = Number(item.lng)
@@ -355,7 +419,10 @@ function toPlaceResult(item) {
 
 class OsmGeocoder {
   geocode(request, callback) {
-    const promise = geocodeSearch(request.address || '', 1).then((items) => {
+    const lookup = request.location
+      ? geocodeReverse(request.location)
+      : geocodeSearch(request.address || '', 1)
+    const promise = lookup.then((items) => {
       const results = items.map(toPlaceResult)
       const status = results.length ? 'OK' : 'ZERO_RESULTS'
       if (callback) callback(results, status)

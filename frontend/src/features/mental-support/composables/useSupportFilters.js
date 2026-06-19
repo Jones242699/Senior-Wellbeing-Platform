@@ -36,6 +36,16 @@ export function useSupportFilters({
     query.value = queryPlace.value.formattedAddress
   }
 
+  function setCurrentLocationPlace(place) {
+    queryPlace.value = {
+      ...place,
+      formattedAddress: place.formattedAddress || place.name || '',
+    }
+    filterCenter.value = place
+    query.value = queryPlace.value.formattedAddress
+    addressFilterError.value = ''
+  }
+
   function setAddressFilterError(message) {
     addressFilterError.value = message || ''
   }
@@ -79,6 +89,7 @@ export function useSupportFilters({
     getCurrentLocationLabel,
     onQueryInput,
     setAddressFilterError,
+    setCurrentLocationPlace,
     setQueryPlaceFromAutocomplete,
   }
 }

@@ -230,6 +230,7 @@ export function useExploreSupportMap({
 
   function setUserMarker(position) {
     userPosition.value = position
+    if (!position) return
     ensureUserMarker(position)
   }
 

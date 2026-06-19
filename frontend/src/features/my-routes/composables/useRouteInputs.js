@@ -1,11 +1,20 @@
 import { ref } from 'vue'
 import {
+  GEOLOCATION_PERMISSION_ERROR,
   LOCATION_ACCESS_ERROR,
   MELBOURNE_CBD,
   assertWithinSupportedArea,
+  getGeolocationErrorMessage,
+  getGeolocationPermissionState,
 } from '../../../shared/map/locationRules'
-import { resolveAddressInput } from '../../../shared/map/addressResolver'
-import { searchPlaceSuggestions } from '../../../shared/map/placeHelpers'
+import {
+  resolveAddressInput,
+  reverseGeocodeLocation,
+} from '../../../shared/map/addressResolver'
+import {
+  resolvePlaceSuggestionLocation,
+  searchPlaceSuggestions,
+} from '../../../shared/map/placeHelpers'
 
 export function useRouteInputs({
   ensureUserMarker,
@@ -54,13 +63,17 @@ export function useRouteInputs({
     }
   }
 
-  function requestCurrentPosition() {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation is not supported by this browser.'))
-        return
-      }
+  async function requestCurrentPosition() {
+    if (!navigator.geolocation) {
+      throw new Error('Geolocation is not supported by this browser.')
+    }
 
+    const permissionState = await getGeolocationPermissionState()
+    if (permissionState === 'denied') {
+      throw new Error(GEOLOCATION_PERMISSION_ERROR)
+    }
+
+    return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
           const pos = { lat: coords.latitude, lng: coords.longitude }
@@ -70,7 +83,7 @@ export function useRouteInputs({
         },
         (err) => {
           console.warn('Geolocation error:', err)
-          reject(new Error(LOCATION_ACCESS_ERROR))
+          reject(new Error(getGeolocationErrorMessage(err)))
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
       )
@@ -119,6 +132,14 @@ export function useRouteInputs({
       mapApi: getMapApi(),
       placesService: getPlacesService(),
       limit: 5,
+    })
+  }
+
+  function resolveSuggestionLocation(suggestion) {
+    return resolvePlaceSuggestionLocation({
+      suggestion,
+      mapApi: getMapApi(),
+      placesService: getPlacesService(),
     })
   }
 
@@ -175,6 +196,21 @@ export function useRouteInputs({
     return assertWithinMelbourne(resolved.location, 'Destination')
   }
 
+  async function validateStartLocationInput() {
+    const text = startLocation.value.trim()
+    if (!text || /^melbourne\s+cbd$/i.test(text) || /^current\s*location$/i.test(text)) {
+      return
+    }
+
+    if (startPlace?.geometry?.location) {
+      assertWithinMelbourne(startPlace.geometry.location, 'Start location')
+      return
+    }
+
+    const resolved = await geocodeToLatLng(text)
+    assertWithinMelbourne(resolved.location, 'Start location')
+  }
+
   function onStartInput() {
     startPlace = null
     originMode.value = 'manual'
@@ -184,10 +220,34 @@ export function useRouteInputs({
     endPlace = null
   }
 
-  function useCurrentLocationStart() {
+  async function useCurrentLocationStart(position = userLatLng.value) {
+    if (!position) {
+      originMode.value = 'current'
+      startPlace = null
+      startLocation.value = 'Current location'
+      return
+    }
+
+    assertWithinMelbourne(position, 'Current location')
+    const resolvedAddress = await reverseGeocodeLocation({
+      getGeocoder,
+      mapApi: getMapApi(),
+      position,
+    })
+    const formattedAddress = resolvedAddress?.formattedAddress || ''
+    if (!formattedAddress) {
+      throw new Error(
+        'Unable to convert your current location into an address. Please enter a City of Melbourne address manually.',
+      )
+    }
+
     originMode.value = 'current'
-    startPlace = null
-    startLocation.value = 'Current location'
+    startPlace = normalizePlaceFromResolvedLocation(
+      position,
+      formattedAddress,
+      'Current location',
+    )
+    startLocation.value = formattedAddress
   }
 
   function setDestinationFromQuery(value) {
@@ -229,6 +289,7 @@ export function useRouteInputs({
     requestCurrentPosition,
     resolveDestination,
     resolveOrigin,
+    resolveSuggestionLocation,
     searchAddressSuggestions,
     setDestinationFromQuery,
     setResolvedDestination,
@@ -236,6 +297,7 @@ export function useRouteInputs({
     setResolvedOrigin,
     setResolvedOriginFromSuggestion,
     useCurrentLocationStart,
+    validateStartLocationInput,
     watchPositionIfSupported,
   }
 }

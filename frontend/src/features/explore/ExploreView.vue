@@ -46,10 +46,11 @@ import { useRouteFacilities } from '../my-routes/composables/useRouteFacilities'
 import { useRouteInputs } from '../my-routes/composables/useRouteInputs'
 import { useRoutePlanner } from '../my-routes/composables/useRoutePlanner'
 import { TRAVEL_MODES as ROUTE_TRAVEL_MODES } from '../my-routes/constants'
-import { MELBOURNE_CBD } from '../../shared/map/locationRules'
+import { LOCATION_ACCESS_ERROR, MELBOURNE_CBD } from '../../shared/map/locationRules'
 import { useSupportFacilities } from '../mental-support/composables/useSupportFacilities'
 import { useSupportFilters } from '../mental-support/composables/useSupportFilters'
 import { useSupportLocation } from '../mental-support/composables/useSupportLocation'
+import { resolvePlaceSuggestionLocation } from '../../shared/map/placeHelpers'
 
 const route = useRoute()
 const router = useRouter()
@@ -347,12 +348,14 @@ const {
   requestCurrentPosition,
   resolveDestination,
   resolveOrigin,
+  resolveSuggestionLocation: resolveRouteSuggestionLocation,
   searchAddressSuggestions: searchRouteAddressSuggestions,
   setResolvedDestination,
   setResolvedDestinationFromSuggestion,
   setResolvedOrigin,
   setResolvedOriginFromSuggestion,
   useCurrentLocationStart,
+  validateStartLocationInput,
   watchPositionIfSupported,
 } = useRouteInputs({
   ensureUserMarker,
@@ -430,8 +433,10 @@ let placesSuggestionTimeoutId = null
 let placesSuggestionRequestSeq = 0
 let routeStartSuggestionTimeoutId = null
 let routeDestinationSuggestionTimeoutId = null
+let routeStartValidationTimeoutId = null
 let routeStartSuggestionRequestSeq = 0
 let routeDestinationSuggestionRequestSeq = 0
+let routeStartValidationRequestSeq = 0
 
 function updateSupportDistanceDurationFromMap(origin) {
   return updateDistanceDurationForAll(origin, getMapApi())
@@ -447,6 +452,7 @@ const {
   getCurrentLocationLabel,
   onQueryInput: onSupportQueryInput,
   setAddressFilterError: setSupportAddressFilterError,
+  setCurrentLocationPlace: setSupportCurrentLocationPlace,
   setQueryPlaceFromAutocomplete,
 } = useSupportFilters({
   clearFilterCenterMarker,
@@ -480,6 +486,7 @@ const { loadDefaultLocation: loadDefaultSupportLocation, locateUser: locateSuppo
   rooms,
   selectRoomAndRoute: openSupportRoomInfo,
   setLocationError: setSupportAddressFilterError,
+  setCurrentLocationPlace: setSupportCurrentLocationPlace,
   setUserMarker: setSupportUserMarker,
   updateDistanceDurationForAll,
 })
@@ -569,8 +576,17 @@ function handlePlacesAddressInput() {
   refreshPlacesAddressSuggestions()
 }
 
-function selectPlacesAddressSuggestion(suggestion) {
-  setAddressSuggestion(suggestion)
+async function resolveExploreSuggestionLocation(suggestion) {
+  return resolvePlaceSuggestionLocation({
+    suggestion,
+    mapApi: getMapApi(),
+    placesService: getPlacesService(),
+  })
+}
+
+async function selectPlacesAddressSuggestion(suggestion) {
+  const resolvedSuggestion = await resolveExploreSuggestionLocation(suggestion)
+  setAddressSuggestion(resolvedSuggestion)
   clearPlacesAddressSuggestions()
 }
 
@@ -834,6 +850,7 @@ function clearRouteLayer() {
   clearBenchMarkers()
   clearRouteStartSuggestions()
   clearRouteDestinationSuggestions()
+  clearRouteStartValidation()
   routeSummary.value = ''
   routeError.value = ''
 }
@@ -892,8 +909,9 @@ function handleSupportQueryInput() {
   refreshSupportAddressSuggestions()
 }
 
-function selectSupportAddressSuggestion(suggestion) {
-  setQueryPlaceFromAutocomplete(suggestion)
+async function selectSupportAddressSuggestion(suggestion) {
+  const resolvedSuggestion = await resolveExploreSuggestionLocation(suggestion)
+  setQueryPlaceFromAutocomplete(resolvedSuggestion)
   clearSupportAddressSuggestions()
   setSupportAddressFilterError('')
 }
@@ -936,6 +954,40 @@ function clearRouteStartSuggestions() {
     window.clearTimeout(routeStartSuggestionTimeoutId)
     routeStartSuggestionTimeoutId = null
   }
+}
+
+function isRouteStartAreaWarning(message) {
+  return /^Start location is outside the City of Melbourne\./.test(String(message || ''))
+}
+
+function clearRouteStartValidation() {
+  routeStartValidationRequestSeq += 1
+  if (routeStartValidationTimeoutId !== null) {
+    window.clearTimeout(routeStartValidationTimeoutId)
+    routeStartValidationTimeoutId = null
+  }
+}
+
+function refreshRouteStartValidation() {
+  clearRouteStartValidation()
+  const query = startLocation.value.trim()
+  if (!query || /^current\s*location$/i.test(query) || /^melbourne\s+cbd$/i.test(query)) {
+    if (isRouteStartAreaWarning(routeError.value)) routeError.value = ''
+    return
+  }
+
+  const requestId = routeStartValidationRequestSeq
+  routeStartValidationTimeoutId = window.setTimeout(async () => {
+    try {
+      await validateStartLocationInput()
+      if (requestId !== routeStartValidationRequestSeq) return
+      if (isRouteStartAreaWarning(routeError.value)) routeError.value = ''
+    } catch (error) {
+      if (requestId !== routeStartValidationRequestSeq) return
+      const message = error?.message || ''
+      if (isRouteStartAreaWarning(message)) routeError.value = message
+    }
+  }, 450)
 }
 
 function clearRouteDestinationSuggestions() {
@@ -1004,6 +1056,7 @@ function refreshRouteDestinationSuggestions() {
 function handleRouteStartInput() {
   onStartInput()
   refreshRouteStartSuggestions()
+  refreshRouteStartValidation()
 }
 
 function handleRouteDestinationInput() {
@@ -1011,14 +1064,18 @@ function handleRouteDestinationInput() {
   refreshRouteDestinationSuggestions()
 }
 
-function selectRouteStartSuggestion(suggestion) {
-  setResolvedOriginFromSuggestion(suggestion)
+async function selectRouteStartSuggestion(suggestion) {
+  const resolvedSuggestion = await resolveRouteSuggestionLocation(suggestion)
+  setResolvedOriginFromSuggestion(resolvedSuggestion)
   clearRouteStartSuggestions()
+  clearRouteStartValidation()
   routeError.value = ''
+  refreshRouteStartValidation()
 }
 
-function selectRouteDestinationSuggestion(suggestion) {
-  setResolvedDestinationFromSuggestion(suggestion)
+async function selectRouteDestinationSuggestion(suggestion) {
+  const resolvedSuggestion = await resolveRouteSuggestionLocation(suggestion)
+  setResolvedDestinationFromSuggestion(resolvedSuggestion)
   clearRouteDestinationSuggestions()
   routeError.value = ''
 }
@@ -1033,19 +1090,21 @@ function findMatchingAddressSuggestion(query, suggestions) {
   })
 }
 
-function applyMatchingRouteStartSuggestion() {
+async function applyMatchingRouteStartSuggestion() {
   const matchingSuggestion = findMatchingAddressSuggestion(startLocation.value, routeStartSuggestions.value)
   if (!matchingSuggestion) return
-  setResolvedOriginFromSuggestion(matchingSuggestion)
+  const resolvedSuggestion = await resolveRouteSuggestionLocation(matchingSuggestion)
+  setResolvedOriginFromSuggestion(resolvedSuggestion)
 }
 
-function applyMatchingRouteDestinationSuggestion() {
+async function applyMatchingRouteDestinationSuggestion() {
   const matchingSuggestion = findMatchingAddressSuggestion(
     routeDestination.value,
     routeDestinationSuggestions.value,
   )
   if (!matchingSuggestion) return
-  setResolvedDestinationFromSuggestion(matchingSuggestion)
+  const resolvedSuggestion = await resolveRouteSuggestionLocation(matchingSuggestion)
+  setResolvedDestinationFromSuggestion(resolvedSuggestion)
 }
 
 function canSubmitRouteFromKeyboard() {
@@ -1057,41 +1116,48 @@ async function generateRouteFromKeyboard() {
   await generateRoute()
 }
 
+async function handleGenerateRoute() {
+  clearRouteStartValidation()
+  await generateRoute()
+}
+
 async function handleRouteStartSubmit() {
-  applyMatchingRouteStartSuggestion()
+  await applyMatchingRouteStartSuggestion()
   clearRouteStartSuggestions()
+  clearRouteStartValidation()
   routeError.value = ''
   await generateRouteFromKeyboard()
 }
 
 async function handleRouteDestinationSubmit() {
-  applyMatchingRouteDestinationSuggestion()
+  await applyMatchingRouteDestinationSuggestion()
   clearRouteDestinationSuggestions()
+  clearRouteStartValidation()
   routeError.value = ''
   await generateRouteFromKeyboard()
 }
 
-function useRouteMyLocation() {
+async function useRouteMyLocation() {
   routeError.value = ''
-  useCurrentLocationStart()
   clearRouteStartSuggestions()
+  clearRouteStartValidation()
 
   if (userLatLng.value) {
+    await useCurrentLocationStart(userLatLng.value)
     panTo(userLatLng.value, 16)
     watchPositionIfSupported()
     return
   }
 
   requestCurrentPosition()
-    .then((pos) => {
+    .then(async (pos) => {
+      await useCurrentLocationStart(pos)
       panTo(pos, 16)
       watchPositionIfSupported()
     })
     .catch((error) => {
       onStartInput()
-      routeError.value =
-        error?.message ||
-        'Unable to get your location. Please allow location access in the browser or enter the start manually.'
+      routeError.value = error?.message || LOCATION_ACCESS_ERROR
     })
 }
 
@@ -1121,6 +1187,7 @@ onUnmounted(() => {
   clearRouteGeoWatch()
   clearRouteStartSuggestions()
   clearRouteDestinationSuggestions()
+  clearRouteStartValidation()
   clearDetailTransitionTimeout()
   clearToiletMarkers()
   clearBenchMarkers()
@@ -1332,7 +1399,7 @@ watch(
         @travel-mode-change="onTravelModeChange"
         @set-social-density="setSocialDensity"
         @set-shade-level="setShadeLevel"
-        @generate-route="generateRoute"
+        @generate-route="handleGenerateRoute"
       />
       <ExploreSupportPanel
         v-else-if="activeModeId === 'support'"

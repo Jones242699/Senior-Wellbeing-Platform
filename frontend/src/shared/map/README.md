@@ -2,7 +2,7 @@
 
 This folder contains the shared frontend map primitives used by feature pages.
 
-The low-level adapter is `frontend/src/utils/osmMaps.js`. It exposes a Google Maps-like API backed by OpenStreetMap/Leaflet, so feature code can continue to use concepts such as `Map`, `Marker`, `DirectionsService`, `DirectionsRenderer`, `PlacesService`, and `Autocomplete` without depending directly on Leaflet.
+The low-level adapter is `frontend/src/utils/osmMaps.js`. It exposes a map-service adapter backed by OpenStreetMap/Leaflet, so feature code can continue to use concepts such as `Map`, `Marker`, `DirectionsService`, `DirectionsRenderer`, `PlacesService`, and `Autocomplete` without depending directly on Leaflet.
 
 ## Files
 
