@@ -3,7 +3,7 @@ import {
   MELBOURNE_CBD,
   assertWithinSupportedArea,
 } from '../../../shared/map/locationRules'
-import { resolveAddressInput } from '../../../shared/map/addressResolver'
+import { resolveSupportedAddressInput } from '../../../shared/map/addressResolver'
 import {
   resolveCurrentLocation,
   resolveCurrentLocationAddress,
@@ -71,10 +71,11 @@ export function useRouteInputs({
     return position
   }
 
-  async function geocodeToLatLng(address) {
-    return resolveAddressInput({
+  async function geocodeToLatLng(address, label = 'Address') {
+    return resolveSupportedAddressInput({
       address,
       getGeocoder,
+      label,
       mapApi: getMapApi(),
       placesService: getPlacesService(),
     })
@@ -151,8 +152,8 @@ export function useRouteInputs({
       return MELBOURNE_CBD
     }
 
-    const resolved = await geocodeToLatLng(text)
-    return assertWithinMelbourne(resolved.location, 'Start location')
+    const resolved = await geocodeToLatLng(text, 'Start location')
+    return resolved.location
   }
 
   async function resolveDestination() {
@@ -165,7 +166,7 @@ export function useRouteInputs({
       throw new Error('Please enter a destination.')
     }
 
-    const resolved = await geocodeToLatLng(text)
+    const resolved = await geocodeToLatLng(text, 'Destination')
     if (!endPlace?.geometry?.location) {
       endPlace = normalizePlaceFromResolvedLocation(
         resolved.location,
@@ -174,7 +175,7 @@ export function useRouteInputs({
       )
       destination.value = resolved.formattedAddress || text
     }
-    return assertWithinMelbourne(resolved.location, 'Destination')
+    return resolved.location
   }
 
   async function validateStartLocationInput() {
@@ -188,8 +189,7 @@ export function useRouteInputs({
       return
     }
 
-    const resolved = await geocodeToLatLng(text)
-    assertWithinMelbourne(resolved.location, 'Start location')
+    await geocodeToLatLng(text, 'Start location')
   }
 
   function onStartInput() {

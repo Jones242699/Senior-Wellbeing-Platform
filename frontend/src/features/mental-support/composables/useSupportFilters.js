@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { assertWithinSupportedArea } from '../../../shared/map/locationRules'
+import { normalizeSupportedSuggestion } from '../../../shared/map/addressResolver'
 
 export function useSupportFilters({
   clearFilterCenterMarker,
@@ -59,7 +60,9 @@ export function useSupportFilters({
 
     applyingAddressFilter.value = true
     try {
-      const target = queryPlace.value || (await resolveAddressFromPlaces(address))
+      const target = queryPlace.value
+        ? normalizeSupportedSuggestion(queryPlace.value, address, 'Address')
+        : await resolveAddressFromPlaces(address)
       assertWithinSupportedArea(target, 'Address')
       filterCenter.value = target
       setFilterCenterMarker({ lat: target.lat, lng: target.lng })

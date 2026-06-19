@@ -1,12 +1,10 @@
 import { ref } from 'vue'
 import {
   LOCATION_ACCESS_ERROR,
-  assertWithinSupportedArea,
   buildOutsideSupportedAreaMessage,
   isWithinBounds,
-  toLatLngLiteral,
 } from '../../../shared/map/locationRules'
-import { resolveAddressInput } from '../../../shared/map/addressResolver'
+import { resolveSupportedAddressInput } from '../../../shared/map/addressResolver'
 import { resolveCurrentLocation } from '../../../shared/map/currentLocation'
 import { searchPlaceSuggestions } from '../../../shared/map/placeHelpers'
 
@@ -79,44 +77,19 @@ export function useDiscoverLocation({
     }
   }
 
-  function assertWithinMelbourne(lat, lng, label = 'Address') {
-    assertWithinSupportedArea({ lat, lng }, label)
-  }
-
   function onAddressInput() {
     selectedAddressPlace.value = null
   }
 
   async function resolveAddressCoordinates() {
-    const keyword = addressQuery.value.trim()
-    if (!keyword) throw new Error('Please enter an address first.')
-
-    const placePoint = selectedAddressPlace.value
-    if (placePoint?.lat && placePoint?.lng) {
-      assertWithinMelbourne(placePoint.lat, placePoint.lng, 'Address')
-      return {
-        lat: placePoint.lat,
-        lng: placePoint.lng,
-        formattedAddress: placePoint.formattedAddress || keyword,
-      }
-    }
-
     const mapApi = await loadDiscoverMapApi()
-    const resolved = await resolveAddressInput({
-      address: keyword,
+    return resolveSupportedAddressInput({
+      address: addressQuery.value,
       getGeocoder,
       mapApi,
       placesService: getPlacesService(),
+      selectedPlace: selectedAddressPlace.value,
     })
-    const point = toLatLngLiteral(resolved.location)
-    if (!point) throw new Error('Address not found. Please try a clearer address.')
-    assertWithinMelbourne(point.lat, point.lng, 'Address')
-
-    return {
-      lat: point.lat,
-      lng: point.lng,
-      formattedAddress: resolved.formattedAddress || keyword,
-    }
   }
 
   async function searchAddressSuggestions(query) {
