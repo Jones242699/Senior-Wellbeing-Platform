@@ -1,10 +1,6 @@
 import { computed, ref } from 'vue'
 import { getApiBase } from '../../../config/api'
-import {
-  CBD_ANCHOR_FALLBACK_RADIUS_METERS,
-  DEFAULT_SEARCH_RADIUS_METERS,
-  MELBOURNE_CENTER,
-} from '../constants'
+import { DEFAULT_SEARCH_RADIUS_METERS } from '../constants'
 
 function formatDistanceMeters(meters) {
   const m = Number(meters)
@@ -13,17 +9,6 @@ function formatDistanceMeters(meters) {
   const km = m / 1000
   const rounded = Math.round(km * 10) / 10
   return `${rounded}km`
-}
-
-function haversineMeters(a, b) {
-  const R = 6371000
-  const toRad = (d) => (d * Math.PI) / 180
-  const dLat = toRad(b.lat - a.lat)
-  const dLng = toRad(b.lng - a.lng)
-  const lat1 = toRad(a.lat)
-  const lat2 = toRad(b.lat)
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
 function buildCounselingCentersFetchUrl(lat, lng, radiusMeters) {
@@ -54,14 +39,6 @@ export function useSupportFacilities() {
   const roomsFetchError = ref('')
   const rooms = ref([])
 
-  function sortRoomsByDistance() {
-    rooms.value = [...rooms.value].sort(
-      (a, b) =>
-        Number(a.distanceMeters ?? Number.POSITIVE_INFINITY) -
-        Number(b.distanceMeters ?? Number.POSITIVE_INFINITY),
-    )
-  }
-
   async function fetchRoomsNearby(userOrigin) {
     loadingRooms.value = true
     roomsFetchError.value = ''
@@ -70,22 +47,11 @@ export function useSupportFacilities() {
       const primaryRadius =
         Number.isFinite(envRadius) && envRadius > 0 ? envRadius : DEFAULT_SEARCH_RADIUS_METERS
 
-      let rows = await fetchCounselingCentersRows(userOrigin.lat, userOrigin.lng, primaryRadius)
-      let distanceFromUser = true
-      if (rows.length === 0) {
-        rows = await fetchCounselingCentersRows(
-          MELBOURNE_CENTER.lat,
-          MELBOURNE_CENTER.lng,
-          CBD_ANCHOR_FALLBACK_RADIUS_METERS,
-        )
-        distanceFromUser = false
-      }
+      const rows = await fetchCounselingCentersRows(userOrigin.lat, userOrigin.lng, primaryRadius)
 
       rooms.value = rows.map((item) => {
         const position = { lat: Number(item.latitude), lng: Number(item.longitude) }
-        const meters = distanceFromUser
-          ? Number(item.distance_meters)
-          : haversineMeters(userOrigin, position)
+        const meters = Number(item.distance_meters)
         return {
           id: item.id,
           name: item.name,
@@ -100,7 +66,6 @@ export function useSupportFacilities() {
           durationText: '',
         }
       })
-      sortRoomsByDistance()
     } catch (err) {
       console.error('counseling-centers', err)
       rooms.value = []
