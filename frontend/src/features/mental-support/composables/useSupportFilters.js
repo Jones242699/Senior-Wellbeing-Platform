@@ -1,14 +1,14 @@
 import { ref } from 'vue'
 import { assertWithinSupportedArea } from '../../../shared/map/locationRules'
+import { normalizeSupportedSuggestion } from '../../../shared/map/addressResolver'
 
 export function useSupportFilters({
   clearFilterCenterMarker,
-  getMapApi,
+  fetchRoomsNearby,
   panTo,
   resolveAddressFromPlaces,
   selectedRoomId,
   setFilterCenterMarker,
-  updateDistanceDurationForAll,
 }) {
   const query = ref('')
   const queryPlace = ref(null)
@@ -36,6 +36,16 @@ export function useSupportFilters({
     query.value = queryPlace.value.formattedAddress
   }
 
+  function setCurrentLocationPlace(place) {
+    queryPlace.value = {
+      ...place,
+      formattedAddress: place.formattedAddress || place.name || '',
+    }
+    filterCenter.value = place
+    query.value = queryPlace.value.formattedAddress
+    addressFilterError.value = ''
+  }
+
   function setAddressFilterError(message) {
     addressFilterError.value = message || ''
   }
@@ -50,12 +60,14 @@ export function useSupportFilters({
 
     applyingAddressFilter.value = true
     try {
-      const target = queryPlace.value || (await resolveAddressFromPlaces(address))
+      const target = queryPlace.value
+        ? normalizeSupportedSuggestion(queryPlace.value, address, 'Address')
+        : await resolveAddressFromPlaces(address)
       assertWithinSupportedArea(target, 'Address')
       filterCenter.value = target
       setFilterCenterMarker({ lat: target.lat, lng: target.lng })
       panTo({ lat: target.lat, lng: target.lng }, 13)
-      await updateDistanceDurationForAll(target, getMapApi())
+      await fetchRoomsNearby(target)
       selectedRoomId.value = null
     } catch (err) {
       addressFilterError.value = err?.message || 'Failed to apply address filter.'
@@ -79,6 +91,7 @@ export function useSupportFilters({
     getCurrentLocationLabel,
     onQueryInput,
     setAddressFilterError,
+    setCurrentLocationPlace,
     setQueryPlaceFromAutocomplete,
   }
 }

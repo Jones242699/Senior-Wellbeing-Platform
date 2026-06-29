@@ -12,6 +12,7 @@ export function useDiscoverMap({
   mapRenderablePlaces,
   nextTick,
   onDirections,
+  onMoreInfo,
   refreshCrowdDensityOverlay,
   userLocation,
 }) {
@@ -24,6 +25,7 @@ export function useDiscoverMap({
   let activePopupMarker = null
   let placeInfoWindow = null
   let placePopupRequestSeq = 0
+  let popupActionsBound = false
   let mapApi = null
 
   function setMapApi(api) {
@@ -94,12 +96,12 @@ export function useDiscoverMap({
   function buildPlacePopupHtml(place, { loading = false } = {}) {
     const distance =
       userLocation.value && typeof place.distanceMeters === 'number'
-        ? `<p class="place-popup-line"><strong>Distance:</strong> ${escapeHtml(
+        ? `<p class="support-popup-line"><strong>Distance:</strong> ${escapeHtml(
             formatDistance(place.distanceMeters),
           )}</p>`
         : ''
     const description = place.description
-      ? `<p class="place-popup-line place-popup-desc"><strong>Description:</strong> ${escapeHtml(
+      ? `<p class="support-popup-line place-popup-desc"><strong>Description:</strong> ${escapeHtml(
           place.description,
         )}</p>`
       : ''
@@ -112,56 +114,82 @@ export function useDiscoverMap({
           material: 'Material',
         }
         return place[key]
-          ? `<p class="place-popup-line"><strong>${labels[key]}:</strong> ${escapeHtml(place[key])}</p>`
+          ? `<p class="support-popup-line"><strong>${labels[key]}:</strong> ${escapeHtml(place[key])}</p>`
           : ''
       })
       .join('')
 
     return `
       <div class="place-map-popup" data-place-popup-id="${escapeHtml(place.id)}">
-        <div class="place-popup-header">
-          <div class="place-popup-icon" ${
-            place.imageUrl
-              ? `style="background-image: url('${escapeHtml(place.imageUrl)}');"`
-              : ''
-          }>${place.imageUrl ? '' : escapeHtml(place.icon || '')}</div>
-          <div class="place-popup-title">
+        <div class="support-popup-header">
+          <span class="place-popup-pin" style="background: ${escapeHtml(
+            mapMarkerColorByCategory[place.categoryKey] || '#f97316',
+          )};"></span>
+          <div>
             <h3>${escapeHtml(place.name)}</h3>
             <p>${escapeHtml(place.categoryLabel || '')}</p>
           </div>
         </div>
         ${description}
-        <p class="place-popup-line"><strong>Address:</strong> ${escapeHtml(place.address || '')}</p>
+        ${
+          place.address
+            ? `<p class="support-popup-line"><strong>Address:</strong> ${escapeHtml(place.address)}</p>`
+            : ''
+        }
         ${distance}
         ${richDetails}
         ${loading ? '<p class="place-popup-loading">Loading details...</p>' : ''}
-        <button
-          type="button"
-          class="place-popup-direction-btn"
-          data-place-direction-id="${escapeHtml(place.id)}"
-        >
-          Direction
-        </button>
+        <div class="support-popup-actions">
+          <button
+            type="button"
+            class="support-popup-more-btn"
+            data-place-more-id="${escapeHtml(place.id)}"
+          >
+            More info
+          </button>
+          <button
+            type="button"
+            class="support-popup-direction-btn"
+            data-place-direction-id="${escapeHtml(place.id)}"
+          >
+            Direction
+          </button>
+        </div>
       </div>
     `
   }
 
-  function attachPopupActions(place) {
-    window.setTimeout(() => {
-      const mapContainer = discoverMap?.getDiv?.()
-      const button = [...(mapContainer?.querySelectorAll('[data-place-direction-id]') || [])].find(
-        (item) => item.dataset.placeDirectionId === String(place.id),
-      )
-      if (!button) return
-      button.addEventListener(
-        'click',
-        (event) => {
+  function findPopupPlace(id) {
+    return filteredPlaces.value.find((place) => String(place.id) === String(id))
+  }
+
+  function bindPopupActions() {
+    if (popupActionsBound) return
+    popupActionsBound = true
+    document.addEventListener(
+      'click',
+      (event) => {
+        const directionButton = event.target?.closest?.('[data-place-direction-id]')
+        if (directionButton) {
+          const place = findPopupPlace(directionButton.dataset.placeDirectionId)
+          if (!place) return
           event.preventDefault()
+          event.stopPropagation()
           onDirections?.(place)
-        },
-        { once: true },
-      )
-    }, 0)
+          return
+        }
+
+        const moreButton = event.target?.closest?.('[data-place-more-id]')
+        if (moreButton) {
+          const place = findPopupPlace(moreButton.dataset.placeMoreId)
+          if (!place) return
+          event.preventDefault()
+          event.stopPropagation()
+          onMoreInfo?.(place)
+        }
+      },
+      true,
+    )
   }
 
   function closePlacePopup({ cancelRequest = true } = {}) {
@@ -179,7 +207,7 @@ export function useDiscoverMap({
     placeInfoWindow.setContent(buildPlacePopupHtml(place, options))
     placeInfoWindow.open(discoverMap, marker)
     activePopupMarker = marker
-    attachPopupActions(place)
+    bindPopupActions()
   }
 
   function upsertPlaceMarker(place) {

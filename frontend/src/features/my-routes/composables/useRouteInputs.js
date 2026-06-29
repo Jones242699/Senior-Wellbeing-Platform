@@ -1,11 +1,17 @@
 import { ref } from 'vue'
 import {
-  LOCATION_ACCESS_ERROR,
   MELBOURNE_CBD,
   assertWithinSupportedArea,
 } from '../../../shared/map/locationRules'
-import { resolveAddressInput } from '../../../shared/map/addressResolver'
-import { searchPlaceSuggestions } from '../../../shared/map/placeHelpers'
+import { resolveSupportedAddressInput } from '../../../shared/map/addressResolver'
+import {
+  resolveCurrentLocation,
+  resolveCurrentLocationAddress,
+} from '../../../shared/map/currentLocation'
+import {
+  resolvePlaceSuggestionLocation,
+  searchPlaceSuggestions,
+} from '../../../shared/map/placeHelpers'
 
 export function useRouteInputs({
   ensureUserMarker,
@@ -54,33 +60,22 @@ export function useRouteInputs({
     }
   }
 
-  function requestCurrentPosition() {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation is not supported by this browser.'))
-        return
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        ({ coords }) => {
-          const pos = { lat: coords.latitude, lng: coords.longitude }
-          userLatLng.value = pos
-          ensureUserMarker(pos)
-          resolve(pos)
-        },
-        (err) => {
-          console.warn('Geolocation error:', err)
-          reject(new Error(LOCATION_ACCESS_ERROR))
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
-      )
+  async function requestCurrentPosition() {
+    const { position } = await resolveCurrentLocation({
+      getGeocoder,
+      getMapApi,
+      label: 'Current location',
     })
+    userLatLng.value = position
+    ensureUserMarker(position)
+    return position
   }
 
-  async function geocodeToLatLng(address) {
-    return resolveAddressInput({
+  async function geocodeToLatLng(address, label = 'Address') {
+    return resolveSupportedAddressInput({
       address,
       getGeocoder,
+      label,
       mapApi: getMapApi(),
       placesService: getPlacesService(),
     })
@@ -122,6 +117,14 @@ export function useRouteInputs({
     })
   }
 
+  function resolveSuggestionLocation(suggestion) {
+    return resolvePlaceSuggestionLocation({
+      suggestion,
+      mapApi: getMapApi(),
+      placesService: getPlacesService(),
+    })
+  }
+
   async function resolveOrigin() {
     const text = startLocation.value.trim()
 
@@ -149,8 +152,8 @@ export function useRouteInputs({
       return MELBOURNE_CBD
     }
 
-    const resolved = await geocodeToLatLng(text)
-    return assertWithinMelbourne(resolved.location, 'Start location')
+    const resolved = await geocodeToLatLng(text, 'Start location')
+    return resolved.location
   }
 
   async function resolveDestination() {
@@ -163,7 +166,7 @@ export function useRouteInputs({
       throw new Error('Please enter a destination.')
     }
 
-    const resolved = await geocodeToLatLng(text)
+    const resolved = await geocodeToLatLng(text, 'Destination')
     if (!endPlace?.geometry?.location) {
       endPlace = normalizePlaceFromResolvedLocation(
         resolved.location,
@@ -172,7 +175,21 @@ export function useRouteInputs({
       )
       destination.value = resolved.formattedAddress || text
     }
-    return assertWithinMelbourne(resolved.location, 'Destination')
+    return resolved.location
+  }
+
+  async function validateStartLocationInput() {
+    const text = startLocation.value.trim()
+    if (!text || /^melbourne\s+cbd$/i.test(text) || /^current\s*location$/i.test(text)) {
+      return
+    }
+
+    if (startPlace?.geometry?.location) {
+      assertWithinMelbourne(startPlace.geometry.location, 'Start location')
+      return
+    }
+
+    await geocodeToLatLng(text, 'Start location')
   }
 
   function onStartInput() {
@@ -184,10 +201,40 @@ export function useRouteInputs({
     endPlace = null
   }
 
-  function useCurrentLocationStart() {
+  async function useCurrentLocationStart(position = userLatLng.value) {
+    if (!position) {
+      const current = await resolveCurrentLocation({
+        getGeocoder,
+        getMapApi,
+        label: 'Current location',
+      })
+      userLatLng.value = current.position
+      ensureUserMarker(current.position)
+      originMode.value = 'current'
+      startPlace = normalizePlaceFromResolvedLocation(
+        current.position,
+        current.place.formattedAddress,
+        current.place.name || 'Current location',
+      )
+      startLocation.value = current.place.formattedAddress
+      return current.position
+    }
+
+    const current = await resolveCurrentLocationAddress({
+      getGeocoder,
+      getMapApi,
+      label: 'Current location',
+      position,
+    })
+
     originMode.value = 'current'
-    startPlace = null
-    startLocation.value = 'Current location'
+    startPlace = normalizePlaceFromResolvedLocation(
+      current.position,
+      current.place.formattedAddress,
+      current.place.name || 'Current location',
+    )
+    startLocation.value = current.place.formattedAddress
+    return current.position
   }
 
   function setDestinationFromQuery(value) {
@@ -229,6 +276,7 @@ export function useRouteInputs({
     requestCurrentPosition,
     resolveDestination,
     resolveOrigin,
+    resolveSuggestionLocation,
     searchAddressSuggestions,
     setDestinationFromQuery,
     setResolvedDestination,
@@ -236,6 +284,7 @@ export function useRouteInputs({
     setResolvedOrigin,
     setResolvedOriginFromSuggestion,
     useCurrentLocationStart,
+    validateStartLocationInput,
     watchPositionIfSupported,
   }
 }

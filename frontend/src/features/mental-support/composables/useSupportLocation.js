@@ -1,9 +1,8 @@
 import { MELBOURNE_CENTER } from '../constants'
 import {
   LOCATION_ACCESS_ERROR,
-  buildOutsideSupportedAreaMessage,
-  isWithinBounds,
 } from '../../../shared/map/locationRules'
+import { resolveCurrentLocation } from '../../../shared/map/currentLocation'
 
 export function useSupportLocation({
   clearAddressFilterState,
@@ -14,51 +13,54 @@ export function useSupportLocation({
   renderRoomMarkers,
   rooms,
   selectRoomAndRoute,
+  setCurrentLocationPlace,
   setLocationError,
   setUserMarker,
-  updateDistanceDurationForAll,
 }) {
+  let locationRequestSeq = 0
+
+  function cancelPendingLocation() {
+    locationRequestSeq += 1
+  }
+
+  function isCurrentLocationRequest(requestSeq) {
+    return requestSeq === locationRequestSeq
+  }
+
   async function loadRoomsForOrigin(origin) {
     await fetchRoomsNearby(origin)
-    await updateDistanceDurationForAll(origin, getMapApi())
     renderRoomMarkers(rooms.value, selectRoomAndRoute)
   }
 
   async function locateUser() {
+    const requestSeq = locationRequestSeq + 1
+    locationRequestSeq = requestSeq
     // Explicitly switch back to realtime location as the route/list origin.
     clearAddressFilterState()
     clearSelectedRoom()
 
-    if (!navigator.geolocation) {
-      setLocationError?.(LOCATION_ACCESS_ERROR)
-      await loadRoomsForOrigin(MELBOURNE_CENTER)
-      return
+    try {
+      const { place, position } = await resolveCurrentLocation({
+        getGeocoder: null,
+        getMapApi,
+        label: 'Current location',
+      })
+      if (!isCurrentLocationRequest(requestSeq)) return
+      setLocationError?.('')
+      setCurrentLocationPlace?.(place)
+      setUserMarker(position)
+      panTo(position)
+      await loadRoomsForOrigin(position)
+      if (!isCurrentLocationRequest(requestSeq)) return
+    } catch (error) {
+      if (!isCurrentLocationRequest(requestSeq)) return
+      setLocationError?.(error?.message || LOCATION_ACCESS_ERROR)
+      setUserMarker(null)
     }
-
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        const current = { lat: coords.latitude, lng: coords.longitude }
-        if (!isWithinBounds(current)) {
-          setLocationError?.(buildOutsideSupportedAreaMessage('Current location'))
-          await loadRoomsForOrigin(MELBOURNE_CENTER)
-          return
-        }
-
-        setLocationError?.('')
-        setUserMarker(current)
-        panTo(current)
-        await loadRoomsForOrigin(current)
-      },
-      async () => {
-        setLocationError?.(LOCATION_ACCESS_ERROR)
-        setUserMarker(MELBOURNE_CENTER)
-        await loadRoomsForOrigin(MELBOURNE_CENTER)
-      },
-      { enableHighAccuracy: true, timeout: 8000 },
-    )
   }
 
   async function loadDefaultLocation() {
+    cancelPendingLocation()
     clearAddressFilterState()
     clearSelectedRoom()
     setLocationError?.('')
@@ -66,6 +68,7 @@ export function useSupportLocation({
   }
 
   return {
+    cancelPendingLocation,
     loadDefaultLocation,
     locateUser,
   }

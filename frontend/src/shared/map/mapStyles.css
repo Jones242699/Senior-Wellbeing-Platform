@@ -71,14 +71,14 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: 14px 18px;
   color: #475569;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   pointer-events: auto;
 }
 
 .shared-map-legend-title {
   margin: 0 0 10px;
   color: #1e293b;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   font-weight: 800;
 }
 
@@ -95,7 +95,7 @@
 
 .shared-map-legend-item > span:last-child {
   color: #334155;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   font-weight: 500;
 }
 
@@ -116,7 +116,7 @@
   align-items: center;
   justify-content: center;
   color: #ffffff !important;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 800;
   flex-shrink: 0;
 }

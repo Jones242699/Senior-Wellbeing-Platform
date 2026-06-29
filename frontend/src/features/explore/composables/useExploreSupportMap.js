@@ -1,6 +1,5 @@
 import { ref } from 'vue'
-import { resolveAddressInput } from '../../../shared/map/addressResolver'
-import { toLatLngLiteral } from '../../../shared/map/locationRules'
+import { resolveSupportedAddressInput } from '../../../shared/map/addressResolver'
 import { clearMarkers, createCircleMarker } from '../../../shared/map/markerHelpers'
 import {
   searchPlaceSuggestions,
@@ -230,6 +229,7 @@ export function useExploreSupportMap({
 
   function setUserMarker(position) {
     userPosition.value = position
+    if (!position) return
     ensureUserMarker(position)
   }
 
@@ -266,19 +266,12 @@ export function useExploreSupportMap({
   }
 
   async function resolveAddressFromPlaces(address) {
-    const resolved = await resolveAddressInput({
+    return resolveSupportedAddressInput({
       address,
       getGeocoder,
       mapApi: getMapApi(),
       placesService: getPlacesService(),
     })
-    const point = toLatLngLiteral(resolved.location)
-    if (!point) throw new Error('Address not found. Please pick one from the suggestions.')
-    return {
-      ...point,
-      formattedAddress: resolved.formattedAddress || address,
-      name: resolved.name || address,
-    }
   }
 
   function searchAddressSuggestions(query) {

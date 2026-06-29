@@ -79,13 +79,15 @@ onMounted(() => {
         </button>
       </div>
     </section>
-    <p v-if="addressFilterError" class="address-error">{{ addressFilterError }}</p>
+    <p v-if="addressFilterError && showLocationToolbar" class="address-error">
+      {{ addressFilterError }}
+    </p>
 
     <p class="result-count" v-if="!showSelectCategoryHint && !isLoadingPlaces">
       Showing {{ totalPlaces }} places
     </p>
 
-    <div v-if="locationUnavailable" class="calm-banner">
+    <div v-if="locationUnavailable && !addressFilterError" class="calm-banner">
       Location is currently off. Turn on device location for nearby-distance sorting.
     </div>
 

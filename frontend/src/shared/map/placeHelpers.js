@@ -10,6 +10,10 @@ export function toPlacePoint(place, fallbackText = '') {
   }
 }
 
+function getPlacesStatusValue(mapApi, statusName) {
+  return mapApi?.places?.PlacesServiceStatus?.[statusName] || statusName
+}
+
 export function resolvePlaceFromQuery({ address, mapApi, placesService, rejectMessage }) {
   if (!placesService) throw new Error('Map is not ready yet.')
 
@@ -40,15 +44,19 @@ function normalizeSuggestionText(value) {
   return String(value || '')
     .trim()
     .toLowerCase()
+    .replace(/\b(vic|victoria|australia|au)\b/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function buildSuggestionKey(suggestion) {
-  const name = normalizeSuggestionText(suggestion.name)
   const address = normalizeSuggestionText(suggestion.formattedAddress)
+  const name = normalizeSuggestionText(suggestion.name)
+  const textKey = address || name
   const lat = Number.isFinite(suggestion.lat) ? suggestion.lat.toFixed(5) : ''
   const lng = Number.isFinite(suggestion.lng) ? suggestion.lng.toFixed(5) : ''
-  return `${name}|${address}|${lat},${lng}`
+  return textKey || `${lat},${lng}`
 }
 
 function dedupeSuggestions(suggestions) {
@@ -66,8 +74,8 @@ export function searchPlaceSuggestions({ query, mapApi, placesService, limit = 5
   if (!searchText || !placesService) return Promise.resolve([])
 
   return new Promise((resolve) => {
-    placesService.textSearch({ query: searchText }, (results, status) => {
-      if (status !== mapApi?.places?.PlacesServiceStatus?.OK || !Array.isArray(results)) {
+    placesService.textSearch({ query: searchText, region: 'au' }, (results, status) => {
+      if (status !== getPlacesStatusValue(mapApi, 'OK') || !Array.isArray(results)) {
         resolve([])
         return
       }
@@ -75,6 +83,14 @@ export function searchPlaceSuggestions({ query, mapApi, placesService, limit = 5
       resolve(dedupeSuggestions(suggestions).slice(0, limit))
     })
   })
+}
+
+export function resolvePlaceSuggestionLocation({ suggestion }) {
+  if (suggestion?.place?.geometry?.location) return Promise.resolve(suggestion)
+  if (Number.isFinite(suggestion?.lat) && Number.isFinite(suggestion?.lng)) {
+    return Promise.resolve(suggestion)
+  }
+  return Promise.resolve(suggestion)
 }
 
 export function setupPlaceAutocomplete({

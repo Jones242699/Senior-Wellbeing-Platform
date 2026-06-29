@@ -168,7 +168,7 @@ function onAddressInput() {
   background: #f8fafc;
   color: #475569;
   padding: 9px 11px;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 700;
 }
 
@@ -204,7 +204,7 @@ function onAddressInput() {
   border: 1px solid #d1d5db;
   border-radius: 8px 0 0 8px;
   background: #ffffff;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   outline: none;
   padding: 11px 12px;
 }
@@ -220,7 +220,7 @@ function onAddressInput() {
   border-radius: 0;
   background: #edf4ef;
   color: #4f7c65;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   height: 46px;
   min-width: 88px;
   padding: 0 10px;
@@ -401,11 +401,11 @@ function onAddressInput() {
   width: 56px;
   height: 56px;
   border-radius: 8px;
-  font-size: 26px;
+  font-size: calc(26px * var(--font-scale, 1));
 }
 
 .explore-places-panel :deep(.place-main h2) {
-  font-size: 15px;
+  font-size: calc(15px * var(--font-scale, 1));
 }
 
 @media (max-width: 900px) {
@@ -441,7 +441,7 @@ function onAddressInput() {
   }
 
   .explore-location-status {
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale, 1));
     padding: 8px 10px;
   }
 
@@ -453,7 +453,7 @@ function onAddressInput() {
   .explore-places-panel :deep(.map-chip) {
     min-height: 36px;
     padding: 7px 10px;
-    font-size: 13px;
+    font-size: calc(13px * var(--font-scale, 1));
   }
 
   .explore-places-panel :deep(.crowd-density-toggle) {

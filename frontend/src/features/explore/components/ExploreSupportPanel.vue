@@ -177,7 +177,7 @@ function formatHours(openHours, dayKey) {
   background: #f8fafc;
   color: #475569;
   padding: 9px 11px;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 700;
 }
 
@@ -221,7 +221,7 @@ function formatHours(openHours, dayKey) {
   background: #ffffff;
   height: 46px;
   padding: 11px 12px;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   outline: none;
 }
 
@@ -254,7 +254,7 @@ function formatHours(openHours, dayKey) {
   border-radius: 0;
   background: #edf4ef;
   color: #4f7c65;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   min-width: 88px;
 }
 
@@ -269,7 +269,7 @@ function formatHours(openHours, dayKey) {
 
 .explore-support-panel :deep(.search-error) {
   color: #b91c1c;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   margin: 6px 0 0;
 }
 
@@ -286,7 +286,7 @@ function formatHours(openHours, dayKey) {
   border-radius: 8px;
   background: #eef2f7;
   color: #475569;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 700;
   padding: 10px;
 }
@@ -343,7 +343,7 @@ function formatHours(openHours, dayKey) {
   color: #166534;
   display: grid;
   flex: 0 0 auto;
-  font-size: 22px;
+  font-size: calc(22px * var(--font-scale, 1));
   font-weight: 900;
   height: 56px;
   place-items: center;
@@ -362,14 +362,14 @@ function formatHours(openHours, dayKey) {
   border-radius: 8px;
   color: #166534;
   display: inline-block;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 700;
   padding: 3px 9px;
   width: fit-content;
 }
 
 .explore-support-panel :deep(.room-card h3) {
-  font-size: 15px;
+  font-size: calc(15px * var(--font-scale, 1));
   line-height: 1.25;
   margin: 0;
 }
@@ -377,7 +377,7 @@ function formatHours(openHours, dayKey) {
 .explore-support-panel :deep(.support-distance-text),
 .explore-support-panel :deep(.support-origin-line) {
   color: #374151;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   margin: 0;
 }
 
@@ -393,7 +393,7 @@ function formatHours(openHours, dayKey) {
   border-radius: 8px;
   box-sizing: border-box;
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 800;
   min-height: 34px;
   padding: 8px 11px;
@@ -437,7 +437,7 @@ function formatHours(openHours, dayKey) {
   background: #ffffff;
   color: #166534;
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 800;
   min-height: 32px;
   padding: 7px 10px;
@@ -447,7 +447,7 @@ function formatHours(openHours, dayKey) {
   display: block;
   margin-top: 14px;
   color: #166534;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 900;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -456,7 +456,7 @@ function formatHours(openHours, dayKey) {
 .support-detail-header h2 {
   margin: 5px 0 0;
   color: #111827;
-  font-size: 24px;
+  font-size: calc(24px * var(--font-scale, 1));
   line-height: 1.18;
 }
 
@@ -474,7 +474,7 @@ function formatHours(openHours, dayKey) {
 .support-detail-section h3 {
   margin: 0 0 10px;
   color: #111827;
-  font-size: 16px;
+  font-size: calc(16px * var(--font-scale, 1));
 }
 
 .support-detail-list,
@@ -497,7 +497,7 @@ function formatHours(openHours, dayKey) {
 .support-detail-list dt,
 .support-hours-list dt {
   color: #64748b;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 800;
   margin-bottom: 4px;
 }
@@ -506,7 +506,7 @@ function formatHours(openHours, dayKey) {
 .support-hours-list dd {
   margin: 0;
   color: #1f2937;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   line-height: 1.4;
 }
 
@@ -539,7 +539,7 @@ function formatHours(openHours, dayKey) {
   background: #166534;
   color: #ffffff;
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   font-weight: 900;
   min-height: 42px;
   padding: 10px 12px;
@@ -611,7 +611,7 @@ function formatHours(openHours, dayKey) {
   }
 
   .explore-location-status {
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale, 1));
     padding: 8px 10px;
   }
 

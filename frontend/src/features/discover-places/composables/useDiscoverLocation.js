@@ -1,12 +1,11 @@
 import { ref } from 'vue'
 import {
   LOCATION_ACCESS_ERROR,
-  assertWithinSupportedArea,
   buildOutsideSupportedAreaMessage,
   isWithinBounds,
-  toLatLngLiteral,
 } from '../../../shared/map/locationRules'
-import { resolveAddressInput } from '../../../shared/map/addressResolver'
+import { resolveSupportedAddressInput } from '../../../shared/map/addressResolver'
+import { resolveCurrentLocation } from '../../../shared/map/currentLocation'
 import { searchPlaceSuggestions } from '../../../shared/map/placeHelpers'
 
 export function useDiscoverLocation({
@@ -57,49 +56,25 @@ export function useDiscoverLocation({
   }
 
   async function requestBrowserLocation() {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        locationErrorMessage.value = LOCATION_ACCESS_ERROR
-        locationUnavailable.value = true
-        locationMode.value = 'none'
-        resolve(null)
-        return
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        ({ coords }) => {
-          const position = { lat: coords.latitude, lng: coords.longitude }
-          if (!isWithinBounds(position)) {
-            locationErrorMessage.value = buildOutsideSupportedAreaMessage('Current location')
-            locationUnavailable.value = true
-            locationMode.value = 'none'
-            userLocation.value = null
-            resolve(null)
-            return
-          }
-
-          userLocation.value = position
-          locationErrorMessage.value = ''
-          locationUnavailable.value = false
-          locationMode.value = 'device'
-          resolve(userLocation.value)
-        },
-        () => {
-          locationErrorMessage.value = LOCATION_ACCESS_ERROR
-          locationUnavailable.value = true
-          if (locationMode.value === 'device' || locationMode.value === 'none') {
-            userLocation.value = null
-            locationMode.value = 'none'
-          }
-          resolve(null)
-        },
-        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
-      )
-    })
-  }
-
-  function assertWithinMelbourne(lat, lng, label = 'Address') {
-    assertWithinSupportedArea({ lat, lng }, label)
+    try {
+      const { place, position } = await resolveCurrentLocation({
+        getGeocoder,
+        getMapApi: loadDiscoverMapApi,
+      })
+      userLocation.value = position
+      selectedAddressPlace.value = place
+      addressQuery.value = place.formattedAddress
+      locationErrorMessage.value = ''
+      locationUnavailable.value = false
+      locationMode.value = 'device'
+      return userLocation.value
+    } catch (error) {
+      locationErrorMessage.value = error?.message || LOCATION_ACCESS_ERROR
+      locationUnavailable.value = true
+      locationMode.value = 'none'
+      userLocation.value = null
+      return null
+    }
   }
 
   function onAddressInput() {
@@ -107,35 +82,14 @@ export function useDiscoverLocation({
   }
 
   async function resolveAddressCoordinates() {
-    const keyword = addressQuery.value.trim()
-    if (!keyword) throw new Error('Please enter an address first.')
-
-    const placePoint = selectedAddressPlace.value
-    if (placePoint?.lat && placePoint?.lng) {
-      assertWithinMelbourne(placePoint.lat, placePoint.lng, 'Address')
-      return {
-        lat: placePoint.lat,
-        lng: placePoint.lng,
-        formattedAddress: placePoint.formattedAddress || keyword,
-      }
-    }
-
     const mapApi = await loadDiscoverMapApi()
-    const resolved = await resolveAddressInput({
-      address: keyword,
+    return resolveSupportedAddressInput({
+      address: addressQuery.value,
       getGeocoder,
       mapApi,
       placesService: getPlacesService(),
+      selectedPlace: selectedAddressPlace.value,
     })
-    const point = toLatLngLiteral(resolved.location)
-    if (!point) throw new Error('Address not found. Please try a clearer address.')
-    assertWithinMelbourne(point.lat, point.lng, 'Address')
-
-    return {
-      lat: point.lat,
-      lng: point.lng,
-      formattedAddress: resolved.formattedAddress || keyword,
-    }
   }
 
   async function searchAddressSuggestions(query) {

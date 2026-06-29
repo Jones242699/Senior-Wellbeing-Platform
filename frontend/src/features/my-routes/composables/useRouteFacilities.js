@@ -62,11 +62,11 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
 
       infoWindow.setContent(`
         <div style="font-family: inherit; color: #1e293b; padding: 4px; max-width: 260px;">
-          <strong style="display: block; margin-bottom: 4px; font-size: 15px;">${toilet.name || 'Public Toilet'}</strong>
-          <div style="font-size: 12px; color: #64748b;">${toilet.operator || 'Public facility'}</div>
+          <strong style="display: block; margin-bottom: 4px; font-size: calc(15px * var(--font-scale, 1));">${toilet.name || 'Public Toilet'}</strong>
+          <div style="font-size: calc(12px * var(--font-scale, 1)); color: #64748b;">${toilet.operator || 'Public facility'}</div>
           ${
             access.length
-              ? `<ul style="font-size: 12px; padding-left: 16px; margin: 8px 0 0;">${access
+              ? `<ul style="font-size: calc(12px * var(--font-scale, 1)); padding-left: 16px; margin: 8px 0 0;">${access
                   .map((item) => `<li>${item}</li>`)
                   .join('')}</ul>`
               : ''
@@ -130,8 +130,8 @@ export function useRouteFacilities({ getInfoWindow, getMap, getMapApi }) {
     marker.addListener('click', () => {
       infoWindow.setContent(`
         <div style="font-family: inherit; color: #1e293b; padding: 4px; max-width: 200px;">
-          <strong style="display: block; margin-bottom: 4px; font-size: 14px;">Rest Bench</strong>
-          <p style="font-size: 12px; margin: 0; color: #64748b;">${bench.desc || 'A place to rest along your journey.'}</p>
+          <strong style="display: block; margin-bottom: 4px; font-size: calc(14px * var(--font-scale, 1));">Rest Bench</strong>
+          <p style="font-size: calc(12px * var(--font-scale, 1)); margin: 0; color: #64748b;">${bench.desc || 'A place to rest along your journey.'}</p>
         </div>
       `)
       infoWindow.open(map, marker)

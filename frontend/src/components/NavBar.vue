@@ -121,7 +121,7 @@ onMounted(() => {
   position: relative;
   text-decoration: none;
   color: #14233b;
-  font-size: 17px;
+  font-size: calc(17px * var(--font-scale, 1));
   font-weight: 800;
   transition:
     color 0.2s,
@@ -165,7 +165,7 @@ onMounted(() => {
   color: #177747;
   padding: 10px 16px;
   font: inherit;
-  font-size: 18px;
+  font-size: calc(18px * var(--font-scale, 1));
   font-weight: 900;
   cursor: pointer;
   transition:
@@ -224,7 +224,7 @@ onMounted(() => {
   }
 
   .nav-link {
-    font-size: 14px;
+    font-size: calc(14px * var(--font-scale, 1));
   }
 
   .font-size-controls {
@@ -236,7 +236,7 @@ onMounted(() => {
     flex: 1;
     min-width: 0;
     min-height: 46px;
-    font-size: 15px;
+    font-size: calc(15px * var(--font-scale, 1));
   }
 }
 </style>

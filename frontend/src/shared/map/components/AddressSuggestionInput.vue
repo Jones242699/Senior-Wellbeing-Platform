@@ -100,7 +100,7 @@ defineExpose({ focus })
   margin: 0;
   padding: 10px 12px;
   color: #64748b;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 700;
 }
 
@@ -132,14 +132,14 @@ defineExpose({ focus })
 }
 
 .address-suggestion-name {
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   font-weight: 800;
 }
 
 .address-suggestion-address {
   margin-top: 3px;
   color: #64748b;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   line-height: 1.35;
 }
 </style>

@@ -115,7 +115,7 @@ defineEmits([
   background: #f8fafc;
   color: #475569;
   padding: 9px 11px;
-  font-size: 13px;
+  font-size: calc(13px * var(--font-scale, 1));
   font-weight: 700;
 }
 
@@ -146,7 +146,7 @@ defineEmits([
   border: 1px solid #cbd5e1;
   border-radius: 8px 0 0 8px;
   background: #ffffff;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   outline: none;
   padding: 11px 12px;
 }
@@ -171,7 +171,7 @@ defineEmits([
   border-radius: 0 8px 8px 0;
   background: #edf4ef;
   color: #4f7c65;
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale, 1));
   font-weight: 800;
   min-height: 46px;
   min-width: 88px;
@@ -195,7 +195,7 @@ defineEmits([
   background: #4f7c65;
   border-radius: 8px;
   display: flex;
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1));
   justify-content: center;
   margin: 10px 0 0;
   max-width: none;
@@ -240,7 +240,7 @@ defineEmits([
   }
 
   .explore-location-status {
-    font-size: 12px;
+    font-size: calc(12px * var(--font-scale, 1));
     padding: 8px 10px;
   }
 
