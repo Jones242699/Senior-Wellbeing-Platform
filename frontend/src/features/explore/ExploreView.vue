@@ -334,6 +334,7 @@ const {
   mapRenderablePlaces,
   nextTick,
   onDirections: goToDirectionsForPlace,
+  onMoreInfo: openPlaceDetails,
   refreshCrowdDensityOverlay,
   userLocation,
 })

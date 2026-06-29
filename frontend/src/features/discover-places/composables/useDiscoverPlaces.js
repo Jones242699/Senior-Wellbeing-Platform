@@ -161,10 +161,10 @@ export function normalizePlace(input, index, sourceType = 'places') {
       input.formatted_address,
       input.location_address,
       input.locationAddress,
-      `${name}, Melbourne VIC`,
+      '',
     ) || '',
   )
-  const isRichDetailCategory = categoryKey !== 'landmarks'
+  const isRichDetailCategory = ['artworks_fountains', 'memorials_sculptures'].includes(categoryKey)
   const artistOrSubjectRaw = pickFirstDefined(
     input.artist,
     input.artist_name,
@@ -174,16 +174,11 @@ export function normalizePlace(input, index, sourceType = 'places') {
   const yearRaw = pickFirstDefined(input.year, input.year_created, input.period)
   const materialRaw = pickFirstDefined(input.material, input.materials, input.medium)
   const descriptionRaw = pickFirstDefined(input.description, input.summary, input.details)
-  const workTitleRaw = pickFirstDefined(input.work_title, input.workTitle, input.title, name)
-  const resolvedDescription = (() => {
-    if (descriptionRaw !== undefined && descriptionRaw !== null && String(descriptionRaw).trim()) {
-      return String(descriptionRaw)
-    }
-    if (isRichDetailCategory) {
-      return `${name} is a notable Melbourne public work that contributes to the city's cultural streetscape.`
-    }
-    return ''
-  })()
+  const workTitleRaw = pickFirstDefined(input.work_title, input.workTitle, input.title)
+  const resolvedDescription =
+    descriptionRaw !== undefined && descriptionRaw !== null && String(descriptionRaw).trim()
+      ? String(descriptionRaw)
+      : ''
 
   return {
     id: `${sourceType}-${String(
@@ -215,12 +210,10 @@ export function normalizePlace(input, index, sourceType = 'places') {
         '',
       ) || '',
     ),
-    artistOrSubject: isRichDetailCategory
-      ? String(artistOrSubjectRaw || 'City of Melbourne collection')
-      : '',
-    year: isRichDetailCategory ? String(yearRaw || 'Unknown') : '',
-    workTitle: isRichDetailCategory ? String(workTitleRaw || name) : '',
-    material: isRichDetailCategory ? String(materialRaw || 'Mixed materials') : '',
+    artistOrSubject: isRichDetailCategory ? String(artistOrSubjectRaw || '') : '',
+    year: isRichDetailCategory ? String(yearRaw || '') : '',
+    workTitle: isRichDetailCategory ? String(workTitleRaw || '') : '',
+    material: isRichDetailCategory ? String(materialRaw || '') : '',
     description: resolvedDescription,
   }
 }

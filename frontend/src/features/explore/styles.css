@@ -193,43 +193,21 @@
 }
 
 .place-map-popup {
-  width: 280px;
+  width: 260px;
   max-width: 72vw;
   color: #1f2937;
 }
 
-.place-popup-header {
-  display: flex;
-  gap: 10px;
+.place-popup-pin {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.2);
+  flex: 0 0 auto;
+  margin-top: 3px;
 }
 
-.place-popup-icon {
-  width: 54px;
-  height: 54px;
-  border: 1px solid #d1e3d5;
-  border-radius: 8px;
-  background: #edf7ef;
-  background-position: center;
-  background-size: cover;
-  color: #166534;
-  display: grid;
-  flex-shrink: 0;
-  font-size: calc(26px * var(--font-scale, 1));
-  place-items: center;
-}
-
-.place-popup-title {
-  min-width: 0;
-}
-
-.place-popup-title h3 {
-  margin: 0;
-  color: #111827;
-  font-size: calc(16px * var(--font-scale, 1));
-  line-height: 1.25;
-}
-
-.place-popup-title p,
 .place-popup-loading {
   margin: 4px 0 0;
   color: #64748b;
@@ -237,39 +215,9 @@
   font-weight: 700;
 }
 
-.place-popup-line {
-  margin: 8px 0 0;
-  color: #334155;
-  font-size: calc(12px * var(--font-scale, 1));
-  line-height: 1.4;
-}
-
-.place-popup-line strong {
-  color: #1f2937;
-  font-weight: 800;
-}
-
 .place-popup-desc {
   max-height: 84px;
   overflow-y: auto;
-}
-
-.place-popup-direction-btn {
-  width: 100%;
-  border: 0;
-  border-radius: 8px;
-  background: #166534;
-  color: #ffffff;
-  cursor: pointer;
-  font-size: calc(12px * var(--font-scale, 1));
-  font-weight: 800;
-  margin-top: 10px;
-  min-height: 34px;
-  padding: 8px 10px;
-}
-
-.place-popup-direction-btn:hover {
-  background: #14532d;
 }
 
 .support-map-popup {
